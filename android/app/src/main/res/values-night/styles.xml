@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Dark Theme applied to the Android Window while the process is starting -->
+    <style name="LaunchTheme" parent="Theme.AppCompat.NoActionBar">
+        <!-- Sets a dark background for the splash screen -->
+        <item name="android:windowBackground">@drawable/launch_background</item>
+        <!-- Forces the status bar and navigation bar to respect dark mode aesthetics -->
+        <item name="android:windowLightStatusBar">false</item>
+    </style>
+
+    <!-- Dark Theme applied as soon as the first frame of Flutter UI renders -->
+    <style name="NormalTheme" parent="Theme.AppCompat.NoActionBar">
+        <item name="android:windowBackground">?android:colorBackground</item>
+    </style>
+</resources>

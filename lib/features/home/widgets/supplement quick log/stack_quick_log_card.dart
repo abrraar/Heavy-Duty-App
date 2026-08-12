@@ -1,0 +1,106 @@
+import 'package:flutter/material.dart';
+import 'package:heavy_duty/core/theme/app_colors.dart';
+import 'package:heavy_duty/core/theme/app_text_styles.dart';
+import 'package:heavy_duty/features/tracker/supplement/model/supplement_stack.dart';
+
+class StackQuickLogCard extends StatelessWidget {
+  final SupplementStack stack;
+  final VoidCallback onTap;
+
+  const StackQuickLogCard({
+    super.key,
+    required this.stack,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final bool isCompact = constraints.maxWidth < 170;
+        final double padding = isCompact ? 12 : 16;
+
+        return GestureDetector(
+          onTap: onTap,
+          child: Container(
+            width: isCompact ? 150 : 200,
+            margin: const EdgeInsets.only(right: 12),
+            padding: EdgeInsets.all(padding),
+            decoration: BoxDecoration(
+              color: AppColors.surfaceLight.withOpacity(0.4),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Colors.white.withOpacity(0.08)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppColors.crimson.withOpacity(0.15),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(
+                        "STACK",
+                        style: AppTextStyles.labelSmall.copyWith(
+                          fontSize: isCompact ? 8 : 10,
+                          color: AppColors.crimson,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                    if (stack.sharedBy != null)
+                      Icon(Icons.share_rounded, color: Colors.blueAccent, size: isCompact ? 12 : 14),
+                  ],
+                ),
+                SizedBox(height: isCompact ? 8 : 12),
+                Text(
+                  stack.name.toUpperCase(),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTextStyles.labelSmall.copyWith(
+                    fontSize: isCompact ? 12 : 15,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+                const Spacer(),
+                Container(
+                  padding: const EdgeInsets.only(top: 8),
+                  decoration: BoxDecoration(
+                    border: Border(
+                      top: BorderSide(color: Colors.white.withOpacity(0.05)),
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        "${stack.items.length} ITEMS",
+                        style: AppTextStyles.labelSmall.copyWith(
+                          fontSize: isCompact ? 9 : 11,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                      Icon(
+                        Icons.arrow_forward_ios_rounded,
+                        size: isCompact ? 10 : 12,
+                        color: AppColors.crimson,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+}

@@ -1,0 +1,111 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:heavy_duty/core/theme/app_colors.dart';
+import 'package:heavy_duty/core/theme/app_text_styles.dart';
+import 'package:heavy_duty/features/tracker/calorie/model/saved_meal.dart';
+
+class MealQuickLogCard extends StatelessWidget {
+  final SavedMeal meal;
+  final VoidCallback onTap;
+
+  const MealQuickLogCard({
+    super.key,
+    required this.meal,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 145.w,
+        margin: EdgeInsets.only(right: 16.w),
+        padding: EdgeInsets.all(16.r),
+        decoration: BoxDecoration(
+          color: AppColors.surfaceLight.withOpacity(0.6),
+          borderRadius: BorderRadius.circular(24.r),
+          border: Border.all(color: Colors.white.withOpacity(0.1)),
+          boxShadow: [
+            BoxShadow(color: Colors.black26, blurRadius: 6, offset: Offset(0, 3)),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Container(
+              padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
+              decoration: BoxDecoration(
+                color: Colors.greenAccent.withOpacity(0.2),
+                borderRadius: BorderRadius.circular(8.r),
+              ),
+              child: Text(
+                "LOG MEAL",
+                style: AppTextStyles.labelSmall.copyWith(
+                  fontSize: 10.sp,
+                  fontWeight: FontWeight.w900,
+                  color: Colors.greenAccent,
+                ),
+              ),
+            ),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  meal.name.toUpperCase(),
+                  style: AppTextStyles.labelSmall.copyWith(
+                    fontSize: 14.sp,
+                    fontWeight: FontWeight.w900,
+                    color: Colors.white,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                SizedBox(height: 4.h),
+                Row(
+                  children: [
+                    Icon(Icons.local_fire_department_rounded, color: AppColors.crimson, size: 16.r),
+                    SizedBox(width: 4.w),
+                    Text(
+                      "${meal.calories.toInt()} KCAL",
+                      style: AppTextStyles.labelSmall.copyWith(
+                        fontSize: 11.sp,
+                        color: Colors.white70,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+            Container(
+              padding: EdgeInsets.only(top: 8.h),
+              decoration: BoxDecoration(
+                border: Border(top: BorderSide(color: Colors.white.withOpacity(0.1))),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  _buildMiniMacro("${meal.protein?.toInt() ?? '-'}P", Colors.blueAccent),
+                  _buildMiniMacro("${meal.carbs?.toInt() ?? '-'}C", Colors.greenAccent),
+                  _buildMiniMacro("${meal.fats?.toInt() ?? '-'}F", Colors.orangeAccent),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMiniMacro(String label, Color color) {
+    return Text(
+      label,
+      style: AppTextStyles.labelSmall.copyWith(
+        fontSize: 10.sp,
+        color: color,
+        fontWeight: FontWeight.w900,
+      ),
+    );
+  }
+}

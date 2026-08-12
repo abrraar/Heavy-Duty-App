@@ -1,0 +1,102 @@
+import 'dart:convert';
+
+import 'package:uuid/uuid.dart';
+import 'exercise.dart';
+
+enum WorkoutStatus { pending, completed }
+
+class Workout {
+  final String id;
+  final String cycleId;
+  final String name;
+  final int order;
+  final WorkoutStatus status;
+  final DateTime? completedAt;
+  final String? note;
+  final List<Exercise> exercises;
+  final int isSynced;
+
+  Workout({
+    String? id,
+    required this.cycleId,
+    required this.name,
+    required this.order,
+    this.status = WorkoutStatus.pending,
+    this.completedAt,
+    this.note,
+    this.exercises = const [],
+    this.isSynced = 1,
+  }) : id = id ?? const Uuid().v4();
+
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'cycle_id': cycleId,
+      'name': name,
+      'workout_order': order,
+      'status': status.name,
+      'completed_at': completedAt?.toIso8601String(),
+      'note': note,
+      'is_synced': isSynced,
+    };
+  }
+
+  factory Workout.fromMap(Map<String, dynamic> map, [List<Exercise> exercises = const []]) {
+    return Workout(
+      id: map['id']?.toString() ?? const Uuid().v4(),
+      cycleId: map['cycle_id']?.toString() ?? "",
+      name: map['name']?.toString() ?? "Untitled Workout",
+      order: (map['workout_order'] as num?)?.toInt() ?? 0,
+      status: WorkoutStatus.values.firstWhere(
+        (e) => e.name == map['status'],
+        orElse: () => WorkoutStatus.pending,
+      ),
+      completedAt: map['completed_at'] != null ? DateTime.tryParse(map['completed_at'].toString()) : null,
+      note: map['note']?.toString(),
+      exercises: exercises,
+      isSynced: (map['is_synced'] as num?)?.toInt() ?? 1,
+    );
+  }
+
+  static List<Exercise> _parseExercises(dynamic json) {
+    if (json == null) return [];
+    
+    List<dynamic> list;
+    if (json is String) {
+      list = jsonDecode(json) as List;
+    } else if (json is List) {
+      list = json;
+    } else {
+      return [];
+    }
+    
+    return list.map((e) => Exercise.fromJson(e as Map<String, dynamic>)).toList();
+  }
+
+  Map<String, dynamic> toJson() => toMap();
+  factory Workout.fromJson(Map<String, dynamic> json) => Workout.fromMap(json);
+
+  Workout copyWith({
+    String? id,
+    String? cycleId,
+    String? name,
+    int? order,
+    WorkoutStatus? status,
+    DateTime? completedAt,
+    String? note,
+    List<Exercise>? exercises,
+    int? isSynced,
+  }) {
+    return Workout(
+      id: id ?? this.id,
+      cycleId: cycleId ?? this.cycleId,
+      name: name ?? this.name,
+      order: order ?? this.order,
+      status: status ?? this.status,
+      completedAt: completedAt ?? this.completedAt,
+      note: note ?? this.note,
+      exercises: exercises ?? this.exercises,
+      isSynced: isSynced ?? this.isSynced,
+    );
+  }
+}

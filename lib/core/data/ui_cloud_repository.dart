@@ -1,0 +1,33 @@
+import 'package:supabase_flutter/supabase_flutter.dart';
+
+class UiCloudRepository {
+  final _supabase = Supabase.instance.client;
+
+  Future<Map<String, dynamic>?> getSettings() async {
+    try {
+      final userId = _supabase.auth.currentUser?.id;
+      if (userId == null) return null;
+
+      final response = await _supabase
+          .from('ui_settings')
+          .select()
+          .eq('user_id', userId)
+          .maybeSingle();
+      
+      return response;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  Future<void> saveSettings(Map<String, dynamic> settings) async {
+    final userId = _supabase.auth.currentUser?.id;
+    if (userId == null) return;
+
+    final data = Map<String, dynamic>.from(settings);
+    data['user_id'] = userId;
+    data.remove('id'); // ID is handled by Supabase/Constraint
+
+    await _supabase.from('ui_settings').upsert(data);
+  }
+}

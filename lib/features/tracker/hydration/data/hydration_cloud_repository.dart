@@ -1,0 +1,95 @@
+// lib/features/tracker/hydration/data/hydration_cloud_repository.dart
+
+import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import '../model/hydration_log.dart';
+import '../model/hydration_settings.dart';
+
+class HydrationCloudRepository {
+  final SupabaseClient _supabase = Supabase.instance.client;
+
+  String? get _currentUserId => _supabase.auth.currentUser?.id;
+
+  // --- Logs ---
+
+  Future<List<HydrationLog>?> getAllLogs() async {
+    final uid = _currentUserId;
+    if (uid == null) return null;
+
+    try {
+      final List<Map<String, dynamic>> response = await _supabase
+          .from('hydration_logs')
+          .select()
+          .eq('user_id', uid)
+          .order('timestamp', ascending: false);
+
+      return response.map((map) => HydrationLog.fromMap(map)).toList();
+    } catch (e) {
+      debugPrint("Cloud Hydration Error (getAllLogs): $e");
+      rethrow;
+    }
+  }
+
+  Future<void> insertLog(HydrationLog log) async {
+    final uid = _currentUserId;
+    if (uid == null) return;
+
+    try {
+      final data = log.toMap();
+      data['user_id'] = uid;
+      data.remove('is_synced');
+      await _supabase.from('hydration_logs').upsert(data, onConflict: 'id');
+    } catch (e) {
+      debugPrint("Cloud Hydration Error (insertLog): $e");
+    }
+  }
+
+  Future<void> deleteLog(String id) async {
+    final uid = _currentUserId;
+    if (uid == null) return;
+
+    try {
+      await _supabase.from('hydration_logs').delete().eq('id', id).eq('user_id', uid);
+    } catch (e) {
+      debugPrint("Cloud Hydration Error (deleteLog): $e");
+    }
+  }
+
+  // --- Settings ---
+
+  Future<HydrationSettings?> getSettings() async {
+    final uid = _currentUserId;
+    if (uid == null) return null;
+
+    try {
+      final response = await _supabase
+          .from('hydration_settings')
+          .select()
+          .eq('user_id', uid)
+          .maybeSingle();
+
+      if (response != null) {
+        return HydrationSettings.fromMap(response);
+      }
+    } catch (e) {
+      debugPrint("Cloud Hydration Error (getSettings): $e");
+    }
+    return null;
+  }
+
+  Future<void> saveSettings(HydrationSettings settings) async {
+    final uid = _currentUserId;
+    if (uid == null) return;
+
+    try {
+      final data = settings.toMap();
+      data['user_id'] = uid;
+      // We don't need 'id' in the map for cloud settings if user_id is PK
+      data.remove('id'); 
+      data.remove('is_synced');
+      await _supabase.from('hydration_settings').upsert(data, onConflict: 'user_id');
+    } catch (e) {
+      debugPrint("Cloud Hydration Error (saveSettings): $e");
+    }
+  }
+}
