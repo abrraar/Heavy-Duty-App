@@ -43,3 +43,12 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Sensitive data / Secrets
+.env*
+local.properties
+google-services.json
+GoogleService-Info.plist
+*.keystore
+*.jks
+signing.properties

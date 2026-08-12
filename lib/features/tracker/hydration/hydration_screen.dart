@@ -11,7 +11,9 @@ import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import 'model/hydration_log.dart';
 import 'provider/hydration_provider.dart';
-import 'package:heavy_duty/features/main_wrapper.dart'; 
+import 'package:heavy_duty/core/widgets/elite_confirm_dialog.dart';
+import 'package:heavy_duty/core/widgets/elite_snackbar.dart';
+import 'package:heavy_duty/features/main_wrapper.dart';
 import 'widgets/sheets/hydration_notification_sheet.dart';
 
 class _HydrationFilter {
@@ -295,105 +297,11 @@ class _HydrationScreenState extends State<HydrationScreen>
   }
 
   Future<bool?> _showDeleteLogConfirmation(String amount) async {
-    return showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: AppColors.surface,
-        surfaceTintColor: Colors.transparent,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(28.r),
-        ),
-        title: Column(
-          children: [
-            Container(
-              padding: EdgeInsets.all(12.r),
-              decoration: BoxDecoration(
-                color: AppColors.error.withValues(alpha: 0.1),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(
-                Icons.delete_forever_rounded,
-                color: AppColors.error,
-                size: 28.r,
-              ),
-            ),
-            SizedBox(height: 16.h),
-            Text(
-              "DELETE RECORD",
-              style: AppTextStyles.h3.copyWith(
-                fontSize: 16.sp,
-                letterSpacing: 1.2,
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              "ARE YOU SURE YOU WANT TO PERMANENTLY REMOVE THE '$amount' ENTRY?",
-              textAlign: TextAlign.center,
-              style: AppTextStyles.labelMedium.copyWith(
-                color: AppColors.textSecondary,
-                height: 1.4,
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          Padding(
-            padding: EdgeInsets.fromLTRB(12.w, 0, 12.w, 16.h),
-            child: Row(
-              children: [
-                Expanded(
-                  child: GestureDetector(
-                    onTap: () => Navigator.pop(context, false),
-                    child: Container(
-                      padding: EdgeInsets.symmetric(vertical: 12.h),
-                      decoration: BoxDecoration(
-                        color: Colors.transparent,
-                        borderRadius: BorderRadius.circular(12.r),
-                        border: Border.all(color: AppColors.white.withOpacity(0.1)),
-                      ),
-                      alignment: Alignment.center,
-                      child: Text(
-                        "CANCEL",
-                        style: AppTextStyles.labelMedium.copyWith(
-                          color: AppColors.textSecondary,
-                          fontWeight: FontWeight.w400,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-                SizedBox(width: 12.w),
-                Expanded(
-                  child: GestureDetector(
-                    onTap: () => Navigator.pop(context, true),
-                    child: Container(
-                      padding: EdgeInsets.symmetric(vertical: 12.h),
-                      decoration: BoxDecoration(
-                        color: AppColors.error.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(12.r),
-                        border: Border.all(color: AppColors.error.withValues(alpha: 0.5)),
-                      ),
-                      alignment: Alignment.center,
-                      child: Text(
-                        "DELETE",
-                        style: AppTextStyles.labelMedium.copyWith(
-                          color: AppColors.error,
-                          fontWeight: FontWeight.w400,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
+    return EliteConfirmDialog.show(
+      context,
+      title: "DELETE RECORD",
+      message: "ARE YOU SURE YOU WANT TO PERMANENTLY REMOVE THE '$amount' ENTRY?",
+      icon: Icons.delete_forever_rounded,
     );
   }
 
@@ -1046,9 +954,7 @@ class _HydrationScreenState extends State<HydrationScreen>
               provider.addWater(amountInMl, timestamp: finalTimestamp);
               _amountController.clear();
               if (mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Water intake recorded!'), duration: Duration(seconds: 1)),
-                );
+                EliteSnackbar.show(context, 'Water intake recorded!');
               }
             },
             child: Container(

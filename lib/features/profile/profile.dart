@@ -1,4 +1,4 @@
-// lib/features/profile/profile_screen.dart
+// lib/features/profile/profile.dart
 
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -15,38 +15,6 @@ import '../tracker/body_composition/model/body_comp_log.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
-
-  void _editField(BuildContext context, String title, String initialValue, Function(String) onSave) {
-    final controller = TextEditingController(text: initialValue);
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: AppColors.surface,
-        title: Text("EDIT $title", style: AppTextStyles.h3),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          style: const TextStyle(color: Colors.white),
-          decoration: InputDecoration(
-            hintText: "ENTER $title",
-            hintStyle: AppTextStyles.labelSmall.copyWith(color: Colors.white38),
-            enabledBorder: const UnderlineInputBorder(borderSide: BorderSide(color: AppColors.crimson)),
-            focusedBorder: const UnderlineInputBorder(borderSide: BorderSide(color: AppColors.crimson)),
-          ),
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text("CANCEL")),
-          TextButton(
-            onPressed: () {
-              onSave(controller.text.trim());
-              Navigator.pop(context);
-            },
-            child: const Text("SAVE", style: TextStyle(color: AppColors.crimson)),
-          ),
-        ],
-      ),
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -96,26 +64,25 @@ class ProfileScreen extends StatelessWidget {
               _buildGlassCard(
                 title: 'PROFILE INFORMATION',
                 icon: Icons.person_rounded,
+                action: GestureDetector(
+                  onTap: () => context.push(AppRoutes.editProfile),
+                  child: Container(
+                    padding: EdgeInsets.all(8.r),
+                    decoration: BoxDecoration(
+                      color: AppColors.crimson.withOpacity(0.1),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(Icons.edit_rounded, color: AppColors.crimson, size: 18.r),
+                  ),
+                ),
                 child: Column(
                   children: [
-                    _buildInfoTile(
-                      'Name', 
-                      authProv.displayName,
-                      onTap: () => _editField(context, "NAME", authProv.displayName, (val) => authProv.updateUserProfile(name: val)),
-                    ),
-                    _buildInfoTile(
-                      'Username', 
-                      authProv.username,
-                      onTap: () => _editField(context, "USERNAME", authProv.username, (val) => authProv.updateUserProfile(username: val)),
-                    ),
+                    _buildInfoTile('Name', authProv.displayName),
+                    _buildInfoTile('Username', authProv.username),
                     _buildInfoTile('Email', authProv.currentUser?.email ?? "N/A"),
                     _buildInfoTile(
                       'Height', 
                       "${height.toStringAsFixed(0)} cm",
-                      onTap: () => _editField(context, "HEIGHT", height.toStringAsFixed(0), (val) {
-                        final h = double.tryParse(val);
-                        if (h != null) authProv.updateUserProfile(height: h);
-                      }),
                       isLast: true,
                     ),
                   ],
@@ -123,7 +90,7 @@ class ProfileScreen extends StatelessWidget {
               ),
               SizedBox(height: 20.h),
 
-              // 2. Body Metrics Grid (More visual than a list)
+              // 2. Body Metrics Grid
               _buildGlassCard(
                 title: 'BODY COMPOSITION',
                 icon: Icons.analytics_outlined,
@@ -144,7 +111,7 @@ class ProfileScreen extends StatelessWidget {
               ),
               SizedBox(height: 20.h),
 
-              // 3. Strength Records (Premium Tier List)
+              // 3. Strength Records (Elite Tier List)
               _buildGlassCard(
                 title: 'ELITE RECORDS',
                 icon: Icons.emoji_events_rounded,
@@ -166,34 +133,6 @@ class ProfileScreen extends StatelessWidget {
                 ),
               ),
               
-              SizedBox(height: 30.h),
-              
-              // Sign Out Button
-              GestureDetector(
-                onTap: () {
-                  context.push(AppRoutes.createProfilePersonal);
-                },
-                child: Container(
-                  width: double.infinity,
-                  padding: EdgeInsets.symmetric(vertical: 16.h),
-                  decoration: BoxDecoration(
-                    color: AppColors.crimson.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(16.r),
-                    border: Border.all(color: AppColors.crimson.withValues(alpha: 0.3)),
-                  ),
-                  child: Center(
-                    child: Text(
-                      "VIEW CREATE PROFILE",
-                      style: AppTextStyles.labelMedium.copyWith(
-                        color: AppColors.crimson,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 2,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-              
               SizedBox(height: 50.h),
             ],
           ),
@@ -204,7 +143,7 @@ class ProfileScreen extends StatelessWidget {
 
   // --- UI Components ---
 
-  Widget _buildGlassCard({required String title, required IconData icon, required Widget child}) {
+  Widget _buildGlassCard({required String title, required IconData icon, required Widget child, Widget? action}) {
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
@@ -218,10 +157,16 @@ class ProfileScreen extends StatelessWidget {
           Padding(
             padding: EdgeInsets.fromLTRB(20.w, 20.h, 20.w, 10.h),
             child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Icon(icon, color: AppColors.crimson, size: 20.r),
-                SizedBox(width: 10.w),
-                Text(title, style: AppTextStyles.labelSmall.copyWith(letterSpacing: 1.2)),
+                Row(
+                  children: [
+                    Icon(icon, color: AppColors.crimson, size: 20.r),
+                    SizedBox(width: 10.w),
+                    Text(title, style: AppTextStyles.labelSmall.copyWith(letterSpacing: 1.2)),
+                  ],
+                ),
+                if (action != null) action,
               ],
             ),
           ),
@@ -231,29 +176,18 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildInfoTile(String label, String value, {bool isLast = false, VoidCallback? onTap}) {
-    return InkWell(
-      onTap: onTap,
-      child: Container(
-        padding: EdgeInsets.symmetric(vertical: 12.h),
-        decoration: BoxDecoration(
-          border: isLast ? null : Border(bottom: BorderSide(color: Colors.white.withOpacity(0.05))),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(label, style: AppTextStyles.labelSmall.copyWith(color: Colors.white38)),
-            Row(
-              children: [
-                Text(value, style: AppTextStyles.labelMedium.copyWith(color: Colors.white)),
-                if (onTap != null) ...[
-                  SizedBox(width: 8.w),
-                  Icon(Icons.edit_rounded, color: Colors.white24, size: 14.r),
-                ],
-              ],
-            ),
-          ],
-        ),
+  Widget _buildInfoTile(String label, String value, {bool isLast = false}) {
+    return Container(
+      padding: EdgeInsets.symmetric(vertical: 12.h),
+      decoration: BoxDecoration(
+        border: isLast ? null : Border(bottom: BorderSide(color: Colors.white.withOpacity(0.05))),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label, style: AppTextStyles.labelSmall.copyWith(color: Colors.white38)),
+          Text(value, style: AppTextStyles.labelMedium.copyWith(color: Colors.white)),
+        ],
       ),
     );
   }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:heavy_duty/core/theme/app_colors.dart';
 import 'package:heavy_duty/core/theme/app_text_styles.dart';
+import 'package:heavy_duty/core/widgets/elite_confirm_dialog.dart';
 import 'package:heavy_duty/features/tracker/cycle_tracker/exercise_list_screen.dart';
 import 'package:heavy_duty/features/tracker/cycle_tracker/provider/cycle_provider.dart';
 import 'package:provider/provider.dart';
@@ -9,6 +10,7 @@ import 'package:intl/intl.dart';
 import 'dart:async';
 import 'package:share_plus/share_plus.dart';
 import 'package:heavy_duty/features/auth/provider/auth_provider.dart';
+import 'package:heavy_duty/core/widgets/elite_snackbar.dart';
 import 'model/training_cycle.dart';
 import 'model/workout.dart';
 
@@ -774,9 +776,7 @@ class _WorkoutListScreenState extends State<WorkoutListScreen> {
                 final authProvider = context.read<AuthProvider>();
                 final userName = authProvider.displayName;
                 
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text("GENERATING SHAREABLE LINK..."), duration: Duration(seconds: 1)),
-                );
+                EliteSnackbar.show(context, "GENERATING SHAREABLE LINK...");
 
                 final link = await provider.generateShareableLink(widget.cycleId, userName);
                 
@@ -787,9 +787,7 @@ class _WorkoutListScreenState extends State<WorkoutListScreen> {
                   );
                 } else {
                   if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text("FAILED TO GENERATE LINK. PLEASE TRY AGAIN.")),
-                    );
+                    EliteSnackbar.show(context, "FAILED TO GENERATE LINK. PLEASE TRY AGAIN.", isError: true);
                   }
                 }
               },
@@ -830,105 +828,13 @@ class _WorkoutListScreenState extends State<WorkoutListScreen> {
       padding: EdgeInsets.symmetric(horizontal: 24.w),
       child: GestureDetector(
         onTap: allComplete ? () async {
-          final confirm = await showDialog<bool>(
-            context: context,
-            builder: (ctx) => AlertDialog(
-              backgroundColor: AppColors.surface,
-              surfaceTintColor: Colors.transparent,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(28.r),
-              ),
-              title: Column(
-                children: [
-                  Container(
-                    padding: EdgeInsets.all(12.r),
-                    decoration: BoxDecoration(
-                      color: Colors.greenAccent.withOpacity(0.1),
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(
-                      Icons.check_circle_rounded,
-                      color: Colors.greenAccent,
-                      size: 28.r,
-                    ),
-                  ),
-                  SizedBox(height: 16.h),
-                  Text(
-                    "FINISH TRAINING CYCLE?",
-                    style: AppTextStyles.h3.copyWith(
-                      fontSize: 16.sp,
-                      letterSpacing: 1.2,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                ],
-              ),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    "CONGRATULATIONS. ALL SESSIONS COMPLETED. WOULD YOU LIKE TO ARCHIVE THIS CYCLE TO HISTORY?",
-                    textAlign: TextAlign.center,
-                    style: AppTextStyles.labelSmall.copyWith(
-                      color: AppColors.textSecondary,
-                      height: 1.4,
-                    ),
-                  ),
-                ],
-              ),
-              actions: [
-                Padding(
-                  padding: EdgeInsets.fromLTRB(12.w, 0, 12.w, 16.h),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: GestureDetector(
-                          onTap: () => Navigator.pop(ctx, false),
-                          child: Container(
-                            padding: EdgeInsets.symmetric(vertical: 12.h),
-                            decoration: BoxDecoration(
-                              color: Colors.transparent,
-                              borderRadius: BorderRadius.circular(12.r),
-                              border: Border.all(color: AppColors.white.withOpacity(0.1)),
-                            ),
-                            alignment: Alignment.center,
-                            child: Text(
-                              "CANCEL",
-                              style: AppTextStyles.labelSmall.copyWith(
-                                color: AppColors.textSecondary,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                      SizedBox(width: 12.w),
-                      Expanded(
-                        child: GestureDetector(
-                          onTap: () => Navigator.pop(ctx, true),
-                          child: Container(
-                            padding: EdgeInsets.symmetric(vertical: 12.h),
-                            decoration: BoxDecoration(
-                              color: Colors.greenAccent.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(12.r),
-                              border: Border.all(color: Colors.greenAccent.withOpacity(0.5)),
-                            ),
-                            alignment: Alignment.center,
-                            child: Text(
-                              "FINISH",
-                              style: AppTextStyles.labelSmall.copyWith(
-                                color: Colors.greenAccent,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
+          final confirm = await EliteConfirmDialog.show(
+            context,
+            title: "FINISH TRAINING CYCLE?",
+            message: "CONGRATULATIONS. ALL SESSIONS COMPLETED. WOULD YOU LIKE TO ARCHIVE THIS CYCLE TO HISTORY?",
+            confirmText: "ARCHIVE",
+            icon: Icons.check_circle_rounded,
+            confirmColor: Colors.greenAccent,
           );
           
           if (confirm == true) {
@@ -1547,7 +1453,8 @@ class _WorkoutListScreenState extends State<WorkoutListScreen> {
           SizedBox(height: 12.h),
           TextField(
             controller: _cycleNoteController,
-            maxLines: 3,
+            minLines: 3,
+            maxLines: null,
             style: const TextStyle(color: AppColors.white),
             decoration: InputDecoration(
               hintText: "NOTES ON SYSTEMIC FATIGUE...",

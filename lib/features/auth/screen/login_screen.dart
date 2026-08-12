@@ -155,7 +155,7 @@ class _LoginScreenState extends State<LoginScreen> {
         ],
         AuthInputField(
           controller: _emailController,
-          hint: 'EMAIL ADDRESS',
+          hint: 'USERNAME OR EMAIL',
           icon: Icons.person_outline,
           enabled: !isLoading,
           isWideLayout: isWideLayout,

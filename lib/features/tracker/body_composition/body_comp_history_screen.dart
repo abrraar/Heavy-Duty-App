@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:heavy_duty/core/widgets/elite_confirm_dialog.dart';
 import 'package:heavy_duty/features/tracker/body_composition/provider/body_comp_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:heavy_duty/core/theme/app_colors.dart';
@@ -114,69 +115,10 @@ class _BodyCompHistoryScreenState extends State<BodyCompHistoryScreen> {
       key: Key(groupKey),
       direction: DismissDirection.endToStart,
       confirmDismiss: (direction) async {
-        return await showDialog<bool>(
-          context: context,
-          builder: (ctx) => AlertDialog(
-            backgroundColor: AppColors.surface,
-            surfaceTintColor: Colors.transparent,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28.r)),
-            title: Column(
-              children: [
-                Container(
-                  padding: EdgeInsets.all(12.r),
-                  decoration: BoxDecoration(color: AppColors.crimson.withOpacity(0.1), shape: BoxShape.circle),
-                  child: Icon(Icons.delete_forever_rounded, color: AppColors.crimson, size: 28.r),
-                ),
-                SizedBox(height: 16.h),
-                Text("DELETE RECORD", style: AppTextStyles.h3.copyWith(fontSize: 16.sp, letterSpacing: 1.2)),
-              ],
-            ),
-            content: Text(
-              "ARE YOU SURE YOU WANT TO PERMANENTLY REMOVE ALL METRICS FOR THIS ENTRY?",
-              textAlign: TextAlign.center,
-              style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary, height: 1.4),
-            ),
-            actions: [
-              Padding(
-                padding: EdgeInsets.fromLTRB(12.w, 0, 12.w, 16.h),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: GestureDetector(
-                        onTap: () => Navigator.pop(ctx, false),
-                        child: Container(
-                          padding: EdgeInsets.symmetric(vertical: 12.h),
-                          decoration: BoxDecoration(
-                            color: Colors.transparent,
-                            borderRadius: BorderRadius.circular(12.r),
-                            border: Border.all(color: AppColors.white.withOpacity(0.1)),
-                          ),
-                          alignment: Alignment.center,
-                          child: Text("CANCEL", style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary, fontWeight: FontWeight.bold)),
-                        ),
-                      ),
-                    ),
-                    SizedBox(width: 12.w),
-                    Expanded(
-                      child: GestureDetector(
-                        onTap: () => Navigator.pop(ctx, true),
-                        child: Container(
-                          padding: EdgeInsets.symmetric(vertical: 12.h),
-                          decoration: BoxDecoration(
-                            color: AppColors.crimson.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(12.r),
-                            border: Border.all(color: AppColors.crimson.withOpacity(0.5)),
-                          ),
-                          alignment: Alignment.center,
-                          child: Text("DELETE", style: AppTextStyles.labelSmall.copyWith(color: AppColors.crimson, fontWeight: FontWeight.bold)),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
+        return await EliteConfirmDialog.show(
+          context,
+          title: "DELETE RECORD",
+          message: "ARE YOU SURE YOU WANT TO PERMANENTLY REMOVE ALL METRICS FOR THIS ENTRY?",
         );
       },
       onDismissed: (_) async {
@@ -246,17 +188,10 @@ class _BodyCompHistoryScreenState extends State<BodyCompHistoryScreen> {
   Widget _buildStatItem(String label, String value, BodyCompLog? log, BodyCompProvider provider) {
     return GestureDetector(
       onLongPress: log == null ? null : () async {
-        final confirm = await showDialog<bool>(
-          context: context,
-          builder: (ctx) => AlertDialog(
-            backgroundColor: AppColors.surface,
-            title: Text("Delete Entry?", style: AppTextStyles.h3),
-            content: Text("Remove this $label record?"),
-            actions: [
-              TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text("CANCEL")),
-              TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text("DELETE", style: TextStyle(color: AppColors.crimson))),
-            ],
-          ),
+        final confirm = await EliteConfirmDialog.show(
+          context,
+          title: "DELETE ENTRY",
+          message: "REMOVE THIS $label RECORD?",
         );
         if (confirm == true) {
           await provider.deleteLog(log.id, log.type);

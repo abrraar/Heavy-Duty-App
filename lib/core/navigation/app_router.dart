@@ -15,6 +15,10 @@ import 'package:heavy_duty/features/home/home_screen.dart';
 import 'package:heavy_duty/features/main_wrapper.dart';
 import 'package:heavy_duty/features/profile/create_acc_perso_screen.dart';
 import 'package:heavy_duty/features/profile/profile.dart';
+import 'package:heavy_duty/features/profile/edit_profile_screen.dart';
+import 'package:heavy_duty/features/profile/change_username_screen.dart';
+import 'package:heavy_duty/features/profile/change_password_screen.dart';
+import 'package:heavy_duty/features/profile/manage_email_screen.dart';
 import 'package:heavy_duty/features/splash/splash_screen.dart';
 import 'package:heavy_duty/features/tracker/tracker_screen.dart';
 import 'package:heavy_duty/features/tracker/calorie/calorie_screen.dart';
@@ -254,6 +258,28 @@ final appRouter = GoRouter(
         GoRoute(
           path: AppRoutes.profile,
           builder: (context, state) => const ProfileScreen(),
+          routes: [
+            GoRoute(
+              path: 'edit',
+              parentNavigatorKey: _rootNavigatorKey,
+              builder: (context, state) => const EditProfileScreen(),
+            ),
+            GoRoute(
+              path: 'change-username',
+              parentNavigatorKey: _rootNavigatorKey,
+              builder: (context, state) => const ChangeUsernameScreen(),
+            ),
+            GoRoute(
+              path: 'change-password',
+              parentNavigatorKey: _rootNavigatorKey,
+              builder: (context, state) => const ChangePasswordScreen(),
+            ),
+            GoRoute(
+              path: 'manage-email',
+              parentNavigatorKey: _rootNavigatorKey,
+              builder: (context, state) => const ManageEmailScreen(),
+            ),
+          ],
         ),
       ],
     ),

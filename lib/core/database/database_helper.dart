@@ -20,7 +20,7 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 4, 
+      version: 5, 
       onCreate: _createDB,
       onUpgrade: _onUpgrade,
       onConfigure: _onConfigure,
@@ -360,6 +360,31 @@ class DatabaseHelper {
         is_synced INTEGER DEFAULT 1
       )
     ''');
+
+    // 22. User Emails Table
+    await db.execute('''
+      CREATE TABLE user_emails (
+        id TEXT PRIMARY KEY,
+        email TEXT NOT NULL,
+        is_verified INTEGER DEFAULT 0,
+        is_synced INTEGER DEFAULT 1
+      )
+    ''');
+
+    // 23. User Profile Table (Local Mirror of Supabase Profiles)
+    await db.execute('''
+      CREATE TABLE profiles (
+        id TEXT PRIMARY KEY,
+        full_name TEXT,
+        username TEXT,
+        birthday TEXT,
+        gender TEXT,
+        height REAL,
+        weight REAL,
+        email TEXT,
+        is_synced INTEGER DEFAULT 1
+      )
+    ''');
   }
 
   Future _onUpgrade(Database db, int oldVersion, int newVersion) async {
@@ -373,6 +398,16 @@ class DatabaseHelper {
     }
     if (oldVersion < 4) {
       await db.execute('ALTER TABLE exercise_templates ADD COLUMN shared_by TEXT');
+    }
+    if (oldVersion < 5) {
+      await db.execute('''
+        CREATE TABLE user_emails (
+          id TEXT PRIMARY KEY,
+          email TEXT NOT NULL,
+          is_verified INTEGER DEFAULT 0,
+          is_synced INTEGER DEFAULT 1
+        )
+      ''');
     }
   }
 }

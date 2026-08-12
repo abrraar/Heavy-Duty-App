@@ -19,6 +19,10 @@ class AppRoutes {
   static const String exercises = '/exercises';
   static const String tracker   = '/tracker'; 
   static const String profile   = '/profile';
+  static const String editProfile = '/profile/edit';
+  static const String changeUsername = '/profile/change-username';
+  static const String manageEmail = '/profile/manage-email';
+  static const String changePassword = '/profile/change-password';
   static const String alarmRinging = '/alarm-ringing';
   static const String shareCycle = '/share/cycle';
   static const String shareMeal = '/share/meal';

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:heavy_duty/core/theme/app_colors.dart';
 import 'package:heavy_duty/core/theme/app_text_styles.dart';
+import 'package:heavy_duty/core/widgets/elite_confirm_dialog.dart';
 import 'package:heavy_duty/features/tracker/cycle_tracker/cycle_exercise_detail_screen.dart';
 import 'package:heavy_duty/features/tracker/cycle_tracker/provider/cycle_provider.dart';
 import 'dart:async';
@@ -535,7 +536,8 @@ class _ExerciseListScreenState extends State<ExerciseListScreen> {
           SizedBox(height: 12.h),
           TextField(
             controller: _workoutNoteController,
-            maxLines: 3,
+            minLines: 3,
+            maxLines: null,
             style: const TextStyle(color: AppColors.white),
             decoration: InputDecoration(
               hintText: "NOTES ON PERFORMANCE, RECOVERY, OR INTENSITY...",
@@ -636,105 +638,11 @@ class _ExerciseListScreenState extends State<ExerciseListScreen> {
       key: Key("${exercise.id}_dismiss"),
       direction: DismissDirection.endToStart,
       confirmDismiss: (direction) async {
-        return await showDialog(
-          context: context,
-          builder: (context) => AlertDialog(
-            backgroundColor: AppColors.surface,
-            surfaceTintColor: Colors.transparent,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(28.r),
-            ),
-            title: Column(
-              children: [
-                Container(
-                  padding: EdgeInsets.all(12.r),
-                  decoration: BoxDecoration(
-                    color: AppColors.crimson.withOpacity(0.1),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(
-                    Icons.warning_amber_rounded,
-                    color: AppColors.crimson,
-                    size: 28.r,
-                  ),
-                ),
-                SizedBox(height: 16.h),
-                Text(
-                  "REMOVE EXERCISE",
-                  style: AppTextStyles.h3.copyWith(
-                    fontSize: 16.sp,
-                    letterSpacing: 1.2,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-              ],
-            ),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  "ARE YOU SURE YOU WANT TO REMOVE '${exercise.name}' FROM THIS WORKOUT?",
-                  textAlign: TextAlign.center,
-                  style: AppTextStyles.labelSmall.copyWith(
-                    color: AppColors.textSecondary,
-                    height: 1.4,
-                  ),
-                ),
-              ],
-            ),
-            actions: [
-              Padding(
-                padding: EdgeInsets.fromLTRB(12.w, 0, 12.w, 16.h),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: GestureDetector(
-                        onTap: () => Navigator.pop(context, false),
-                        child: Container(
-                          padding: EdgeInsets.symmetric(vertical: 12.h),
-                          decoration: BoxDecoration(
-                            color: Colors.transparent,
-                            borderRadius: BorderRadius.circular(12.r),
-                            border: Border.all(color: AppColors.white.withOpacity(0.1)),
-                          ),
-                          alignment: Alignment.center,
-                          child: Text(
-                            "CANCEL",
-                            style: AppTextStyles.labelSmall.copyWith(
-                              color: AppColors.textSecondary,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                    SizedBox(width: 12.w),
-                    Expanded(
-                      child: GestureDetector(
-                        onTap: () => Navigator.pop(context, true),
-                        child: Container(
-                          padding: EdgeInsets.symmetric(vertical: 12.h),
-                          decoration: BoxDecoration(
-                            color: AppColors.crimson.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(12.r),
-                            border: Border.all(color: AppColors.crimson.withOpacity(0.5)),
-                          ),
-                          alignment: Alignment.center,
-                          child: Text(
-                            "REMOVE",
-                            style: AppTextStyles.labelSmall.copyWith(
-                              color: AppColors.crimson,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
+        return await EliteConfirmDialog.show(
+          context,
+          title: "REMOVE EXERCISE",
+          message: "ARE YOU SURE YOU WANT TO REMOVE '${exercise.name}' FROM THIS WORKOUT?",
+          confirmText: "REMOVE",
         );
       },
       onDismissed: (direction) {

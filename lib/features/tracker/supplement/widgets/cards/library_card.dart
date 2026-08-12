@@ -9,6 +9,8 @@ import 'package:heavy_duty/features/tracker/supplement/provider/supplement_provi
 
 import 'package:heavy_duty/features/tracker/calorie/provider/calorie_provider.dart';
 import 'package:heavy_duty/features/auth/provider/auth_provider.dart';
+import 'package:heavy_duty/core/widgets/elite_confirm_dialog.dart';
+import 'package:heavy_duty/core/widgets/elite_snackbar.dart';
 import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
 
@@ -35,80 +37,17 @@ class LibraryCard extends StatefulWidget {
 class _LibraryCardState extends State<LibraryCard> {
   bool isExpanded = false; // Tracks if the action menu is open
 
-  void _showHeavyDutyDeletePrompt(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: AppColors.surface,
-        surfaceTintColor: Colors.transparent,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(28.r),
-        ),
-        title: Column(
-          children: [
-            Container(
-              padding: EdgeInsets.all(12.r),
-              decoration: BoxDecoration(
-                color: AppColors.crimson.withOpacity(0.1),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(
-                Icons.delete_outline_rounded,
-                color: AppColors.crimson,
-                size: 28.r,
-              ),
-            ),
-            SizedBox(height: 16.h),
-            Text(
-              "DELETE SUPPLEMENT",
-              style: AppTextStyles.h3.copyWith(
-                fontSize: 18.sp,
-                letterSpacing: 1.2,
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
-        content: Text(
-          "Are you sure you want to permanently delete \"${widget.item.name.toUpperCase()}\"? This action cannot be undone.",
-          textAlign: TextAlign.center,
-          style: AppTextStyles.labelSmall.copyWith(
-            color: AppColors.textSecondary,
-            height: 1.4,
-            fontSize: 12.sp,
-          ),
-        ),
-        actions: [
-          Padding(
-            padding: EdgeInsets.fromLTRB(12.w, 0, 12.w, 16.h),
-            child: Row(
-              children: [
-                Expanded(
-                  child: _dialogBtn(
-                    "CANCEL",
-                    Colors.transparent,
-                    AppColors.textSecondary,
-                    () => Navigator.pop(context),
-                  ),
-                ),
-                SizedBox(width: 12.w),
-                Expanded(
-                  child: _dialogBtn(
-                    "DELETE",
-                    AppColors.crimson,
-                    Colors.white,
-                    () {
-                      Navigator.pop(context);
-                      widget.onDelete();
-                    },
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
+  void _showHeavyDutyDeletePrompt(BuildContext context) async {
+    final confirm = await EliteConfirmDialog.show(
+      context,
+      title: "DELETE SUPPLEMENT",
+      message: "Are you sure you want to permanently delete \"${widget.item.name.toUpperCase()}\"? This action cannot be undone.",
+      icon: Icons.delete_outline_rounded,
     );
+    
+    if (confirm == true) {
+      widget.onDelete();
+    }
   }
 
   Widget _dialogBtn(String label, Color bg, Color text, VoidCallback onTap) =>
@@ -271,9 +210,7 @@ class _LibraryCardState extends State<LibraryCard> {
                   final authProvider = context.read<AuthProvider>();
                   final userName = authProvider.displayName;
                   
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text("GENERATING SHAREABLE LINK..."), duration: Duration(seconds: 1)),
-                  );
+                  EliteSnackbar.show(context, "GENERATING SHAREABLE LINK...");
 
                   final link = await widget.provider.generateSupplementShareLink(widget.item, userName);
                   

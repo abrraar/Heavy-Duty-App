@@ -9,12 +9,16 @@ import 'package:heavy_duty/features/tracker/supplement/model/supplement_stack.da
 import 'package:heavy_duty/features/tracker/supplement/provider/supplement_provider.dart';
 import 'package:heavy_duty/features/tracker/supplement/widgets/sheets/stack_form_sheet.dart';
 import 'package:heavy_duty/features/tracker/supplement/widgets/sheets/stack_notification_sheet.dart'; // Import the new sheet
+import 'package:heavy_duty/core/widgets/elite_snackbar.dart';
 import 'package:provider/provider.dart';
 
 import 'package:heavy_duty/features/tracker/calorie/provider/calorie_provider.dart';
 import 'package:heavy_duty/features/auth/provider/auth_provider.dart';
+import 'package:heavy_duty/core/widgets/elite_snackbar.dart';
 import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
+
+import '../../../../../core/widgets/elite_confirm_dialog.dart';
 
 class StackerCard extends StatefulWidget {
   final SupplementStack stack;
@@ -272,9 +276,7 @@ class _StackerCardState extends State<StackerCard> {
                 final authProvider = context.read<AuthProvider>();
                 final userName = authProvider.displayName;
                 
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text("GENERATING SHAREABLE LINK..."), duration: Duration(seconds: 1)),
-                );
+                EliteSnackbar.show(context, "GENERATING SHAREABLE LINK...");
 
                 final link = await provider.generateStackShareLink(widget.stack, userName);
                 
@@ -533,90 +535,23 @@ class _StackerCardState extends State<StackerCard> {
     );
   }
 
-  void _showUnpinConfirmation(SupplementProvider provider) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: AppColors.surface,
-        surfaceTintColor: Colors.transparent,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(28.r),
-        ),
-        title: Column(
-          children: [
-            Container(
-              padding: EdgeInsets.all(12.r),
-              decoration: BoxDecoration(
-                color: AppColors.crimson.withOpacity(0.1),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(
-                Icons.push_pin_rounded,
-                color: AppColors.crimson,
-                size: 28.r,
-              ),
-            ),
-            SizedBox(height: 16.h),
-            Text(
-              "REMOVE FROM HOME",
-              style: AppTextStyles.h3.copyWith(
-                fontSize: 18.sp,
-                letterSpacing: 1.2,
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              "Are you sure you want to remove '${widget.stack.name.toUpperCase()}' from your home screen shortcuts?",
-              textAlign: TextAlign.center,
-              style: AppTextStyles.labelSmall.copyWith(
-                color: AppColors.textSecondary,
-                height: 1.4,
-                fontSize: 11.sp,
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          Padding(
-            padding: EdgeInsets.fromLTRB(12.w, 0, 12.w, 16.h),
-            child: Row(
-              children: [
-                Expanded(
-                  child: _dialogBtn(
-                    "CANCEL",
-                    Colors.transparent,
-                    AppColors.textSecondary,
-                    () => Navigator.pop(context),
-                  ),
-                ),
-                SizedBox(width: 12.w),
-                Expanded(
-                  child: _dialogBtn(
-                    "REMOVE",
-                    AppColors.crimson,
-                    Colors.white,
-                    () {
-                      provider.toggleStackHomePin(
-                        stackId: widget.stack.id,
-                        recordModes: {},
-                        useServings: {},
-                        amounts: {},
-                      );
-                      Navigator.pop(context);
-                    },
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
+  void _showUnpinConfirmation(SupplementProvider provider) async {
+    final confirm = await EliteConfirmDialog.show(
+      context,
+      title: "REMOVE FROM HOME",
+      message: "Are you sure you want to remove '${widget.stack.name.toUpperCase()}' from your home screen shortcuts?",
+      confirmText: "REMOVE",
+      icon: Icons.push_pin_rounded,
     );
+
+    if (confirm == true) {
+      provider.toggleStackHomePin(
+        stackId: widget.stack.id,
+        recordModes: {},
+        useServings: {},
+        amounts: {},
+      );
+    }
   }
 
   void _showUpdatePinConfirmation(SupplementProvider provider) {
@@ -939,8 +874,9 @@ class _StackerCardState extends State<StackerCard> {
                     "EXECUTE",
                     AppColors.crimson,
                     Colors.white,
-                    () {
-                      context.read<SupplementProvider>().executeStackLog(
+                    () async {
+                      final provider = context.read<SupplementProvider>();
+                      await provider.executeStackLog(
                         stack: widget.stack,
                         recordModes: _isRecordMode,
                         useServings: _useServings,
@@ -950,7 +886,14 @@ class _StackerCardState extends State<StackerCard> {
                         ),
                         selectedDateTime: _selectedDateTime,
                       );
-                      Navigator.pop(context);
+                      if (mounted) {
+                        Navigator.pop(context);
+                        EliteSnackbar.show(
+                          context, 
+                          "${widget.stack.name} LOGGED",
+                          onUndo: () => provider.deleteLastEntry(),
+                        );
+                      }
                     },
                   ),
                 ),
@@ -1189,88 +1132,23 @@ class _StackerCardState extends State<StackerCard> {
   );
 
   // UPDATED: Standardized to match identical styling scheme of Pin Confirmation Dialog
-  void _confirmDelete(BuildContext context) => showDialog(
-    context: context,
-    builder: (context) => AlertDialog(
-      backgroundColor: AppColors.surface,
-      surfaceTintColor: Colors.transparent,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28.r)),
-      title: Column(
-        children: [
-          Container(
-            padding: EdgeInsets.all(12.r),
-            decoration: BoxDecoration(
-              color: AppColors.crimson.withOpacity(0.1),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(
-              Icons.warning_amber_rounded,
-              color: AppColors.crimson,
-              size: 28.r,
-            ),
-          ),
-          SizedBox(height: 16.h),
-          Text(
-            "DELETE STACK",
-            style: AppTextStyles.h3.copyWith(
-              fontSize: 18.sp,
-              letterSpacing: 1.2,
-            ),
-            textAlign: TextAlign.center,
-          ),
-        ],
-      ),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            "Are you sure you want to delete the stack '${widget.stack.name.toUpperCase()}'?",
-            textAlign: TextAlign.center,
-            style: AppTextStyles.labelSmall.copyWith(
-              color: AppColors.textSecondary,
-              height: 1.4,
-              fontSize: 11.sp,
-            ),
-          ),
-        ],
-      ),
-      actions: [
-        Padding(
-          padding: EdgeInsets.fromLTRB(12.w, 0, 12.w, 16.h),
-          child: Row(
-            children: [
-              Expanded(
-                child: _dialogBtn(
-                  "CANCEL",
-                  Colors.transparent,
-                  AppColors.textSecondary,
-                  () => Navigator.pop(context),
-                ),
-              ),
-              SizedBox(width: 12.w),
-              Expanded(
-                child: _dialogBtn(
-                  "DELETE",
-                  AppColors.crimson,
-                  Colors.white,
-                  () {
-                    final calorieProvider = context.read<CalorieProvider>();
-                    context.read<SupplementProvider>().deleteStack(
-                      widget.stack.id,
-                      onDeleted: (id, cals, pro, cho, fat) {
-                        calorieProvider.removeStackFromAllMeals(id, cals, pro, cho, fat);
-                      }
-                    );
-                    Navigator.pop(context);
-                  },
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
-    ),
-  );
+  void _confirmDelete(BuildContext context) async {
+    final confirm = await EliteConfirmDialog.show(
+      context,
+      title: "DELETE STACK",
+      message: "Are you sure you want to delete the stack '${widget.stack.name.toUpperCase()}'?",
+    );
+
+    if (confirm == true) {
+      final calorieProvider = context.read<CalorieProvider>();
+      context.read<SupplementProvider>().deleteStack(
+        widget.stack.id,
+        onDeleted: (id, cals, pro, cho, fat) {
+          calorieProvider.removeStackFromAllMeals(id, cals, pro, cho, fat);
+        }
+      );
+    }
+  }
 
   Widget _dialogBtn(String label, Color bg, Color text, VoidCallback onTap) =>
       GestureDetector(

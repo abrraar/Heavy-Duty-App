@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:heavy_duty/core/theme/app_colors.dart';
 import 'package:heavy_duty/core/theme/app_text_styles.dart';
+import 'package:heavy_duty/core/widgets/elite_confirm_dialog.dart';
 import 'package:heavy_duty/features/tracker/cycle_tracker/create_cycle_screen.dart';
 import 'package:heavy_duty/features/tracker/cycle_tracker/cycle_detail_view_screen.dart';
 import 'package:heavy_duty/features/main_wrapper.dart';
@@ -15,6 +16,7 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:heavy_duty/features/tracker/cycle_tracker/model/exercise_log.dart';
 import 'package:heavy_duty/features/tracker/cycle_tracker/widgets/cycle_analytical_widget.dart';
+import 'package:heavy_duty/core/widgets/elite_snackbar.dart';
 import 'model/training_cycle.dart';
 import 'model/workout.dart';
 
@@ -360,105 +362,10 @@ class _CycleTrackingScreenState extends State<CycleTrackingScreen>
   }
 
   Future<bool?> _showDeleteCycleConfirmation(String cycleName) async {
-    return showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: AppColors.surface,
-        surfaceTintColor: Colors.transparent,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(28.r),
-        ),
-        title: Column(
-          children: [
-            Container(
-              padding: EdgeInsets.all(12.r),
-              decoration: BoxDecoration(
-                color: AppColors.crimson.withOpacity(0.1),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(
-                Icons.warning_amber_rounded,
-                color: AppColors.crimson,
-                size: 28,
-              ),
-            ),
-            SizedBox(height: 16.h),
-            Text(
-              "DELETE CYCLE",
-              style: AppTextStyles.h3.copyWith(
-                fontSize: 16.sp,
-                letterSpacing: 1.2,
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              "ARE YOU SURE YOU WANT TO PERMANENTLY REMOVE THE '$cycleName' PROTOCOL FROM YOUR RECORDS?",
-              textAlign: TextAlign.center,
-              style: AppTextStyles.labelMedium.copyWith(
-                color: AppColors.textSecondary,
-                height: 1.4,
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          Padding(
-            padding: EdgeInsets.fromLTRB(12.w, 0, 12.w, 16.h),
-            child: Row(
-              children: [
-                Expanded(
-                  child: GestureDetector(
-                    onTap: () => Navigator.pop(context, false),
-                    child: Container(
-                      padding: EdgeInsets.symmetric(vertical: 12.h),
-                      decoration: BoxDecoration(
-                        color: Colors.transparent,
-                        borderRadius: BorderRadius.circular(12.r),
-                        border: Border.all(color: AppColors.white.withOpacity(0.1)),
-                      ),
-                      alignment: Alignment.center,
-                      child: Text(
-                        "CANCEL",
-                        style: AppTextStyles.labelMedium.copyWith(
-                          color: AppColors.textSecondary,
-                          fontWeight: FontWeight.w400,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-                SizedBox(width: 12.w),
-                Expanded(
-                  child: GestureDetector(
-                    onTap: () => Navigator.pop(context, true),
-                    child: Container(
-                      padding: EdgeInsets.symmetric(vertical: 12.h),
-                      decoration: BoxDecoration(
-                        color: AppColors.crimson.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(12.r),
-                        border: Border.all(color: AppColors.crimson.withOpacity(0.5)),
-                      ),
-                      alignment: Alignment.center,
-                      child: Text(
-                        "DELETE",
-                        style: AppTextStyles.labelMedium.copyWith(
-                          color: AppColors.crimson,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
+    return EliteConfirmDialog.show(
+      context,
+      title: "DELETE CYCLE",
+      message: "ARE YOU SURE YOU WANT TO PERMANENTLY REMOVE THE '$cycleName' PROTOCOL FROM YOUR RECORDS?",
     );
   }
 
@@ -970,7 +877,7 @@ class _CycleTrackingScreenState extends State<CycleTrackingScreen>
           if (activated) { 
             await provider.activateCycle(cycle.id); 
             if (mounted) { 
-              ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Cycle '${cycle.name}' Activated"))); 
+              EliteSnackbar.show(context, "Cycle '${cycle.name}' Activated"); 
               _tabController.animateTo(0); 
             } 
           }

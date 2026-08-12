@@ -639,7 +639,8 @@ class _CycleExerciseDetailScreenState extends State<CycleExerciseDetailScreen> {
     return TextField(
       controller: _commentController,
       enabled: true,
-      maxLines: 4,
+      minLines: 3,
+      maxLines: null,
       style: AppTextStyles.labelSmall.copyWith(color: AppColors.white),
       decoration: InputDecoration(
         hintText: "DESCRIBE MUSCLE SENSATION, FORM DEGRADATION, OR RECOVERY NOTES...",
@@ -773,7 +774,12 @@ class _CycleExerciseDetailScreenState extends State<CycleExerciseDetailScreen> {
                   ],
                   keyboardType: TextInputType.number,
                   textAlign: TextAlign.right,
-                  style: AppTextStyles.labelMedium.copyWith(color: hasValue ? AppColors.white : AppColors.white.withValues(alpha: 0.4), fontWeight: FontWeight.w900, letterSpacing: 1.0),
+                  style: AppTextStyles.labelMedium.copyWith(
+                    color: hasValue ? AppColors.white : AppColors.white.withValues(alpha: 0.4), 
+                    fontWeight: FontWeight.w900, 
+                    letterSpacing: 1.0,
+                    fontSize: 22.sp,
+                  ),
                   decoration: InputDecoration(
                     hintText: "0",
                     hintStyle: TextStyle(color: AppColors.textSecondary.withValues(alpha: 0.2)),

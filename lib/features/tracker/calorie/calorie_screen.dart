@@ -4,10 +4,12 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:heavy_duty/core/theme/app_colors.dart';
 import 'package:heavy_duty/core/theme/app_text_styles.dart';
-import 'package:heavy_duty/features/main_wrapper.dart';
+import 'package:heavy_duty/core/widgets/elite_confirm_dialog.dart';
+import 'package:heavy_duty/core/widgets/elite_snackbar.dart';
 import 'package:provider/provider.dart';
 import 'package:heavy_duty/features/tracker/calorie/widgets/sheets/calorie_notification_sheet.dart';
 import 'package:heavy_duty/features/tracker/calorie/widgets/calorie_analytical_widget.dart';
+import '../../main_wrapper.dart';
 import 'model/saved_meal.dart';
 import 'package:heavy_duty/features/tracker/calorie/provider/calorie_provider.dart';
 import 'package:heavy_duty/features/tracker/calorie/widgets/add_meal_sheet.dart';
@@ -307,9 +309,7 @@ class _CalorieScreenState extends State<CalorieScreen> with SingleTickerProvider
         timestamp: DateTime.now(),
       ));
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("${meal.name} logged!")),
-      );
+      EliteSnackbar.show(context, "${meal.name} logged!");
     }
   }
 
@@ -320,105 +320,13 @@ class _CalorieScreenState extends State<CalorieScreen> with SingleTickerProvider
     required Color confirmColor,
     required IconData icon,
   }) async {
-    return showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: AppColors.surface,
-        surfaceTintColor: Colors.transparent,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(28.r),
-        ),
-        title: Column(
-          children: [
-            Container(
-              padding: EdgeInsets.all(12.r),
-              decoration: BoxDecoration(
-                color: confirmColor.withValues(alpha: 0.1),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(
-                icon,
-                color: confirmColor,
-                size: 28.r,
-              ),
-            ),
-            SizedBox(height: 16.h),
-            Text(
-              title,
-              style: AppTextStyles.h3.copyWith(
-                fontSize: 16.sp,
-                letterSpacing: 1.2,
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              message,
-              textAlign: TextAlign.center,
-              style: AppTextStyles.labelMedium.copyWith(
-                color: AppColors.textSecondary,
-                height: 1.4,
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          Padding(
-            padding: EdgeInsets.fromLTRB(12.w, 0, 12.w, 16.h),
-            child: Row(
-              children: [
-                Expanded(
-                  child: GestureDetector(
-                    onTap: () => Navigator.pop(context, false),
-                    child: Container(
-                      padding: EdgeInsets.symmetric(vertical: 12.h),
-                      decoration: BoxDecoration(
-                        color: Colors.transparent,
-                        borderRadius: BorderRadius.circular(12.r),
-                        border: Border.all(color: AppColors.white.withOpacity(0.1)),
-                      ),
-                      alignment: Alignment.center,
-                      child: Text(
-                        "CANCEL",
-                        style: AppTextStyles.labelMedium.copyWith(
-                          color: AppColors.textSecondary,
-                          fontWeight: FontWeight.w400,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-                SizedBox(width: 12.w),
-                Expanded(
-                  child: GestureDetector(
-                    onTap: () => Navigator.pop(context, true),
-                    child: Container(
-                      padding: EdgeInsets.symmetric(vertical: 12.h),
-                      decoration: BoxDecoration(
-                        color: confirmColor.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(12.r),
-                        border: Border.all(color: confirmColor.withValues(alpha: 0.5)),
-                      ),
-                      alignment: Alignment.center,
-                      child: Text(
-                        confirmText,
-                        style: AppTextStyles.labelMedium.copyWith(
-                          color: confirmColor,
-                          fontWeight: FontWeight.w400,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
+    return EliteConfirmDialog.show(
+      context,
+      title: title,
+      message: message,
+      confirmText: confirmText,
+      confirmColor: confirmColor,
+      icon: icon,
     );
   }
 
@@ -943,9 +851,7 @@ class _CalorieScreenState extends State<CalorieScreen> with SingleTickerProvider
                                                 final authProvider = context.read<AuthProvider>();
                                                 final userName = authProvider.displayName;
                                                 
-                                                ScaffoldMessenger.of(context).showSnackBar(
-                                                  const SnackBar(content: Text("GENERATING SHAREABLE LINK..."), duration: Duration(seconds: 1)),
-                                                );
+                                                EliteSnackbar.show(context, "GENERATING SHAREABLE LINK...");
 
                                                 final link = await provider.generateShareableLink(meal, userName);
                                                 
@@ -1982,74 +1888,86 @@ class _CalorieScreenState extends State<CalorieScreen> with SingleTickerProvider
               ),
             ),
 
-            // --- TOGGLE BUTTON ---
+            // --- TOGGLE BUTTON: Unified Adaptive Design ---
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: 24.w),
+              child: Divider(color: AppColors.white.withValues(alpha: 0.05), height: 1),
+            ),
             GestureDetector(
               onTap: () => setState(() {
-                if (_expandedSupplementIds.contains(log.id)) _expandedSupplementIds.remove(log.id);
-                else _expandedSupplementIds.add(log.id);
+                if (_expandedSupplementIds.contains(log.id)) {
+                  _expandedSupplementIds.remove(log.id);
+                } else {
+                  _expandedSupplementIds.add(log.id);
+                }
               }),
               child: Container(
+                width: double.infinity,
                 padding: EdgeInsets.symmetric(vertical: 12.h),
                 color: Colors.transparent,
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Text(
-                      _expandedSupplementIds.contains(log.id) ? "HIDE DETAILS" : "SHOW MORE DETAILS",
+                      _expandedSupplementIds.contains(log.id) ? "COLLAPSE DETAILS" : "SHOW MORE DETAILS",
                       style: AppTextStyles.labelSmall.copyWith(
-                        color: AppColors.crimson,
-                        fontSize: 10.sp,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: 1.5,
+                        color: AppColors.textSecondary.withValues(alpha: 0.4),
+                        fontSize: 9.sp,
+                        letterSpacing: 2,
+                        fontWeight: FontWeight.w500,
                       ),
                     ),
-                    SizedBox(width: 4.w),
-                    Icon(
-                      _expandedSupplementIds.contains(log.id) ? Icons.keyboard_arrow_up_rounded : Icons.keyboard_arrow_down_rounded,
-                      color: AppColors.crimson,
-                      size: 18.r,
+                    SizedBox(width: 8.w),
+                    AnimatedRotation(
+                      turns: _expandedSupplementIds.contains(log.id) ? 0.5 : 0,
+                      duration: const Duration(milliseconds: 300),
+                      child: Icon(
+                        Icons.keyboard_arrow_down_rounded,
+                        color: AppColors.textSecondary.withValues(alpha: 0.4),
+                        size: 16.r,
+                      ),
                     ),
                   ],
                 ),
               ),
             ),
 
-            // --- COLLAPSIBLE DETAILS (Ledger & Ingredients) ---
-            if (_expandedSupplementIds.contains(log.id)) ...[
-              Padding(
-                padding: EdgeInsets.symmetric(horizontal: 24.w),
-                child: const Divider(color: Colors.white10, height: 1),
-              ),
-              
-              // NUTRITION LEDGER
-              Container(
-                margin: EdgeInsets.all(20.r),
-                padding: EdgeInsets.all(20.r),
-                decoration: BoxDecoration(
-                  color: AppColors.background.withValues(alpha: 0.4),
-                  borderRadius: BorderRadius.circular(20.r),
-                ),
-                child: Column(
-                  children: [
-                    _buildLedgerRow("ORIGINAL MEAL", "$baseMealOriginalCals kcal"),
-                    _buildLedgerRow("PORTION SCALE", "× ${portion % 1 == 0 ? portion.toInt() : portion.toStringAsFixed(1)}", isAccent: true),
-                    
-                    // --- INTEGRATED SUPPLEMENTS ---
-                    if (additions.isNotEmpty) ...[
-                      SizedBox(height: 12.h),
-                      ...additions.map((item) => _buildIngredientDetail(item)),
-                    ],
+            // --- COLLAPSIBLE DETAILS: Animated Transition ---
+            AnimatedSize(
+              duration: const Duration(milliseconds: 300),
+              curve: Curves.fastOutSlowIn,
+              alignment: Alignment.topCenter,
+              child: _expandedSupplementIds.contains(log.id)
+                  ? Container(
+                      padding: EdgeInsets.fromLTRB(24.w, 0, 24.w, 16.h),
+                      child: Container(
+                        padding: EdgeInsets.all(20.r),
+                        decoration: BoxDecoration(
+                          color: AppColors.surfaceLight.withValues(alpha: 0.3),
+                          borderRadius: BorderRadius.circular(20.r),
+                        ),
+                        child: Column(
+                          children: [
+                            _buildLedgerRow("ORIGINAL MEAL", "${baseMealOriginalCals.toInt()} kcal"),
+                            _buildLedgerRow("PORTION SCALE", "× ${portion % 1 == 0 ? portion.toInt() : portion.toStringAsFixed(1)}", isAccent: true),
+                            
+                            if (additions.isNotEmpty) ...[
+                              SizedBox(height: 12.h),
+                              ...additions.map((item) => _buildIngredientDetail(item)),
+                            ],
 
-                    Padding(
-                      padding: EdgeInsets.symmetric(vertical: 12.h),
-                      child: Divider(color: AppColors.white.withValues(alpha: 0.05), height: 1),
-                    ),
-                    _buildLedgerRow("TOTAL INTAKE", "$finalTotalCals kcal", isBold: true),
-                  ],
-                ),
-              ),
-            ],
-            SizedBox(height: 8.h),
+                            Padding(
+                              padding: EdgeInsets.symmetric(vertical: 12.h),
+                              child: Divider(color: AppColors.white.withValues(alpha: 0.05), height: 1),
+                            ),
+                            _buildLedgerRow("TOTAL INTAKE", "${finalTotalCals.toInt()} kcal", isBold: true),
+                          ],
+                        ),
+                      ),
+                    )
+                  : const SizedBox(width: double.infinity, height: 0),
+            ),
+            SizedBox(height: 4.h),
           ],
         ),
       ),

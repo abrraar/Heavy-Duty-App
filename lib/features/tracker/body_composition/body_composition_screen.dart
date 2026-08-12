@@ -7,8 +7,11 @@ import 'package:heavy_duty/core/theme/app_text_styles.dart';
 import 'package:heavy_duty/features/tracker/body_composition/model/body_comp_log.dart';
 import 'package:heavy_duty/features/tracker/body_composition/provider/body_comp_provider.dart';
 import 'package:heavy_duty/features/tracker/body_composition/widgets/body_comp_graph.dart';
+import 'package:heavy_duty/core/widgets/elite_confirm_dialog.dart';
 import 'package:provider/provider.dart';
-import 'package:heavy_duty/features/main_wrapper.dart'; 
+import 'package:heavy_duty/core/widgets/elite_snackbar.dart';
+
+import '../../main_wrapper.dart';
 
 class BodyCompositionScreen extends StatefulWidget {
   const BodyCompositionScreen({super.key});
@@ -112,38 +115,6 @@ class _BodyCompositionScreenState extends State<BodyCompositionScreen> with Sing
     }
   }
 
-  Widget _buildEmptyState(BodyCompProvider provider) {
-    return SingleChildScrollView(
-      physics: const AlwaysScrollableScrollPhysics(),
-      padding: EdgeInsets.all(24.r),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildSectionHeader("PROGRESS TREND"),
-          SizedBox(height: 16.h),
-          Container(
-            height: 240.h,
-            width: double.infinity,
-            decoration: BoxDecoration(
-              color: AppColors.surface,
-              borderRadius: BorderRadius.circular(24.r),
-              border: Border.all(color: AppColors.white.withValues(alpha: 0.05)),
-            ),
-            alignment: Alignment.center,
-            child: Text(
-              "RECORD DATA TO SEE TRENDS",
-              style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary.withValues(alpha: 0.3)),
-            ),
-          ),
-          SizedBox(height: 32.h),
-          _buildSectionHeader('LOG NEW DATA'),
-          SizedBox(height: 16.h),
-          _buildEntryCard(provider),
-          SizedBox(height: 40.h),
-        ],
-      ),
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -152,7 +123,7 @@ class _BodyCompositionScreenState extends State<BodyCompositionScreen> with Sing
       body: Column(
         children: [
           Padding(
-            padding: EdgeInsets.symmetric(vertical: 24.h, horizontal: 8.w),
+            padding: EdgeInsets.fromLTRB(8.w, 16.h, 8.w, 8.h),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -223,11 +194,11 @@ class _BodyCompositionScreenState extends State<BodyCompositionScreen> with Sing
   Widget _buildTrackerTab() {
     return Consumer<BodyCompProvider>(
       builder: (context, provider, _) {
-        if (provider.logs.isEmpty) {
-          return _buildEmptyState(provider);
-        }
+        final bool hasData = provider.logs.isNotEmpty;
 
-        final List<BodyCompLog> sortedLogs = List.from(provider.logs)..sort((a, b) => a.timestamp.compareTo(b.timestamp));
+        final List<BodyCompLog> sortedLogs = hasData 
+            ? (List.from(provider.logs)..sort((a, b) => a.timestamp.compareTo(b.timestamp)))
+            : [];
         final Set<DateTime> moments = sortedLogs.map((l) => l.timestamp).toSet();
         final List<DateTime> sortedMoments = moments.toList()..sort();
 
@@ -237,28 +208,30 @@ class _BodyCompositionScreenState extends State<BodyCompositionScreen> with Sing
           "muscle": [],
         };
 
-        double lastKnownWeight = 0;
-        for (var ts in sortedMoments) {
-          final momentLogs = sortedLogs.where((l) => l.timestamp.isAtSameMomentAs(ts)).toList();
-          
-          final weightLog = momentLogs.firstWhere((l) => l.type == BodyMetricType.weight, orElse: () => BodyCompLog(value: -1, type: BodyMetricType.weight));
-          if (weightLog.value != -1) {
-            lastKnownWeight = weightLog.value;
-            aggregatedData["weight"]!.add(lastKnownWeight);
-          } else {
-            aggregatedData["weight"]!.add(lastKnownWeight > 0 ? lastKnownWeight : null);
-          }
-
-          for (var typeKey in ["fat", "muscle"]) {
-            final log = momentLogs.firstWhere((l) => l.type.name == typeKey, orElse: () => BodyCompLog(value: -1, type: BodyMetricType.weight));
-            if (log.value != -1) {
-               if (log.unit == BodyMetricUnit.kg) {
-                 aggregatedData[typeKey]!.add(log.value);
-               } else {
-                 aggregatedData[typeKey]!.add(lastKnownWeight > 0 ? (log.value / 100) * lastKnownWeight : null);
-               }
+        if (hasData) {
+          double lastKnownWeight = 0;
+          for (var ts in sortedMoments) {
+            final momentLogs = sortedLogs.where((l) => l.timestamp.isAtSameMomentAs(ts)).toList();
+            
+            final weightLog = momentLogs.firstWhere((l) => l.type == BodyMetricType.weight, orElse: () => BodyCompLog(value: -1, type: BodyMetricType.weight));
+            if (weightLog.value != -1) {
+              lastKnownWeight = weightLog.value;
+              aggregatedData["weight"]!.add(lastKnownWeight);
             } else {
-              aggregatedData[typeKey]!.add(null);
+              aggregatedData["weight"]!.add(lastKnownWeight > 0 ? lastKnownWeight : null);
+            }
+
+            for (var typeKey in ["fat", "muscle"]) {
+              final log = momentLogs.firstWhere((l) => l.type.name == typeKey, orElse: () => BodyCompLog(value: -1, type: BodyMetricType.weight));
+              if (log.value != -1) {
+                 if (log.unit == BodyMetricUnit.kg) {
+                   aggregatedData[typeKey]!.add(log.value);
+                 } else {
+                   aggregatedData[typeKey]!.add(lastKnownWeight > 0 ? (log.value / 100) * lastKnownWeight : null);
+                 }
+              } else {
+                aggregatedData[typeKey]!.add(null);
+              }
             }
           }
         }
@@ -269,20 +242,34 @@ class _BodyCompositionScreenState extends State<BodyCompositionScreen> with Sing
           backgroundColor: AppColors.surface,
           child: SingleChildScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
-            padding: EdgeInsets.all(24.r),
+            padding: EdgeInsets.symmetric(horizontal: 24.r, vertical: 12.h),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _buildSectionHeader("ANALYTICS & TRENDS"),
+                _buildSectionHeader("PROGRESS TREND"),
                 SizedBox(height: 24.h),
-                BodyCompGraph(
-                  dates: sortedMoments,
-                  data: aggregatedData,
-                  visibleMetrics: _visibleMetrics,
-                  onPointSelected: (idx) {
-                    // Option to sync something else if needed
-                  },
-                ),
+                if (hasData)
+                  BodyCompGraph(
+                    dates: sortedMoments,
+                    data: aggregatedData,
+                    visibleMetrics: _visibleMetrics,
+                    onPointSelected: (idx) {},
+                  )
+                else
+                  SizedBox(
+                    height: 240.h,
+                    width: double.infinity,
+                    child: Center(
+                      child: Text(
+                        "RECORD DATA TO SEE TRENDS",
+                        style: AppTextStyles.labelSmall.copyWith(
+                          color: AppColors.textSecondary.withValues(alpha: 0.3),
+                          letterSpacing: 1.5,
+                        ),
+                      ),
+                    ),
+                  ),
+                
                 SizedBox(height: 32.h),
                 _buildSectionHeader("METRIC OVERLAY"),
                 SizedBox(height: 16.h),
@@ -290,22 +277,38 @@ class _BodyCompositionScreenState extends State<BodyCompositionScreen> with Sing
                   spacing: 10.w,
                   runSpacing: 10.h,
                   children: [
-                    _buildMetricToggle("WEIGHT", "weight", Colors.tealAccent),
-                    _buildMetricToggle("FAT", "fat", Colors.redAccent),
-                    _buildMetricToggle("MUSCLE", "muscle", Colors.lightGreenAccent),
+                    _buildMetricToggle("WEIGHT", "weight", Colors.tealAccent, enabled: hasData),
+                    _buildMetricToggle("FAT", "fat", Colors.redAccent, enabled: hasData),
+                    _buildMetricToggle("MUSCLE", "muscle", Colors.lightGreenAccent, enabled: hasData),
                   ],
                 ),
+                
                 SizedBox(height: 40.h),
                 _buildSectionHeader("DATA COMPARISON"),
                 SizedBox(height: 16.h),
-                BodyCompComparisonWidget(
-                  idx1: _comparisonIdx1,
-                  idx2: _comparisonIdx2,
-                  dates: sortedMoments,
-                  data: aggregatedData,
-                  onPointAChanged: (val) => setState(() => _comparisonIdx1 = val),
-                  onPointBChanged: (val) => setState(() => _comparisonIdx2 = val),
-                ),
+                if (hasData)
+                  BodyCompComparisonWidget(
+                    idx1: _comparisonIdx1,
+                    idx2: _comparisonIdx2,
+                    dates: sortedMoments,
+                    data: aggregatedData,
+                    onPointAChanged: (val) => setState(() => _comparisonIdx1 = val),
+                    onPointBChanged: (val) => setState(() => _comparisonIdx2 = val),
+                  )
+                else
+                  Container(
+                    height: 100.h,
+                    width: double.infinity,
+                    alignment: Alignment.center,
+                    child: Text(
+                      "NO POINTS TO COMPARE YET",
+                      style: AppTextStyles.labelSmall.copyWith(
+                        color: AppColors.textSecondary.withValues(alpha: 0.2),
+                        letterSpacing: 1.0,
+                      ),
+                    ),
+                  ),
+                  
                 SizedBox(height: 40.h),
                 _buildSectionHeader('LOG NEW DATA'),
                 SizedBox(height: 16.h),
@@ -319,10 +322,10 @@ class _BodyCompositionScreenState extends State<BodyCompositionScreen> with Sing
     );
   }
 
-  Widget _buildMetricToggle(String label, String key, Color color) {
+  Widget _buildMetricToggle(String label, String key, Color color, {bool enabled = true}) {
     final bool isActive = _visibleMetrics.contains(key);
     return GestureDetector(
-      onTap: () {
+      onTap: !enabled ? null : () {
         setState(() {
           if (_visibleMetrics.contains(key)) {
             _visibleMetrics.remove(key);
@@ -335,10 +338,10 @@ class _BodyCompositionScreenState extends State<BodyCompositionScreen> with Sing
         duration: const Duration(milliseconds: 200),
         padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 10.h),
         decoration: BoxDecoration(
-          color: isActive ? color.withOpacity(0.1) : AppColors.surface,
+          color: isActive && enabled ? color.withOpacity(0.1) : AppColors.surface,
           borderRadius: BorderRadius.circular(12.r),
           border: Border.all(
-            color: isActive ? color : AppColors.white.withOpacity(0.05),
+            color: isActive && enabled ? color : AppColors.white.withOpacity(0.05),
             width: 1.5,
           ),
         ),
@@ -349,7 +352,7 @@ class _BodyCompositionScreenState extends State<BodyCompositionScreen> with Sing
               width: 8.r,
               height: 8.r,
               decoration: BoxDecoration(
-                color: isActive ? color : AppColors.textSecondary.withOpacity(0.3),
+                color: isActive && enabled ? color : AppColors.textSecondary.withOpacity(0.3),
                 shape: BoxShape.circle,
               ),
             ),
@@ -357,8 +360,8 @@ class _BodyCompositionScreenState extends State<BodyCompositionScreen> with Sing
             Text(
               label,
               style: AppTextStyles.labelSmall.copyWith(
-                color: isActive ? AppColors.white : AppColors.textSecondary,
-                fontWeight: isActive ? FontWeight.w900 : FontWeight.w500,
+                color: enabled ? (isActive ? AppColors.white : AppColors.textSecondary) : AppColors.textSecondary.withOpacity(0.2),
+                fontWeight: isActive && enabled ? FontWeight.w900 : FontWeight.w500,
                 letterSpacing: 1,
               ),
             ),
@@ -472,9 +475,7 @@ class _BodyCompositionScreenState extends State<BodyCompositionScreen> with Sing
               
               if (w == 0 && f == 0 && m == 0) {
                 if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text("Please enter a value for the selected metrics")),
-                  );
+                  EliteSnackbar.show(context, "Please enter a value for the selected metrics", isError: true);
                 }
                 return;
               }
@@ -508,7 +509,7 @@ class _BodyCompositionScreenState extends State<BodyCompositionScreen> with Sing
               _fatController.clear();
               _muscleController.clear();
               if (mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Body composition recorded!")));
+                EliteSnackbar.show(context, "Body composition recorded!");
               }
             },
             child: AnimatedContainer(
@@ -816,17 +817,10 @@ class _BodyCompositionScreenState extends State<BodyCompositionScreen> with Sing
       key: Key(log.id),
       direction: DismissDirection.endToStart,
       confirmDismiss: (direction) async {
-        return await showDialog<bool>(
-          context: context,
-          builder: (context) => AlertDialog(
-            backgroundColor: AppColors.surface,
-            title: Text("DELETE RECORD", style: AppTextStyles.h3),
-            content: Text("Are you sure you want to delete this record?", style: AppTextStyles.labelSmall),
-            actions: [
-              TextButton(onPressed: () => Navigator.pop(context, false), child: const Text("CANCEL")),
-              TextButton(onPressed: () => Navigator.pop(context, true), child: const Text("DELETE", style: TextStyle(color: AppColors.crimson))),
-            ],
-          ),
+        return await EliteConfirmDialog.show(
+          context,
+          title: "DELETE RECORD",
+          message: "ARE YOU SURE YOU WANT TO PERMANENTLY REMOVE THIS $label ENTRY FROM YOUR RECORDS?",
         );
       },
       background: Container(

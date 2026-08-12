@@ -10,6 +10,8 @@ import 'package:heavy_duty/features/tracker/supplement/widgets/cards/stacker_car
 import 'package:heavy_duty/features/tracker/supplement/widgets/sheets/intake_sheet.dart';
 import 'package:heavy_duty/features/tracker/supplement/widgets/sheets/notification_sheet.dart';
 import 'package:heavy_duty/features/tracker/supplement/widgets/sheets/quick_log_sheet.dart';
+import 'package:heavy_duty/core/widgets/elite_confirm_dialog.dart';
+import 'package:heavy_duty/core/widgets/elite_snackbar.dart';
 import 'package:heavy_duty/features/tracker/supplement/widgets/sheets/stack_form_sheet.dart';
 import 'package:heavy_duty/features/tracker/supplement/widgets/sheets/supplement_form_sheet.dart';
 
@@ -989,6 +991,18 @@ class _SupplementScreenState extends State<SupplementScreen>
                 );
               }
 
+              if (mounted) {
+                String msg = "${supp.name} RECORDED";
+                if (restockInventory && !recordIntake) msg = "${supp.name} RESTOCKED";
+                if (restockInventory && recordIntake) msg = "${supp.name} UPDATED";
+
+                EliteSnackbar.show(
+                  context, 
+                  msg, 
+                  onUndo: () => provider.deleteLastEntry()
+                );
+              }
+
               Navigator.pop(sheetContext);
             },
       ),
@@ -1127,107 +1141,10 @@ class _SupplementScreenState extends State<SupplementScreen>
   }
 
   Future<bool?> _showDeletePrompt(BuildContext context, String title) {
-    return showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: AppColors.surface,
-        surfaceTintColor: Colors.transparent,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(28.r),
-        ),
-        title: Column(
-          children: [
-            Container(
-              padding: EdgeInsets.all(12.r),
-              decoration: BoxDecoration(
-                color: AppColors.crimson.withOpacity(0.1),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(
-                Icons.warning_amber_rounded,
-                color: AppColors.crimson,
-                size: 28.r,
-              ),
-            ),
-            SizedBox(height: 16.h),
-            Text(
-              "DELETE ${title.toUpperCase()}",
-              style: AppTextStyles.h3.copyWith(
-                fontSize: 16.sp,
-                letterSpacing: 1.2,
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              "Are you sure you want to permanently delete this item? This action cannot be undone.",
-              textAlign: TextAlign.center,
-              style: AppTextStyles.labelSmall.copyWith(
-                color: AppColors.textSecondary,
-                height: 1.4,
-                fontSize: 11.sp,
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          Padding(
-            padding: EdgeInsets.fromLTRB(12.w, 0, 12.w, 16.h),
-            child: Row(
-              children: [
-                Expanded(
-                  child: GestureDetector(
-                    onTap: () => Navigator.pop(context, false),
-                    child: Container(
-                      padding: EdgeInsets.symmetric(vertical: 12.h),
-                      decoration: BoxDecoration(
-                        color: Colors.transparent,
-                        borderRadius: BorderRadius.circular(12.r),
-                        border: Border.all(
-                          color: AppColors.white.withOpacity(0.1),
-                        ),
-                      ),
-                      alignment: Alignment.center,
-                      child: Text(
-                        "CANCEL",
-                        style: AppTextStyles.labelSmall.copyWith(
-                          color: AppColors.textSecondary,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-                SizedBox(width: 12.w),
-                Expanded(
-                  child: GestureDetector(
-                    onTap: () => Navigator.pop(context, true),
-                    child: Container(
-                      padding: EdgeInsets.symmetric(vertical: 12.h),
-                      decoration: BoxDecoration(
-                        color: AppColors.crimson,
-                        borderRadius: BorderRadius.circular(12.r),
-                      ),
-                      alignment: Alignment.center,
-                      child: Text(
-                        "DELETE",
-                        style: AppTextStyles.labelSmall.copyWith(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
+    return EliteConfirmDialog.show(
+      context,
+      title: "DELETE ${title.toUpperCase()}",
+      message: "Are you sure you want to permanently delete this item? This action cannot be undone.",
     );
   }
 

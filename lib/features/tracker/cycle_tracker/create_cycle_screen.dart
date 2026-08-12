@@ -3,7 +3,9 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:heavy_duty/core/theme/app_colors.dart';
 import 'package:heavy_duty/core/theme/app_text_styles.dart';
 import 'package:heavy_duty/features/tracker/cycle_tracker/provider/cycle_provider.dart';
+import 'package:heavy_duty/core/widgets/elite_confirm_dialog.dart';
 import 'package:heavy_duty/features/tracker/cycle_tracker/widgets/exercise_picker_sheet.dart';
+import 'package:heavy_duty/core/widgets/elite_snackbar.dart';
 import 'package:provider/provider.dart';
 import 'package:uuid/uuid.dart';
 import 'model/training_cycle.dart';
@@ -378,9 +380,7 @@ class _CreateCycleScreenState extends State<CreateCycleScreen> {
 
   Future<void> _handleSave({required bool shouldInitialize}) async {
     if (_nameController.text.isEmpty || _workouts.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Please provide a name and at least one workout.")),
-      );
+      EliteSnackbar.show(context, "Please provide a name and at least one workout.", isError: true);
       return;
     }
 
@@ -392,69 +392,15 @@ class _CreateCycleScreenState extends State<CreateCycleScreen> {
     if (shouldInitialize && active != null) {
       if (!active.isReadyToFinish) {
         // Warning for incomplete cycle
-        final confirm = await showDialog<bool>(
-          context: context,
-          builder: (ctx) => AlertDialog(
-            backgroundColor: AppColors.surface,
-            surfaceTintColor: Colors.transparent,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28.r)),
-            title: Column(
-              children: [
-                Container(
-                  padding: EdgeInsets.all(12.r),
-                  decoration: BoxDecoration(color: AppColors.crimson.withOpacity(0.1), shape: BoxShape.circle),
-                  child: const Icon(Icons.warning_amber_rounded, color: AppColors.crimson, size: 28),
-                ),
-                SizedBox(height: 16.h),
-                Text("INCOMPLETE CYCLE", style: AppTextStyles.h3.copyWith(fontSize: 16.sp, letterSpacing: 1.2), textAlign: TextAlign.center),
-              ],
-            ),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  "YOUR CURRENT CYCLE '${active.name.toUpperCase()}' IS NOT YET COMPLETE. ACTIVATING THIS NEW ONE WILL MOVE THE INCOMPLETE PROTOCOL TO YOUR HISTORY. PROCEED?",
-                  textAlign: TextAlign.center,
-                  style: AppTextStyles.labelMedium.copyWith(color: AppColors.textSecondary, height: 1.4),
-                ),
-              ],
-            ),
-            actions: [
-              Padding(
-                padding: EdgeInsets.fromLTRB(12.w, 0, 12.w, 16.h),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: GestureDetector(
-                        onTap: () => Navigator.pop(ctx, false),
-                        child: Container(
-                          padding: EdgeInsets.symmetric(vertical: 12.h),
-                          decoration: BoxDecoration(color: Colors.transparent, borderRadius: BorderRadius.circular(12.r), border: Border.all(color: AppColors.white.withOpacity(0.1))),
-                          alignment: Alignment.center,
-                          child: Text("CANCEL", style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary, fontWeight: FontWeight.bold)),
-                        ),
-                      ),
-                    ),
-                    SizedBox(width: 12.w),
-                    Expanded(
-                      child: GestureDetector(
-                        onTap: () => Navigator.pop(ctx, true),
-                        child: Container(
-                          padding: EdgeInsets.symmetric(vertical: 12.h),
-                          decoration: BoxDecoration(color: AppColors.crimson.withOpacity(0.1), borderRadius: BorderRadius.circular(12.r), border: Border.all(color: AppColors.crimson.withOpacity(0.5))),
-                          alignment: Alignment.center,
-                          child: Text("PROCEED", style: AppTextStyles.labelSmall.copyWith(color: AppColors.crimson, fontWeight: FontWeight.bold)),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
+        final confirm = await EliteConfirmDialog.show(
+          context,
+          title: "INCOMPLETE CYCLE",
+          message: "YOUR CURRENT CYCLE '${active.name.toUpperCase()}' IS NOT YET COMPLETE. ACTIVATING THIS NEW ONE WILL MOVE THE INCOMPLETE PROTOCOL TO YOUR HISTORY. PROCEED?",
+          confirmText: "PROCEED",
         );
         if (confirm != true) return;
-      } else {
+      }
+else {
         // Confirmation for finished cycle
         final confirm = await showDialog<bool>(
           context: context,
@@ -521,66 +467,13 @@ class _CreateCycleScreenState extends State<CreateCycleScreen> {
       }
     } else if (shouldInitialize) {
       // Confirmation for no active cycle
-      final confirm = await showDialog<bool>(
-        context: context,
-        builder: (ctx) => AlertDialog(
-          backgroundColor: AppColors.surface,
-          surfaceTintColor: Colors.transparent,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28.r)),
-          title: Column(
-            children: [
-              Container(
-                padding: EdgeInsets.all(12.r),
-                decoration: BoxDecoration(color: Colors.greenAccent.withOpacity(0.1), shape: BoxShape.circle),
-                child: const Icon(Icons.bolt_rounded, color: Colors.greenAccent, size: 28),
-              ),
-              SizedBox(height: 16.h),
-              Text("ACTIVATE PROTOCOL", style: AppTextStyles.h3.copyWith(fontSize: 16.sp, letterSpacing: 1.2), textAlign: TextAlign.center),
-            ],
-          ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                "DO YOU WANT TO INITIALIZE THIS NEW TEMPLATE AS YOUR ACTIVE TRAINING CYCLE?",
-                textAlign: TextAlign.center,
-                style: AppTextStyles.labelMedium.copyWith(color: AppColors.textSecondary, height: 1.4),
-              ),
-            ],
-          ),
-          actions: [
-            Padding(
-              padding: EdgeInsets.fromLTRB(12.w, 0, 12.w, 16.h),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: GestureDetector(
-                      onTap: () => Navigator.pop(ctx, false),
-                      child: Container(
-                        padding: EdgeInsets.symmetric(vertical: 12.h),
-                        decoration: BoxDecoration(color: Colors.transparent, borderRadius: BorderRadius.circular(12.r), border: Border.all(color: AppColors.white.withOpacity(0.1))),
-                        alignment: Alignment.center,
-                        child: Text("CANCEL", style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary, fontWeight: FontWeight.bold)),
-                      ),
-                    ),
-                  ),
-                  SizedBox(width: 12.w),
-                  Expanded(
-                    child: GestureDetector(
-                      onTap: () => Navigator.pop(ctx, true),
-                      child: Container(
-                        padding: EdgeInsets.symmetric(vertical: 12.h),
-                        decoration: BoxDecoration(color: Colors.greenAccent.withOpacity(0.1), borderRadius: BorderRadius.circular(12.r), border: Border.all(color: Colors.greenAccent.withOpacity(0.5))),
-                        alignment: Alignment.center,
-                        child: Text("ACTIVATE", style: AppTextStyles.labelSmall.copyWith(color: Colors.greenAccent, fontWeight: FontWeight.bold)),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
+      final confirm = await EliteConfirmDialog.show(
+        context,
+        title: "ACTIVATE PROTOCOL",
+        message: "DO YOU WANT TO INITIALIZE THIS NEW TEMPLATE AS YOUR ACTIVE TRAINING CYCLE?",
+        confirmText: "ACTIVATE",
+        confirmColor: Colors.greenAccent,
+        icon: Icons.bolt_rounded,
       );
       if (confirm != true) return;
     }
@@ -621,12 +514,11 @@ class _CreateCycleScreenState extends State<CreateCycleScreen> {
 
     if (mounted) {
       Navigator.pop(context, shouldInitialize);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(shouldInitialize
-              ? "Cycle '${template.name}' Initialized & Saved to Library!"
-              : "Cycle '${template.name}' saved to Library"),
-        ),
+      EliteSnackbar.show(
+        context, 
+        shouldInitialize
+            ? "Cycle '${template.name}' Initialized & Saved to Library!"
+            : "Cycle '${template.name}' saved to Library"
       );
     }
   }

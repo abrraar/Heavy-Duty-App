@@ -9,6 +9,7 @@ import 'package:heavy_duty/features/exercise/provider/exercise_provider.dart';
 import 'package:heavy_duty/features/exercise/model/exercise_template.dart';
 import 'package:heavy_duty/features/exercise/widgets/expandable_about_text.dart';
 import 'package:heavy_duty/features/auth/provider/auth_provider.dart';
+import 'package:heavy_duty/core/widgets/elite_snackbar.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import 'package:share_plus/share_plus.dart';
@@ -126,9 +127,7 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
                 final authProvider = context.read<AuthProvider>();
                 final userName = authProvider.displayName;
                 
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text("GENERATING SHAREABLE LINK..."), duration: Duration(seconds: 1)),
-                );
+                EliteSnackbar.show(context, "GENERATING SHAREABLE LINK...");
 
                 final link = await exProvider.generateShareableLink(template, userName);
                 

@@ -23,6 +23,7 @@ import '../tracker/cycle_tracker/model/workout.dart';
 import '../tracker/cycle_tracker/exercise_list_screen.dart';
 import '../tracker/cycle_tracker/cycle_tracking_screen.dart';
 
+import 'package:heavy_duty/core/widgets/elite_snackbar.dart';
 import 'widgets/welcome_header.dart';
 import 'widgets/affirmation_card.dart';
 import 'widgets/water_tracker_card.dart';
@@ -32,7 +33,6 @@ import 'widgets/workout_action_card.dart';
 import 'widgets/meal%20quick%20log/meal_quick_log_card.dart';
 import 'widgets/supplement quick log/quick_log_card.dart';
 import 'widgets/stack%20quick%20log/stack_quick_log_card.dart';
-import 'widgets/supplement quick log/quick_log_snackbar.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -320,21 +320,16 @@ class _MealLogSection extends StatelessWidget {
   }
 
   void _showMealLogConfirmation(BuildContext context, SavedMeal meal, CalorieProvider provider, String logId) {
-    final overlay = Overlay.of(context);
-    late OverlayEntry overlayEntry;
-    overlayEntry = OverlayEntry(
-      builder: (context) => CustomLogSnackbar(
-        message: "${meal.name} LOGGED",
-        onUndo: () {
-          final supplementProvider = context.read<SupplementProvider>();
-          final logsToRollback = supplementProvider.history.where((h) => h.sourceId == logId).toList();
-          for (var entry in logsToRollback) { supplementProvider.removeSupplementItem(entry.id); }
-          provider.deleteLog(logId);
-        },
-        onDismissed: () => overlayEntry.remove(),
-      ),
+    EliteSnackbar.show(
+      context, 
+      "${meal.name} LOGGED",
+      onUndo: () {
+        final supplementProvider = context.read<SupplementProvider>();
+        final logsToRollback = supplementProvider.history.where((h) => h.sourceId == logId).toList();
+        for (var entry in logsToRollback) { supplementProvider.removeSupplementItem(entry.id); }
+        provider.deleteLog(logId);
+      },
     );
-    overlay.insert(overlayEntry);
   }
 }
 
@@ -348,8 +343,14 @@ class _SupplementLogSection extends StatelessWidget {
         if (pinned.isEmpty) return const SizedBox.shrink();
         List<Widget> cards = [];
         for (var item in pinned) {
-          if (item.pinnedIntakeAmount > 0) cards.add(QuickLogCard(item: item, isRestock: false, onTap: () => provider.quickLogIntakeOnly(item.id)));
-          if (item.pinnedRestockAmount > 0) cards.add(QuickLogCard(item: item, isRestock: true, onTap: () => provider.quickLogRestockOnly(item.id)));
+          if (item.pinnedIntakeAmount > 0) cards.add(QuickLogCard(item: item, isRestock: false, onTap: () {
+            provider.quickLogIntakeOnly(item.id);
+            EliteSnackbar.show(context, "${item.name} RECORDED", onUndo: () => provider.deleteLastEntry());
+          }));
+          if (item.pinnedRestockAmount > 0) cards.add(QuickLogCard(item: item, isRestock: true, onTap: () {
+            provider.quickLogRestockOnly(item.id);
+            EliteSnackbar.show(context, "${item.name} RESTOCKED", onUndo: () => provider.deleteLastEntry());
+          }));
         }
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -392,7 +393,10 @@ class _StackLogSection extends StatelessWidget {
                 scrollDirection: Axis.horizontal, 
                 physics: const ClampingScrollPhysics(),
                 itemCount: pinnedStacks.length, 
-                itemBuilder: (context, index) => StackQuickLogCard(stack: pinnedStacks[index], onTap: () => provider.quickLogStack(pinnedStacks[index].id)),
+                itemBuilder: (context, index) => StackQuickLogCard(stack: pinnedStacks[index], onTap: () {
+                  provider.quickLogStack(pinnedStacks[index].id);
+                  EliteSnackbar.show(context, "${pinnedStacks[index].name} LOGGED", onUndo: () => provider.deleteLastEntry());
+                }),
               ),
             ),
           ],

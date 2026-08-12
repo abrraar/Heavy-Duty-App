@@ -5,12 +5,13 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:heavy_duty/core/theme/app_colors.dart';
 import 'package:heavy_duty/core/theme/app_text_styles.dart';
+import 'package:heavy_duty/core/widgets/elite_confirm_dialog.dart';
+import 'package:heavy_duty/core/widgets/elite_snackbar.dart';
 import 'package:heavy_duty/features/main_wrapper.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import 'package:uuid/uuid.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:heavy_duty/features/home/widgets/supplement%20quick%20log/quick_log_snackbar.dart';
 import 'provider/sleep_provider.dart';
 import 'provider/sleep_alarm_provider.dart';
 import 'model/sleep_log.dart';
@@ -88,18 +89,99 @@ class _SleepScreenState extends State<SleepScreen> with SingleTickerProviderStat
   }
 
   void _showCustomSnackbar(String message, VoidCallback onUndo) {
-    _snackbarOverlay?.remove();
-    _snackbarOverlay = OverlayEntry(
-      builder: (context) => CustomLogSnackbar(
-        message: message,
-        onUndo: onUndo,
-        onDismissed: () {
-          _snackbarOverlay?.remove();
-          _snackbarOverlay = null;
-        },
+    EliteSnackbar.show(context, message, onUndo: onUndo);
+  }
+
+  void _showInstructions() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppColors.surface,
+        surfaceTintColor: Colors.transparent,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28.r)),
+        title: Column(
+          children: [
+            Container(
+              padding: EdgeInsets.all(12.r),
+              decoration: BoxDecoration(
+                color: AppColors.crimson.withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.info_outline_rounded,
+                color: AppColors.crimson,
+                size: 28.r,
+              ),
+            ),
+            SizedBox(height: 16.h),
+            Text(
+              "SLEEP CONTROLS",
+              style: AppTextStyles.h3.copyWith(
+                fontSize: 16.sp,
+                letterSpacing: 1.2,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _instructionRow(
+              Icons.touch_app_rounded,
+              "Hold and drag the moon or sun icons to adjust your sleep timing.",
+            ),
+            SizedBox(height: 16.h),
+            _instructionRow(
+              Icons.calendar_today_rounded,
+              "Tap the current date to select previous sessions for entry.",
+            ),
+          ],
+        ),
+        actions: [
+          Padding(
+            padding: EdgeInsets.fromLTRB(12.w, 0, 12.w, 16.h),
+            child: GestureDetector(
+              onTap: () => Navigator.pop(context),
+              child: Container(
+                padding: EdgeInsets.symmetric(vertical: 12.h),
+                decoration: BoxDecoration(
+                  color: AppColors.crimson.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12.r),
+                  border: Border.all(color: AppColors.crimson.withOpacity(0.5)),
+                ),
+                alignment: Alignment.center,
+                child: Text(
+                  "GOT IT",
+                  style: AppTextStyles.labelMedium.copyWith(
+                    color: AppColors.crimson,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
-    Overlay.of(context).insert(_snackbarOverlay!);
+  }
+
+  Widget _instructionRow(IconData icon, String text) {
+    return Row(
+      children: [
+        Icon(icon, color: AppColors.crimson, size: 20.r),
+        SizedBox(width: 16.w),
+        Expanded(
+          child: Text(
+            text,
+            style: AppTextStyles.labelSmall.copyWith(
+              color: AppColors.textSecondary,
+              height: 1.4,
+            ),
+          ),
+        ),
+      ],
+    );
   }
 
   Future<void> _pickDate() async {
@@ -183,7 +265,7 @@ class _SleepScreenState extends State<SleepScreen> with SingleTickerProviderStat
       body: Column(
         children: [
           Padding(
-            padding: EdgeInsets.symmetric(vertical: 24.h, horizontal: 8.w),
+            padding: EdgeInsets.fromLTRB(8.w, 16.h, 8.w, 8.h),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -208,12 +290,12 @@ class _SleepScreenState extends State<SleepScreen> with SingleTickerProviderStat
                           ),
                         ),
                       ),
-                      const Opacity(
-                        opacity: 0,
-                        child: IconButton(
-                          icon: Icon(Icons.history_rounded),
-                          onPressed: null,
+                      IconButton(
+                        icon: const Icon(
+                          Icons.info_outline_rounded,
+                          color: AppColors.white,
                         ),
+                        onPressed: _showInstructions,
                       ),
                     ],
                   ),
@@ -279,12 +361,12 @@ class _SleepScreenState extends State<SleepScreen> with SingleTickerProviderStat
         physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
         child: Column(
           children: [
-            SizedBox(height: 32.h),
+            SizedBox(height: 12.h),
             Padding(
               padding: EdgeInsets.symmetric(horizontal: 24.w),
               child: _buildSectionTitle('LOG SLEEP'),
             ),
-            SizedBox(height: 24.h),
+            SizedBox(height: 16.h),
             CircularSleepPicker(
               initialBedtime: _entryBedTime,
               initialWakeTime: _entryWakeTime,
@@ -302,12 +384,7 @@ class _SleepScreenState extends State<SleepScreen> with SingleTickerProviderStat
               onNoteChanged: (n) => _entryNote = n,
               onSave: () async {
                 if (!canSave) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(disabledReason ?? "CANNOT RECORD SLEEP"),
-                      backgroundColor: AppColors.error,
-                    ),
-                  );
+                  EliteSnackbar.show(context, disabledReason ?? "CANNOT RECORD SLEEP", isError: true);
                   return;
                 }
 
@@ -379,8 +456,6 @@ class _SleepScreenState extends State<SleepScreen> with SingleTickerProviderStat
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.insights_rounded, size: 64.r, color: AppColors.textSecondary.withOpacity(0.1)),
-                      SizedBox(height: 16.h),
                       Text(
                         "INSUFFICIENT DATA FOR TRENDS",
                         style: AppTextStyles.labelSmall.copyWith(
@@ -940,23 +1015,10 @@ class _SleepScreenState extends State<SleepScreen> with SingleTickerProviderStat
   }
 
   Future<bool?> _confirmDelete(BuildContext context, SleepProvider provider, String id) {
-    return showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: AppColors.surface,
-        title: Text("Delete Log", style: AppTextStyles.labelMedium),
-        content: Text("Are you sure you want to delete this sleep session?", style: AppTextStyles.labelSmall),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: Text("CANCEL", style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary)),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: Text("DELETE", style: AppTextStyles.labelSmall.copyWith(color: AppColors.crimson)),
-          ),
-        ],
-      ),
+    return EliteConfirmDialog.show(
+      context,
+      title: "DELETE SLEEP LOG",
+      message: "ARE YOU SURE YOU WANT TO PERMANENTLY REMOVE THIS SESSION FROM YOUR HISTORY?",
     );
   }
 
