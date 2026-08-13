@@ -3,9 +3,11 @@
 import 'dart:convert';
 import 'hydration_reminder.dart';
 
+enum HydrationUnit { ml, oz }
+
 class HydrationSettings {
   final int dailyGoal; // in ml
-  final bool useMetric; // true for ml, false for oz
+  final HydrationUnit unit;
   final int addValue; // in ml
   final int minusValue; // in ml
   final bool remindersEnabled;
@@ -15,7 +17,7 @@ class HydrationSettings {
 
   HydrationSettings({
     this.dailyGoal = 3500,
-    this.useMetric = true,
+    this.unit = HydrationUnit.ml,
     this.addValue = 250,
     this.minusValue = 250,
     this.remindersEnabled = true,
@@ -24,11 +26,13 @@ class HydrationSettings {
     this.isSynced = 1,
   });
 
+  bool get useMetric => unit == HydrationUnit.ml;
+
   Map<String, dynamic> toMap() {
     return {
       'id': 1,
       'daily_goal': dailyGoal,
-      'use_metric': useMetric ? 1 : 0,
+      'unit': unit.name,
       'add_value': addValue,
       'minus_value': minusValue,
       'reminders_enabled': remindersEnabled ? 1 : 0,
@@ -52,11 +56,22 @@ class HydrationSettings {
       return true;
     }
 
+    // Migration logic for old use_metric boolean
+    HydrationUnit resolvedUnit = HydrationUnit.ml;
+    if (map['unit'] != null) {
+      resolvedUnit = HydrationUnit.values.firstWhere(
+        (e) => e.name == map['unit'],
+        orElse: () => HydrationUnit.ml,
+      );
+    } else if (map['use_metric'] != null) {
+      resolvedUnit = toBool(map['use_metric']) ? HydrationUnit.ml : HydrationUnit.oz;
+    }
+
     return HydrationSettings(
       dailyGoal: map['daily_goal'] as int? ?? 3500,
-      useMetric: toBool(map['use_metric']),
-      addValue: map['add_value'] as int? ?? map['quick_add_value'] as int? ?? 250,
-      minusValue: map['minus_value'] as int? ?? map['quick_remove_value'] as int? ?? 250,
+      unit: resolvedUnit,
+      addValue: map['add_value'] as int? ?? 250,
+      minusValue: map['minus_value'] as int? ?? 250,
       remindersEnabled: toBool(map['reminders_enabled']),
       isPinnedToHome: toBool(map['is_pinned_to_home']),
       reminders: decodedReminders
@@ -68,7 +83,7 @@ class HydrationSettings {
 
   HydrationSettings copyWith({
     int? dailyGoal,
-    bool? useMetric,
+    HydrationUnit? unit,
     int? addValue,
     int? minusValue,
     bool? remindersEnabled,
@@ -78,7 +93,7 @@ class HydrationSettings {
   }) {
     return HydrationSettings(
       dailyGoal: dailyGoal ?? this.dailyGoal,
-      useMetric: useMetric ?? this.useMetric,
+      unit: unit ?? this.unit,
       addValue: addValue ?? this.addValue,
       minusValue: minusValue ?? this.minusValue,
       remindersEnabled: remindersEnabled ?? this.remindersEnabled,

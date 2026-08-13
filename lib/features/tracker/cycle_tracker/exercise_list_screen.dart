@@ -882,7 +882,7 @@ class _ExerciseListScreenState extends State<ExerciseListScreen> {
     bool isCompleted = false;
     if (exLogs.isNotEmpty) {
       final l = exLogs.first;
-      final hasBaseLoad = l.weight > 0;
+      final hasBaseLoad = l.weightKg > 0 || l.weightLbs > 0;
       final hasIntensifier = l.positiveReps > 0 || l.staticHoldSeconds > 0 || l.negativeReps > 0 || l.forcedReps > 0;
       if (hasBaseLoad && hasIntensifier) {
         isCompleted = true;

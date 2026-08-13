@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:heavy_duty/core/services/connectivity_service.dart';
+import 'package:heavy_duty/features/tracker/cycle_tracker/model/cycle_settings.dart'; // For WeightUnit
 import '../model/body_comp_log.dart';
+import '../model/body_comp_settings.dart';
 import '../data/body_comp_local_repository.dart';
 import '../data/body_comp_cloud_repository.dart';
 
@@ -12,9 +14,13 @@ class BodyCompProvider with ChangeNotifier {
   RealtimeChannel? _realtimeChannel;
 
   List<BodyCompLog> _logs = [];
+  BodyCompSettings _settings = BodyCompSettings();
   bool _isLoading = false;
 
+  static const double kgToLbsMultiplier = 2.205;
+
   List<BodyCompLog> get logs => _logs;
+  BodyCompSettings get settings => _settings;
   bool get isLoading => _isLoading;
 
   void initializeForUser(String userId) {
@@ -34,7 +40,7 @@ class BodyCompProvider with ChangeNotifier {
     _realtimeChannel?.unsubscribe();
     _realtimeChannel = _supabase.channel('public:body_comp_sync:$userId');
 
-    final tables = ['weight_logs', 'body_fat_logs', 'muscle_mass_logs'];
+    final tables = ['BodyComp_weight_logs', 'BodyComp_fats_logs', 'BodyComp_muscle_logs'];
 
     for (var table in tables) {
       _realtimeChannel!.onPostgresChanges(
@@ -89,15 +95,58 @@ class BodyCompProvider with ChangeNotifier {
   }
 
   BodyMetricType _getTypeFromTable(String table) {
-    if (table == 'weight_logs') return BodyMetricType.weight;
-    if (table == 'body_fat_logs') return BodyMetricType.fat;
+    if (table == 'BodyComp_weight_logs') return BodyMetricType.weight;
+    if (table == 'BodyComp_fats_logs') return BodyMetricType.fat;
     return BodyMetricType.muscle;
   }
 
   String _getTableFromType(BodyMetricType type) {
-    if (type == BodyMetricType.weight) return 'weight_logs';
-    if (type == BodyMetricType.fat) return 'body_fat_logs';
-    return 'muscle_mass_logs';
+    if (type == BodyMetricType.weight) return 'BodyComp_weight_logs';
+    if (type == BodyMetricType.fat) return 'BodyComp_fats_logs';
+    return 'BodyComp_muscle_logs';
+  }
+
+  // --- Conversion Helpers ---
+
+  double getDisplayValue(BodyCompLog log) {
+    if (log.unit == BodyMetricUnit.percentage) return log.valueKg;
+    return _settings.weightUnit == WeightUnit.kgs ? log.valueKg : log.valueLbs;
+  }
+
+  String getDisplayUnit(BodyCompLog log) {
+    if (log.unit == BodyMetricUnit.percentage) return "%";
+    return _settings.weightUnit == WeightUnit.kgs ? "KG" : "LBS";
+  }
+
+  Map<String, double> calculateDualValues(double value, BodyMetricUnit inputUnit) {
+    if (inputUnit == BodyMetricUnit.percentage) {
+      return {'kg': value, 'lbs': value};
+    }
+    
+    // 1. Enforce strict 3-decimal truncation for input
+    String valStr = value.toStringAsFixed(10);
+    int dotIdx = valStr.indexOf('.');
+    double cleanValue = double.parse(valStr.substring(0, dotIdx + 4));
+    
+    if (_settings.weightUnit == WeightUnit.kgs) {
+      double rawLbs = cleanValue * kgToLbsMultiplier;
+      String lbsStr = rawLbs.toStringAsFixed(10);
+      int lbsDotIdx = lbsStr.indexOf('.');
+
+      return {
+        'kg': cleanValue,
+        'lbs': double.parse(lbsStr.substring(0, lbsDotIdx + 4)),
+      };
+    } else {
+      double rawKg = cleanValue / kgToLbsMultiplier;
+      String kgStr = rawKg.toStringAsFixed(10);
+      int kgDotIdx = kgStr.indexOf('.');
+
+      return {
+        'kg': double.parse(kgStr.substring(0, kgDotIdx + 4)),
+        'lbs': cleanValue,
+      };
+    }
   }
 
   Future<void> _syncLocalToCloud() async {
@@ -123,6 +172,15 @@ class BodyCompProvider with ChangeNotifier {
         await _localRepo!.markLogSynced(log.id, log.type);
       } catch (_) {}
     }
+
+    // 3. Push Unsynced Settings
+    final unsyncedSettings = await _localRepo!.getUnsyncedSettings();
+    if (unsyncedSettings != null) {
+      try {
+        await _cloudRepo.saveSettings(unsyncedSettings);
+        await _localRepo!.markSettingsSynced();
+      } catch (_) {}
+    }
   }
 
   Future<void> _loadData({bool silent = false}) async {
@@ -133,8 +191,20 @@ class BodyCompProvider with ChangeNotifier {
     }
 
     try {
+      _settings = await _localRepo!.getSettings();
       _logs = await _localRepo!.getAllLogs();
       notifyListeners();
+
+      final cloudSettings = await _cloudRepo.getSettings();
+      if (cloudSettings != null) {
+        if (_settings.isSynced == 1) {
+          _settings = cloudSettings;
+          await _localRepo!.saveSettings(_settings);
+        }
+      } else {
+        // If settings don't exist in cloud, push our local ones
+        _syncBodyCompSettings(_settings);
+      }
 
       final cloudLogs = await _cloudRepo.getAllLogs();
       if (cloudLogs != null) {
@@ -240,6 +310,32 @@ class BodyCompProvider with ChangeNotifier {
       await _localRepo!.removeFromDeletionQueue(id);
     } catch (e) {
       debugPrint("Background Sync Error (Body Comp Delete): $e");
+    }
+  }
+
+  Future<void> updateSettings(BodyCompSettings settings) async {
+    if (_localRepo == null) return;
+    final localSettings = settings.copyWith(isSynced: 0);
+    _settings = localSettings;
+    notifyListeners();
+    try {
+      await _localRepo!.saveSettings(localSettings);
+      _syncBodyCompSettings(localSettings);
+    } catch (e) {
+      debugPrint("Error saving body comp settings locally: $e");
+    }
+  }
+
+  Future<void> _syncBodyCompSettings(BodyCompSettings settings) async {
+    try {
+      await _cloudRepo.saveSettings(settings);
+      await _localRepo!.markSettingsSynced();
+      if (_settings.isSynced == 0) {
+        _settings = _settings.copyWith(isSynced: 1);
+        notifyListeners();
+      }
+    } catch (e) {
+      debugPrint("Background Sync Error (Body Comp Settings): $e");
     }
   }
 

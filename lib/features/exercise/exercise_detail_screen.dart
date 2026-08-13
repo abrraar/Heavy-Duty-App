@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:fl_chart/fl_chart.dart';
 import 'package:heavy_duty/core/theme/app_colors.dart';
 import 'package:heavy_duty/core/theme/app_text_styles.dart';
 import 'package:heavy_duty/features/tracker/cycle_tracker/provider/cycle_provider.dart';
 import 'package:heavy_duty/features/tracker/cycle_tracker/model/exercise_log.dart';
 import 'package:heavy_duty/features/exercise/provider/exercise_provider.dart';
 import 'package:heavy_duty/features/exercise/model/exercise_template.dart';
+import 'package:heavy_duty/features/exercise/widgets/exercise_analytical_graph.dart';
 import 'package:heavy_duty/features/exercise/widgets/expandable_about_text.dart';
 import 'package:heavy_duty/features/auth/provider/auth_provider.dart';
 import 'package:heavy_duty/core/widgets/elite_snackbar.dart';
@@ -45,11 +45,9 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
       backgroundColor: AppColors.background,
       body: Consumer2<CycleProvider, ExerciseProvider>(
         builder: (context, cycleProv, exProvider, _) {
-          // Find the template by ID first for stability (especially during edits)
           final template = exProvider.templates.firstWhere(
             (t) => t.id == widget.exerciseId,
             orElse: () {
-              // Fallback to name matching if ID not found
               final cleanName = widget.exerciseName.trim().toUpperCase();
               return exProvider.templates.firstWhere(
                 (t) => t.name.trim().toUpperCase() == cleanName,
@@ -126,11 +124,8 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
               onPressed: () async {
                 final authProvider = context.read<AuthProvider>();
                 final userName = authProvider.displayName;
-                
                 EliteSnackbar.show(context, "GENERATING SHAREABLE LINK...");
-
                 final link = await exProvider.generateShareableLink(template, userName);
-                
                 if (link != null) {
                   await Share.share(
                     "CHECK OUT THIS EXERCISE SHARED BY $userName IN HEAVY DUTY:\n\n$link",
@@ -319,7 +314,6 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
                           }).toList(),
                         ),
                         SizedBox(height: 24.h),
-                        // Auto Metrics Display
                         Container(
                           padding: EdgeInsets.all(16.r),
                           decoration: BoxDecoration(
@@ -361,13 +355,11 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
                           ),
                         ),
                         SizedBox(height: 32.h),
-                        // Save Button
                         GestureDetector(
                           onTap: isReady ? () async {
                             final oldName = template.name;
                             final newName = nameController.text.trim().toUpperCase();
                             final newMuscles = selectedMuscles.join(', ');
-                            
                             final updated = template.copyWith(
                               name: newName,
                               targetMuscles: newMuscles,
@@ -375,14 +367,10 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
                               intensity: calculatedIntensity,
                               aboutTheMovement: aboutController.text.trim(),
                             );
-                            
                             Navigator.pop(context);
-
-                            // Update name in cycle tracker if it changed
                             if (oldName.trim().toUpperCase() != newName) {
                               context.read<CycleProvider>().renameExerciseGlobally(oldName, newName);
                             }
-
                             await exProvider.addTemplate(updated);
                           } : null,
                           child: AnimatedContainer(
@@ -447,118 +435,41 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('PROGRESS TRACKING', style: AppTextStyles.labelSmall.copyWith(letterSpacing: 1.5)),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text('PROGRESS ANALYTICS', style: AppTextStyles.labelSmall.copyWith(letterSpacing: 1.5, fontWeight: FontWeight.w900)),
+            Container(
+              padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
+              decoration: BoxDecoration(
+                color: AppColors.crimson.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(6.r),
+              ),
+              child: Text(
+                "DATA TRENDS",
+                style: AppTextStyles.labelSmall.copyWith(color: AppColors.crimson, fontSize: 8.sp, fontWeight: FontWeight.bold),
+              ),
+            ),
+          ],
+        ),
         SizedBox(height: 15.h),
         Container(
-          height: 280.h,
           width: double.infinity,
-          padding: EdgeInsets.fromLTRB(10.w, 20.h, 20.w, 10.h),
+          padding: EdgeInsets.symmetric(vertical: 24.h),
           decoration: BoxDecoration(
-            color: AppColors.surfaceLight.withValues(alpha: 0.3),
-            borderRadius: BorderRadius.circular(20.r),
+            color: AppColors.surface.withValues(alpha: 0.5),
+            borderRadius: BorderRadius.circular(24.r),
             border: Border.all(color: AppColors.white.withValues(alpha: 0.05)),
           ),
           child: logs.isEmpty 
-            ? Center(child: Text("NO PERFORMANCE DATA RECORDED YET", style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary.withValues(alpha: 0.5))))
-            : Column(
-                children: [
-                  _buildGraphLegend(),
-                  Expanded(child: _buildDualBarChart(logs.reversed.take(6).toList())), // Show last 6 sessions
-                ],
+            ? SizedBox(
+                height: 200.h,
+                child: Center(child: Text("NO PERFORMANCE DATA RECORDED YET", style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary.withValues(alpha: 0.5)))),
+              )
+            : ExerciseAnalyticalGraph(
+                logs: logs.reversed.toList(), // Analytics widget handles the last-to-first sorting internally
+                onPointSelected: (idx) {},
               ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildGraphLegend() {
-    return Padding(
-      padding: EdgeInsets.only(bottom: 20.h, left: 10.w),
-      child: Row(
-        children: [
-          _legendItem('WEIGHT (kg)', AppColors.crimson),
-          SizedBox(width: 20.w),
-          _legendItem('REPS', Colors.blueAccent),
-        ],
-      ),
-    );
-  }
-
-  Widget _legendItem(String label, Color color) {
-    return Row(
-      children: [
-        Container(width: 10.r, height: 10.r, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
-        SizedBox(width: 6.w),
-        Text(label, style: AppTextStyles.labelSmall.copyWith(fontSize: 8.sp, color: AppColors.textSecondary)),
-      ],
-    );
-  }
-
-  Widget _buildDualBarChart(List<ExerciseLog> displayLogs) {
-    if (displayLogs.isEmpty) return const SizedBox.shrink();
-
-    double maxWeight = 0;
-    for (var l in displayLogs) {
-      if (l.weight > maxWeight) maxWeight = l.weight;
-    }
-    if (maxWeight == 0) maxWeight = 100;
-
-    return BarChart(
-      BarChartData(
-        alignment: BarChartAlignment.spaceAround,
-        maxY: maxWeight * 1.2,
-        barTouchData: BarTouchData(enabled: true),
-        titlesData: FlTitlesData(
-          show: true,
-          bottomTitles: AxisTitles(
-            sideTitles: SideTitles(
-              showTitles: true,
-              getTitlesWidget: (value, meta) {
-                int idx = value.toInt();
-                if (idx < 0 || idx >= displayLogs.length) return const SizedBox.shrink();
-                final dateStr = DateFormat('MM/dd').format(displayLogs[idx].timestamp);
-                return SideTitleWidget(
-                  meta: meta,
-                  space: 8.h,
-                  child: Text(dateStr, 
-                    style: AppTextStyles.labelSmall.copyWith(fontSize: 8.sp, color: AppColors.textSecondary)),
-                );
-              },
-            ),
-          ),
-          leftTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-          rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-          topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-        ),
-        gridData: FlGridData(
-          show: true,
-          drawVerticalLine: false,
-          getDrawingHorizontalLine: (value) => FlLine(color: AppColors.white.withValues(alpha: 0.03), strokeWidth: 1),
-        ),
-        borderData: FlBorderData(show: false),
-        barGroups: List.generate(displayLogs.length, (index) {
-          final log = displayLogs[index];
-          return _makeGroupData(index, log.weight, log.positiveReps.toDouble(), maxWeight);
-        }),
-      ),
-    );
-  }
-
-  BarChartGroupData _makeGroupData(int x, double weight, double reps, double maxWeight) {
-    return BarChartGroupData(
-      x: x,
-      barRods: [
-        BarChartRodData(
-          toY: weight,
-          color: AppColors.crimson,
-          width: 8.w,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(4.r)),
-        ),
-        BarChartRodData(
-          toY: (reps / 12) * maxWeight, // Scaling reps relative to weight for visual balance
-          color: Colors.blueAccent,
-          width: 8.w,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(4.r)),
         ),
       ],
     );
@@ -581,34 +492,22 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
             final index = logs.indexOf(log);
             if (index < logs.length - 1) {
               final prev = logs[index + 1];
-              final wDiff = log.weight - prev.weight;
+              final wDiff = log.weightKg - prev.weightKg;
               final rDiff = log.positiveReps - prev.positiveReps;
-              
-              if (wDiff > 0) {
-                diffText = "+${wDiff.toStringAsFixed(1)}kg load increase";
-              } else if (rDiff > 0) {
-                diffText = "+$rDiff reps increase";
-              } else if (wDiff == 0 && rDiff == 0) {
-                diffText = "Maintained performance";
-              } else {
-                diffText = "Performance decrease";
-              }
+              if (wDiff > 0) diffText = "+${wDiff.toStringAsFixed(1)}KG LOAD INCREASE";
+              else if (rDiff > 0) diffText = "+$rDiff REPS INCREASE";
+              else if (wDiff == 0 && rDiff == 0) diffText = "MAINTAINED PERFORMANCE";
+              else diffText = "PERFORMANCE DECREASE";
             } else {
-              diffText = "Baseline session";
+              diffText = "BASELINE SESSION";
             }
-
-            return _buildLogEntry(
-              DateFormat('MMM dd').format(log.timestamp).toUpperCase(),
-              '${log.weight} kg',
-              '${log.positiveReps} REPS',
-              diffText,
-            );
+            return _buildLogEntry(log, diffText);
           }),
       ],
     );
   }
 
-  Widget _buildLogEntry(String date, String weight, String reps, String note) {
+  Widget _buildLogEntry(ExerciseLog log, String note) {
     return Container(
       margin: EdgeInsets.only(bottom: 12.h),
       padding: EdgeInsets.all(16.r),
@@ -617,25 +516,52 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
         borderRadius: BorderRadius.circular(16.r),
         border: Border.all(color: AppColors.white.withValues(alpha: 0.05)),
       ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      child: Column(
         children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(date, style: AppTextStyles.labelMedium),
-              Text(note, style: AppTextStyles.labelSmall.copyWith(color: AppColors.crimson, fontSize: 10.sp)),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(DateFormat('MMM dd').format(log.timestamp).toUpperCase(), style: AppTextStyles.labelMedium),
+                  Text(note, style: AppTextStyles.labelSmall.copyWith(color: AppColors.crimson, fontSize: 9.sp, fontWeight: FontWeight.bold)),
+                ],
+              ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text('${double.parse(log.weightKg.toStringAsFixed(3)).toString()} KG', style: AppTextStyles.h3.copyWith(fontSize: 16.sp)),
+                  Text('${log.positiveReps} POS REPS', style: AppTextStyles.labelSmall.copyWith(color: Colors.blueAccent, fontSize: 10.sp, fontWeight: FontWeight.bold)),
+                ],
+              ),
             ],
           ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(weight, style: AppTextStyles.h3.copyWith(fontSize: 16.sp)),
-              Text(reps, style: AppTextStyles.labelSmall.copyWith(color: Colors.blueAccent)),
-            ],
-          ),
+          if (log.negativeReps > 0 || log.staticHoldSeconds > 0 || log.forcedReps > 0) ...[
+            Padding(
+              padding: EdgeInsets.symmetric(vertical: 12.h),
+              child: Divider(color: AppColors.white.withValues(alpha: 0.05), height: 1),
+            ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                if (log.negativeReps > 0) _miniSpec(log.negativeReps.toString(), "NEG", Colors.tealAccent),
+                if (log.staticHoldSeconds > 0) _miniSpec("${log.staticHoldSeconds}S", "STATIC", Colors.orangeAccent),
+                if (log.forcedReps > 0) _miniSpec(log.forcedReps.toString(), "FORCED", Colors.purpleAccent),
+              ],
+            ),
+          ]
         ],
       ),
+    );
+  }
+
+  Widget _miniSpec(String val, String label, Color color) {
+    return Column(
+      children: [
+        Text(val, style: AppTextStyles.labelSmall.copyWith(color: Colors.white, fontWeight: FontWeight.bold)),
+        Text(label, style: AppTextStyles.labelSmall.copyWith(color: color, fontSize: 8.sp, fontWeight: FontWeight.w900)),
+      ],
     );
   }
 

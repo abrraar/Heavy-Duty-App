@@ -4,6 +4,9 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:heavy_duty/core/theme/app_colors.dart';
 import 'package:heavy_duty/core/theme/app_text_styles.dart';
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
+import 'package:heavy_duty/features/tracker/body_composition/provider/body_comp_provider.dart';
+import 'package:heavy_duty/features/tracker/cycle_tracker/model/cycle_settings.dart'; // For WeightUnit
 
 class BodyCompGraph extends StatefulWidget {
   final List<DateTime> dates;
@@ -268,7 +271,7 @@ class _BodyCompGraphState extends State<BodyCompGraph> {
         ),
         SizedBox(height: 6.h),
         Text(
-          value != null ? value.toStringAsFixed(1) : "--",
+          value != null ? double.parse(value.toStringAsFixed(3)).toString() : "--",
           style: AppTextStyles.h3.copyWith(
             color: color,
             fontSize: 22.sp, // Larger value for impact
@@ -400,8 +403,6 @@ class BodyCompComparisonWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final labels = dates.map((d) => DateFormat('MMM dd, HH:mm').format(d).toUpperCase()).toList();
-
     return Container(
       padding: EdgeInsets.all(24.r),
       decoration: BoxDecoration(
@@ -422,7 +423,7 @@ class BodyCompComparisonWidget extends StatelessWidget {
           ),
           if (idx1 != null && idx2 != null) ...[
             SizedBox(height: 24.h),
-            _buildComparisonDetails(),
+            _buildComparisonDetails(context),
           ] else ...[
             SizedBox(height: 32.h),
             Center(
@@ -646,13 +647,15 @@ class BodyCompComparisonWidget extends StatelessWidget {
     if (result != null) onChanged(result);
   }
 
-  Widget _buildComparisonDetails() {
+  Widget _buildComparisonDetails(BuildContext context) {
     final List<Widget> items = [];
+    final provider = context.read<BodyCompProvider>();
+    final String massUnit = provider.settings.weightUnit == WeightUnit.kgs ? "kg" : "lbs";
     
     final metrics = [
-      {'label': "WEIGHT", 'key': "weight", 'color': Colors.tealAccent, 'unit': "kg"},
-      {'label': "BODY FAT", 'key': "fat", 'color': Colors.redAccent, 'unit': "kg"},
-      {'label': "MUSCLE", 'key': "muscle", 'color': Colors.lightGreenAccent, 'unit': "kg"},
+      {'label': "WEIGHT", 'key': "weight", 'color': Colors.tealAccent, 'unit': massUnit},
+      {'label': "BODY FAT", 'key': "fat", 'color': Colors.redAccent, 'unit': massUnit},
+      {'label': "MUSCLE", 'key': "muscle", 'color': Colors.lightGreenAccent, 'unit': massUnit},
     ];
 
     for (var m in metrics) {

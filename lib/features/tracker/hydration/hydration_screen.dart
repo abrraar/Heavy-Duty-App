@@ -437,7 +437,7 @@ class _HydrationScreenState extends State<HydrationScreen>
     for (var log in provider.logs) {
       final ts = log.timestamp;
       final normalized = DateTime(ts.year, ts.month, ts.day, ts.hour, ts.minute);
-      aggregatedMap[normalized] = (aggregatedMap[normalized] ?? 0.0) + log.amount.toDouble();
+      aggregatedMap[normalized] = (aggregatedMap[normalized] ?? 0.0) + log.amountMl.toDouble();
     }
 
     final sortedEntries = aggregatedMap.entries.toList()
@@ -528,7 +528,7 @@ class _HydrationScreenState extends State<HydrationScreen>
       }
       if (_recordsFilter.year != null && log.timestamp.year != _recordsFilter.year) return false;
       if (_recordsFilter.month != null && log.timestamp.month != _recordsFilter.month) return false;
-      final double amount = log.amount.toDouble();
+      final double amount = log.amountMl.toDouble();
       if (_recordsFilter.minAmount != null && amount < _recordsFilter.minAmount!) return false;
       if (_recordsFilter.maxAmount != null && amount > _recordsFilter.maxAmount!) return false;
       return true;
@@ -651,7 +651,7 @@ class _HydrationScreenState extends State<HydrationScreen>
                           child: const Icon(Icons.delete_outline_rounded, color: AppColors.error, size: 28),
                         ),
                         confirmDismiss: (direction) async {
-                          return await _showDeleteLogConfirmation(provider.formatAmount(log.amount));
+                          return await _showDeleteLogConfirmation(provider.formatAmount(log.amountMl));
                         },
                         onDismissed: (direction) {
                           provider.deleteLog(log.id);
@@ -670,7 +670,7 @@ class _HydrationScreenState extends State<HydrationScreen>
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    provider.formatAmount(log.amount),
+                                    provider.formatAmount(log.amountMl),
                                     style: AppTextStyles.h3.copyWith(fontSize: 18.sp, color: Colors.blueAccent),
                                   ),
                                   SizedBox(height: 4.h),

@@ -71,11 +71,11 @@ class CycleProvider with ChangeNotifier {
     _realtimeChannel?.unsubscribe();
     _realtimeChannel = _supabase.channel('public:cycle_sync:$userId');
 
-    // 1. Listen for Training Cycles
+    // 1. Listen for Training Cycles (HIT_cycles)
     _realtimeChannel!.onPostgresChanges(
       event: PostgresChangeEvent.all,
       schema: 'public',
-      table: 'training_cycles',
+      table: 'HIT_cycles',
       callback: (payload) async {
         debugPrint("Realtime Training Cycle Update: ${payload.eventType}");
         
@@ -105,11 +105,11 @@ class CycleProvider with ChangeNotifier {
       },
     );
 
-    // 1b. Listen for Workouts
+    // 1b. Listen for Workouts (HIT_workouts)
     _realtimeChannel!.onPostgresChanges(
       event: PostgresChangeEvent.all,
       schema: 'public',
-      table: 'workouts',
+      table: 'HIT_workouts',
       callback: (payload) async {
         debugPrint("Realtime Workout Update: ${payload.eventType}");
         final String? recordUserId = payload.newRecord['user_id'] ?? payload.oldRecord['user_id'];
@@ -129,11 +129,11 @@ class CycleProvider with ChangeNotifier {
       },
     );
 
-    // 1c. Listen for Exercises
+    // 1c. Listen for Exercises (HIT_exercises)
     _realtimeChannel!.onPostgresChanges(
       event: PostgresChangeEvent.all,
       schema: 'public',
-      table: 'exercises',
+      table: 'HIT_exercises',
       callback: (payload) async {
         debugPrint("Realtime Exercise Update: ${payload.eventType}");
         final String? recordUserId = payload.newRecord['user_id'] ?? payload.oldRecord['user_id'];
@@ -193,11 +193,11 @@ class CycleProvider with ChangeNotifier {
       },
     );
 
-    // 3. Listen for Cycle Settings
+    // 3. Listen for Cycle Settings (HIT_settings)
     _realtimeChannel!.onPostgresChanges(
       event: PostgresChangeEvent.all,
       schema: 'public',
-      table: 'cycle_settings',
+      table: 'HIT_settings',
       callback: (payload) async {
         debugPrint("Realtime Cycle Settings Update: ${payload.eventType}");
         
@@ -233,9 +233,9 @@ class CycleProvider with ChangeNotifier {
       final id = del['id'] as String;
       final table = del['table_name'] as String;
       try {
-        if (table == 'training_cycles') await _cloudRepo.deleteCycle(id);
-        if (table == 'workouts') await _cloudRepo.deleteWorkout(id);
-        if (table == 'exercises') await _cloudRepo.deleteExercise(id);
+        if (table == 'HIT_cycles') await _cloudRepo.deleteCycle(id);
+        if (table == 'HIT_workouts') await _cloudRepo.deleteWorkout(id);
+        if (table == 'HIT_exercises') await _cloudRepo.deleteExercise(id);
         if (table == 'exercise_logs') await _cloudRepo.deleteLog(id);
         await _localRepo!.removeFromDeletionQueue(id);
       } catch (_) {}
@@ -246,19 +246,7 @@ class CycleProvider with ChangeNotifier {
     for (var cycle in unsyncedCycles) {
       if (!cycle.isDefault) {
         try {
-          // Push Cycle
-          await _cloudRepo.insertCycle(cycle);
-          await _localRepo!.markCycleSynced(cycle.id);
-          
-          // Push Workouts & Exercises
-          for (var workout in cycle.workouts) {
-            await _cloudRepo.insertWorkout(workout);
-            await _localRepo!.markWorkoutSynced(workout.id);
-            for (var exercise in workout.exercises) {
-              await _cloudRepo.insertExercise(exercise);
-              await _localRepo!.markExerciseSynced(exercise.id);
-            }
-          }
+          _syncCycle(cycle);
         } catch (_) {}
       }
     }
@@ -508,29 +496,36 @@ class CycleProvider with ChangeNotifier {
 
   Future<void> _syncCycle(TrainingCycle cycle) async {
     try {
-      // 1. Push Cycle
+      // 1. Push Cycle Header
       await _cloudRepo.insertCycle(cycle);
       await _localRepo!.markCycleSynced(cycle.id);
       
-      // 2. Push Workouts & Exercises
+      // 2. Push Workouts & Exercises with Individual Error Isolation
       for (var workout in cycle.workouts) {
-        await _cloudRepo.insertWorkout(workout);
-        await _localRepo!.markWorkoutSynced(workout.id);
-        for (var exercise in workout.exercises) {
-          await _cloudRepo.insertExercise(exercise);
-          await _localRepo!.markExerciseSynced(exercise.id);
+        try {
+          await _cloudRepo.insertWorkout(workout);
+          await _localRepo!.markWorkoutSynced(workout.id);
+          
+          for (var exercise in workout.exercises) {
+            try {
+              await _cloudRepo.insertExercise(exercise);
+              await _localRepo!.markExerciseSynced(exercise.id);
+            } catch (e) {
+              debugPrint("Background Sync Error (Exercise ${exercise.id}): $e");
+            }
+          }
+        } catch (e) {
+          debugPrint("Background Sync Error (Workout ${workout.id}): $e");
         }
       }
 
       final idx = _cycles.indexWhere((c) => c.id == cycle.id);
       if (idx != -1) {
-        // IMPORTANT: Use _cycles[idx] as the base to preserve any local status changes 
-        // that occurred while the network request was in flight.
         _cycles[idx] = _cycles[idx].copyWith(isSynced: 1);
         notifyListeners();
       }
     } catch (e) {
-      debugPrint("Background Sync Error (Cycle Add/Update): $e");
+      debugPrint("Background Sync Error (Cycle Root): $e");
     }
   }
 
@@ -659,7 +654,7 @@ class CycleProvider with ChangeNotifier {
         notifyListeners();
         
         await _localRepo!.deleteWorkout(id);
-        await _localRepo!.addToDeletionQueue(id, 'workouts');
+        await _localRepo!.addToDeletionQueue(id, 'HIT_workouts');
         _syncWorkoutDelete(id);
         break;
       }
@@ -693,7 +688,7 @@ class CycleProvider with ChangeNotifier {
           notifyListeners();
           
           await _localRepo!.deleteExercise(id);
-          await _localRepo!.addToDeletionQueue(id, 'exercises');
+          await _localRepo!.addToDeletionQueue(id, 'HIT_exercises');
           _syncExerciseDelete(id);
           found = true;
           break;
@@ -718,7 +713,7 @@ class CycleProvider with ChangeNotifier {
     notifyListeners();
 
     await _localRepo!.deleteCycle(id);
-    await _localRepo!.addToDeletionQueue(id, 'training_cycles');
+    await _localRepo!.addToDeletionQueue(id, 'HIT_cycles');
     _syncCycleDelete(id);
   }
 
@@ -769,9 +764,10 @@ class CycleProvider with ChangeNotifier {
       debugPrint("CycleProvider: Cloud Sync Success for Log: ${log.id}");
       await _localRepo!.markLogSynced(log.id);
       
+      // Update in-memory sync status
       final idx = _logs.indexWhere((l) => l.id == log.id);
       if (idx != -1) {
-        _logs[idx] = log.copyWith(isSynced: 1);
+        _logs[idx] = _logs[idx].copyWith(isSynced: 1);
         notifyListeners();
       }
     } catch (e) {
@@ -837,26 +833,47 @@ class CycleProvider with ChangeNotifier {
       Workout? targetWorkout;
       TrainingCycle? targetCycle;
       
-      for (var c in _cycles) {
-        for (var w in c.workouts) {
+      // 1. Locate the specific Workout/Cycle for this exercise instance.
+      // We prioritize searching in the Active cycle to avoid colliding with deterministic IDs in history.
+      final active = activeCycle;
+      if (active != null) {
+        for (var w in active.workouts) {
           if (w.exercises.any((e) => e.id == exerciseId)) {
             targetWorkout = w;
-            targetCycle = c;
+            targetCycle = active;
             break;
           }
         }
-        if (targetWorkout != null) break;
       }
 
-      if (targetWorkout == null || targetCycle == null) return;
+      // If not in active cycle, search everywhere (Fallback)
+      if (targetWorkout == null) {
+        for (var c in _cycles) {
+          for (var w in c.workouts) {
+            if (w.exercises.any((e) => e.id == exerciseId)) {
+              targetWorkout = w;
+              targetCycle = c;
+              break;
+            }
+          }
+          if (targetWorkout != null) break;
+        }
+      }
 
-      bool allFinished = true;
+      if (targetWorkout == null || targetCycle == null) {
+        debugPrint("CycleProvider: Target workout/cycle not found for instance ID $exerciseId");
+        return;
+      }
+
+      bool allExercisesFinished = true;
       for (var ex in targetWorkout.exercises) {
+        // Find latest log for THIS specific exercise instance ID
         final exLogs = _logs.where((l) => l.exerciseId == ex.id).toList();
         
         bool hasValidLog = false;
         for (var l in exLogs) {
-          final hasBaseLoad = l.weight > 0;
+          // A valid HIT set must have a base load (Weight) AND at least one intensifier value
+          final hasBaseLoad = l.weightKg > 0 || l.weightLbs > 0;
           final hasIntensifier = l.positiveReps > 0 || 
                                l.staticHoldSeconds > 0 || 
                                l.negativeReps > 0 || 
@@ -869,30 +886,30 @@ class CycleProvider with ChangeNotifier {
         }
         
         if (!hasValidLog) {
-          allFinished = false;
+          allExercisesFinished = false;
           break;
         }
       }
 
       final bool isCurrentlyCompleted = targetWorkout.status == WorkoutStatus.completed;
 
-      if (allFinished && !isCurrentlyCompleted && targetWorkout.exercises.isNotEmpty) {
-        // --- 1. MARK WORKOUT AS COMPLETED ---
+      if (allExercisesFinished && !isCurrentlyCompleted && targetWorkout.exercises.isNotEmpty) {
+        // --- 1. TRANSITION TO COMPLETED ---
+        debugPrint("CycleProvider: All exercises finished. Updating workout '${targetWorkout.name}' to COMPLETED.");
         final updatedWorkout = targetWorkout.copyWith(
           status: WorkoutStatus.completed,
           completedAt: DateTime.now(),
         );
-        await _updateWorkoutInCycle(targetCycle, updatedWorkout);
-        debugPrint("CycleProvider: Workout '${targetWorkout.name}' marked as COMPLETED.");
+        await _updateWorkoutInCycle(targetCycle!, updatedWorkout);
       } 
-      else if ((!allFinished || targetWorkout.exercises.isEmpty) && isCurrentlyCompleted) {
-        // --- 2. MARK WORKOUT AS PENDING (AND CYCLE AS INCOMPLETE IF NEEDED) ---
+      else if ((!allExercisesFinished || targetWorkout.exercises.isEmpty) && isCurrentlyCompleted) {
+        // --- 2. REVERT TO PENDING ---
+        debugPrint("CycleProvider: Exercise removed or invalidated. Reverting workout '${targetWorkout.name}' to PENDING.");
         final updatedWorkout = targetWorkout.copyWith(
           status: WorkoutStatus.pending,
           completedAt: null,
         );
 
-        // Prepare the updated workouts list for the cycle
         final cIdx = _cycles.indexWhere((c) => c.id == targetCycle!.id);
         if (cIdx != -1) {
           final updatedWorkouts = List<Workout>.from(_cycles[cIdx].workouts);
@@ -906,25 +923,22 @@ class CycleProvider with ChangeNotifier {
             isSynced: 0,
           );
 
-          // If the cycle was already FINISHED, it now becomes INCOMPLETE
+          // If the cycle was already FINISHED, it now becomes INCOMPLETE because a workout was invalidated
           if (updatedCycle.status == CycleStatus.finished) {
             updatedCycle = updatedCycle.copyWith(status: CycleStatus.incomplete);
-            debugPrint("CycleProvider: Cycle '${updatedCycle.id}' status changed to INCOMPLETE.");
+            debugPrint("CycleProvider: Cycle '${updatedCycle.id}' status reverted to INCOMPLETE.");
           }
 
-          // Apply update to memory
           _cycles[cIdx] = updatedCycle;
           _rebuildCaches();
           notifyListeners();
 
-          // Persist and Sync everything in one go
           await _localRepo!.insertCycle(updatedCycle);
           _syncCycle(updatedCycle);
-          debugPrint("CycleProvider: Workout '${targetWorkout.name}' reverted to PENDING and Cycle synced.");
         }
       }
     } catch (e) {
-      debugPrint("CycleProvider: Error checking workout completion: $e");
+      debugPrint("CycleProvider Error in _checkWorkoutCompletion: $e");
     }
   }
 
@@ -1140,20 +1154,46 @@ class CycleProvider with ChangeNotifier {
   }
 
   // --- Conversion Helpers ---
-  static const double _lbsToKgMultiplier = 0.45359237;
+  static const double _kgToLbsMultiplier = 2.205;
 
-  double convertToDisplay(double value) {
-    if (_settings.weightUnit == WeightUnit.kgs) {
-      return value * _lbsToKgMultiplier;
-    }
-    return value;
+  double getWeightForDisplay(ExerciseLog log) {
+    return _settings.weightUnit == WeightUnit.kgs ? log.weightKg : log.weightLbs;
   }
 
-  double convertFromDisplay(double value) {
+  // Use this when the user is typing a value in the current unit
+  // Returns a Map with both values calculated and truncated to 3 decimals
+  Map<String, double> calculateDualWeights(double inputValue) {
+    // 1. Convert input to string with high precision, then truncate to exactly 3 decimals
+    String inputStr = inputValue.toStringAsFixed(10);
+    int dotIdx = inputStr.indexOf('.');
+    double cleanInput = double.parse(inputStr.substring(0, dotIdx + 4));
+
     if (_settings.weightUnit == WeightUnit.kgs) {
-      return value / _lbsToKgMultiplier;
+      double rawLbs = cleanInput * _kgToLbsMultiplier;
+      String lbsStr = rawLbs.toStringAsFixed(10);
+      int lbsDotIdx = lbsStr.indexOf('.');
+      
+      return {
+        'kg': cleanInput,
+        'lbs': double.parse(lbsStr.substring(0, lbsDotIdx + 4)),
+      };
+    } else {
+      double rawKg = cleanInput / _kgToLbsMultiplier;
+      String kgStr = rawKg.toStringAsFixed(10);
+      int kgDotIdx = kgStr.indexOf('.');
+
+      return {
+        'kg': double.parse(kgStr.substring(0, kgDotIdx + 4)),
+        'lbs': cleanInput,
+      };
     }
-    return value;
+  }
+
+  double convertToDisplay(double valueInLbs) {
+    if (_settings.weightUnit == WeightUnit.kgs) {
+      return valueInLbs / _kgToLbsMultiplier;
+    }
+    return valueInLbs;
   }
 
   Future<void> updateExerciseOrder(String workoutId, List<Exercise> exercises) async {
@@ -1204,8 +1244,8 @@ class CycleProvider with ChangeNotifier {
         if (cycleLogs.length < 2) continue;
 
         // Compare first session of THIS cycle with latest session of THIS cycle
-        final baseline = cycleLogs.first.weight * cycleLogs.first.positiveReps;
-        final latest = cycleLogs.last.weight * cycleLogs.last.positiveReps;
+        final baseline = cycleLogs.first.weightKg * cycleLogs.first.positiveReps;
+        final latest = cycleLogs.last.weightKg * cycleLogs.last.positiveReps;
 
         if (baseline > 0) {
           totalGrowth += (latest / baseline) - 1;
@@ -1268,18 +1308,18 @@ class CycleProvider with ChangeNotifier {
     if (previousCycleLogs.isEmpty) return {"strength": 0.0, "volume": 0.0};
     final baselineLog = previousCycleLogs.last;
 
-    if (latestLog.weight <= 0 || latestLog.positiveReps <= 0 || baselineLog.weight <= 0 || baselineLog.positiveReps <= 0) {
+    if (latestLog.weightKg <= 0 || latestLog.positiveReps <= 0 || baselineLog.weightKg <= 0 || baselineLog.positiveReps <= 0) {
       return {"strength": 0.0, "volume": 0.0};
     }
 
     // Strength (Brzycki)
-    final double current1RM = _calculateBrzycki1RM(latestLog.weight, latestLog.positiveReps);
-    final double baseline1RM = _calculateBrzycki1RM(baselineLog.weight, baselineLog.positiveReps);
+    final double current1RM = _calculateBrzycki1RM(latestLog.weightKg, latestLog.positiveReps);
+    final double baseline1RM = _calculateBrzycki1RM(baselineLog.weightKg, baselineLog.positiveReps);
     final double strengthProg = (current1RM / baseline1RM) - 1;
 
     // Volume
-    final double currentVol = _calculateVolume(latestLog.weight, latestLog.positiveReps);
-    final double baselineVol = _calculateVolume(baselineLog.weight, baselineLog.positiveReps);
+    final double currentVol = _calculateVolume(latestLog.weightKg, latestLog.positiveReps);
+    final double baselineVol = _calculateVolume(baselineLog.weightKg, baselineLog.positiveReps);
     final double volumeProg = (currentVol / baselineVol) - 1;
 
     return {

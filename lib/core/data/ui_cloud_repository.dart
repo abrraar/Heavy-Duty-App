@@ -9,7 +9,7 @@ class UiCloudRepository {
       if (userId == null) return null;
 
       final response = await _supabase
-          .from('ui_settings')
+          .from('home_widget_settings')
           .select()
           .eq('user_id', userId)
           .maybeSingle();
@@ -28,6 +28,6 @@ class UiCloudRepository {
     data['user_id'] = userId;
     data.remove('id'); // ID is handled by Supabase/Constraint
 
-    await _supabase.from('ui_settings').upsert(data);
+    await _supabase.from('home_widget_settings').upsert(data);
   }
 }

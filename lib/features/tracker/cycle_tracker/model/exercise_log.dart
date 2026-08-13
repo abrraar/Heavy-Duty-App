@@ -3,7 +3,8 @@ import 'package:uuid/uuid.dart';
 class ExerciseLog {
   final String id;
   final String exerciseId;
-  final double weight;
+  final double weightKg;
+  final double weightLbs;
   final int positiveReps;
   final int staticHoldSeconds;
   final int negativeReps;
@@ -15,7 +16,8 @@ class ExerciseLog {
   ExerciseLog({
     String? id,
     required this.exerciseId,
-    required this.weight,
+    required this.weightKg,
+    required this.weightLbs,
     required this.positiveReps,
     this.staticHoldSeconds = 0,
     this.negativeReps = 0,
@@ -30,7 +32,8 @@ class ExerciseLog {
     return {
       'id': id,
       'exercise_id': exerciseId,
-      'weight': weight,
+      'weight_kg': weightKg,
+      'weight_lbs': weightLbs,
       'positive_reps': positiveReps,
       'static_hold_seconds': staticHoldSeconds,
       'negative_reps': negativeReps,
@@ -42,10 +45,22 @@ class ExerciseLog {
   }
 
   factory ExerciseLog.fromMap(Map<String, dynamic> map) {
+    // Migration helper: If new columns don't exist yet, fallback to old 'weight'
+    double? wKg = (map['weight_kg'] as num?)?.toDouble();
+    double? wLbs = (map['weight_lbs'] as num?)?.toDouble();
+    
+    if (wKg == null || wLbs == null) {
+      double legacyWeight = (map['weight'] as num? ?? 0.0).toDouble();
+      // Assume legacy was lbs as per current logic
+      wLbs = legacyWeight;
+      wKg = legacyWeight / 2.205;
+    }
+
     return ExerciseLog(
       id: map['id']?.toString() ?? const Uuid().v4(),
       exerciseId: map['exercise_id']?.toString() ?? "",
-      weight: (map['weight'] as num?)?.toDouble() ?? 0.0,
+      weightKg: wKg,
+      weightLbs: wLbs,
       positiveReps: (map['positive_reps'] as num?)?.toInt() ?? 0,
       staticHoldSeconds: (map['static_hold_seconds'] as num?)?.toInt() ?? 0,
       negativeReps: (map['negative_reps'] as num?)?.toInt() ?? 0,
@@ -59,7 +74,8 @@ class ExerciseLog {
   ExerciseLog copyWith({
     String? id,
     String? exerciseId,
-    double? weight,
+    double? weightKg,
+    double? weightLbs,
     int? positiveReps,
     int? staticHoldSeconds,
     int? negativeReps,
@@ -71,7 +87,8 @@ class ExerciseLog {
     return ExerciseLog(
       id: id ?? this.id,
       exerciseId: exerciseId ?? this.exerciseId,
-      weight: weight ?? this.weight,
+      weightKg: weightKg ?? this.weightKg,
+      weightLbs: weightLbs ?? this.weightLbs,
       positiveReps: positiveReps ?? this.positiveReps,
       staticHoldSeconds: staticHoldSeconds ?? this.staticHoldSeconds,
       negativeReps: negativeReps ?? this.negativeReps,

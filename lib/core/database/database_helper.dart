@@ -10,7 +10,7 @@ class DatabaseHelper {
   DatabaseHelper._init();
 
   Future<Database> getDatabaseForUser(String userId) async {
-    final dbName = 'user_${userId}_tracker.db';
+    final dbName = 'user_${userId}_tracker_v1.db';
     return await _initDB(dbName);
   }
 
@@ -20,7 +20,7 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 5, 
+      version: 1, 
       onCreate: _createDB,
       onUpgrade: _onUpgrade,
       onConfigure: _onConfigure,
@@ -32,9 +32,9 @@ class DatabaseHelper {
   }
 
   Future _createDB(Database db, int version) async {
-    // 1. Supplement Library Table
+    // 1. Supplement Library Table (SS_supplements)
     await db.execute('''
-      CREATE TABLE supplements (
+      CREATE TABLE SS_supplements (
         id TEXT PRIMARY KEY,
         name TEXT NOT NULL,
         description TEXT,
@@ -62,9 +62,9 @@ class DatabaseHelper {
       )
     ''');
 
-    // 2. Stacks Table
+    // 2. Stacks Table (SS_stack)
     await db.execute('''
-      CREATE TABLE stacks (
+      CREATE TABLE SS_stack (
         id TEXT PRIMARY KEY,
         name TEXT NOT NULL,
         is_pinned INTEGER DEFAULT 0,
@@ -80,9 +80,9 @@ class DatabaseHelper {
       )
     ''');
 
-    // 3. History Table
+    // 3. History Table (SS_records)
     await db.execute('''
-      CREATE TABLE history (
+      CREATE TABLE SS_records (
         id TEXT PRIMARY KEY,
         supplement_id TEXT NOT NULL,
         supplement_name TEXT NOT NULL,
@@ -99,7 +99,8 @@ class DatabaseHelper {
     await db.execute('''
       CREATE TABLE hydration_logs (
         id TEXT PRIMARY KEY,
-        amount INTEGER NOT NULL,
+        amount_ml INTEGER NOT NULL,
+        amount_oz REAL NOT NULL,
         timestamp TEXT NOT NULL,
         is_synced INTEGER DEFAULT 1
       )
@@ -110,7 +111,7 @@ class DatabaseHelper {
       CREATE TABLE hydration_settings (
         id INTEGER PRIMARY KEY CHECK (id = 1),
         daily_goal INTEGER DEFAULT 3500,
-        use_metric INTEGER DEFAULT 1,
+        unit TEXT DEFAULT 'ml',
         add_value INTEGER DEFAULT 250,
         minus_value INTEGER DEFAULT 250,
         reminders_enabled INTEGER DEFAULT 1,
@@ -149,9 +150,9 @@ class DatabaseHelper {
       )
     ''');
 
-    // 8. Calorie Logs Table
+    // 8. Calorie Logs Table (calorie_meal_logs)
     await db.execute('''
-      CREATE TABLE calorie_logs (
+      CREATE TABLE calorie_meal_logs (
         id TEXT PRIMARY KEY,
         meal_name TEXT NOT NULL,
         food_items TEXT NOT NULL,
@@ -181,9 +182,9 @@ class DatabaseHelper {
       )
     ''');
 
-    // 10. Saved Meals Table
+    // 10. Saved Meals Table (calorie_meals)
     await db.execute('''
-      CREATE TABLE saved_meals (
+      CREATE TABLE calorie_meals (
         id TEXT PRIMARY KEY,
         name TEXT NOT NULL,
         food_items TEXT NOT NULL,
@@ -205,36 +206,39 @@ class DatabaseHelper {
 
     // 11. Body Composition Tables
     await db.execute('''
-      CREATE TABLE weight_logs (
+      CREATE TABLE BodyComp_weight_logs (
         id TEXT PRIMARY KEY,
-        value REAL NOT NULL,
+        value_kg REAL NOT NULL,
+        value_lbs REAL NOT NULL,
         timestamp TEXT NOT NULL,
         unit TEXT DEFAULT 'kg',
         is_synced INTEGER DEFAULT 1
       )
     ''');
     await db.execute('''
-      CREATE TABLE body_fat_logs (
+      CREATE TABLE BodyComp_fats_logs (
         id TEXT PRIMARY KEY,
-        value REAL NOT NULL,
+        value_kg REAL NOT NULL,
+        value_lbs REAL NOT NULL,
         timestamp TEXT NOT NULL,
         unit TEXT DEFAULT 'percentage',
         is_synced INTEGER DEFAULT 1
       )
     ''');
     await db.execute('''
-      CREATE TABLE muscle_mass_logs (
+      CREATE TABLE BodyComp_muscle_logs (
         id TEXT PRIMARY KEY,
-        value REAL NOT NULL,
+        value_kg REAL NOT NULL,
+        value_lbs REAL NOT NULL,
         timestamp TEXT NOT NULL,
         unit TEXT DEFAULT 'kg',
         is_synced INTEGER DEFAULT 1
       )
     ''');
 
-    // 12. Training Cycles Table
+    // 12. Training Cycles Table (HIT_cycles)
     await db.execute('''
-      CREATE TABLE training_cycles (
+      CREATE TABLE HIT_cycles (
         id TEXT PRIMARY KEY,
         name TEXT NOT NULL,
         description TEXT,
@@ -248,9 +252,9 @@ class DatabaseHelper {
       )
     ''');
 
-    // 13. Workouts Table
+    // 13. Workouts Table (HIT_workouts)
     await db.execute('''
-      CREATE TABLE workouts (
+      CREATE TABLE HIT_workouts (
         id TEXT PRIMARY KEY,
         cycle_id TEXT NOT NULL,
         name TEXT NOT NULL,
@@ -259,20 +263,20 @@ class DatabaseHelper {
         completed_at TEXT,
         note TEXT,
         is_synced INTEGER DEFAULT 1,
-        FOREIGN KEY (cycle_id) REFERENCES training_cycles (id) ON DELETE CASCADE
+        FOREIGN KEY (cycle_id) REFERENCES HIT_cycles (id) ON DELETE CASCADE
       )
     ''');
 
-    // 14. Exercises Table
+    // 14. Exercises Table (HIT_exercises)
     await db.execute('''
-      CREATE TABLE exercises (
+      CREATE TABLE HIT_exercises (
         id TEXT PRIMARY KEY,
         workout_id TEXT NOT NULL,
         name TEXT NOT NULL,
         exercise_order INTEGER NOT NULL,
         target_muscles TEXT,
         is_synced INTEGER DEFAULT 1,
-        FOREIGN KEY (workout_id) REFERENCES workouts (id) ON DELETE CASCADE
+        FOREIGN KEY (workout_id) REFERENCES HIT_workouts (id) ON DELETE CASCADE
       )
     ''');
 
@@ -281,7 +285,8 @@ class DatabaseHelper {
       CREATE TABLE exercise_logs (
         id TEXT PRIMARY KEY,
         exercise_id TEXT NOT NULL,
-        weight REAL NOT NULL,
+        weight_kg REAL NOT NULL,
+        weight_lbs REAL NOT NULL,
         positive_reps INTEGER NOT NULL,
         static_hold_seconds INTEGER DEFAULT 0,
         negative_reps INTEGER DEFAULT 0,
@@ -308,12 +313,14 @@ class DatabaseHelper {
       )
     ''');
 
-    // 17. Cycle Settings Table
+    // 17. Cycle Settings Table (HIT_settings)
     await db.execute('''
-      CREATE TABLE cycle_settings (
+      CREATE TABLE HIT_settings (
         id INTEGER PRIMARY KEY CHECK (id = 1),
         weight_unit TEXT DEFAULT 'lbs',
         visible_metrics_json TEXT,
+        workout_reminders_enabled INTEGER DEFAULT 1,
+        workout_reminder_interval INTEGER DEFAULT 2,
         is_synced INTEGER DEFAULT 1
       )
     ''');
@@ -326,9 +333,9 @@ class DatabaseHelper {
       )
     ''');
 
-    // 19. UI Settings Table
+    // 19. UI Settings Table (home_widget_settings)
     await db.execute('''
-      CREATE TABLE ui_settings (
+      CREATE TABLE home_widget_settings (
         id INTEGER PRIMARY KEY CHECK (id = 1),
         home_layout_json TEXT,
         is_synced INTEGER DEFAULT 1
@@ -385,29 +392,19 @@ class DatabaseHelper {
         is_synced INTEGER DEFAULT 1
       )
     ''');
+
+    // 24. Body Composition Settings Table
+    await db.execute('''
+      CREATE TABLE BodyComp_settings (
+        id INTEGER PRIMARY KEY CHECK (id = 1),
+        weight_unit TEXT DEFAULT 'kgs',
+        height_unit TEXT DEFAULT 'cm',
+        is_synced INTEGER DEFAULT 1
+      )
+    ''');
   }
 
   Future _onUpgrade(Database db, int oldVersion, int newVersion) async {
-    if (oldVersion < 2) {
-      await db.execute('ALTER TABLE supplements ADD COLUMN shared_by TEXT');
-      await db.execute('ALTER TABLE stacks ADD COLUMN shared_by TEXT');
-      await db.execute('ALTER TABLE saved_meals ADD COLUMN shared_by TEXT');
-    }
-    if (oldVersion < 3) {
-      await db.execute('ALTER TABLE training_cycles ADD COLUMN shared_by TEXT');
-    }
-    if (oldVersion < 4) {
-      await db.execute('ALTER TABLE exercise_templates ADD COLUMN shared_by TEXT');
-    }
-    if (oldVersion < 5) {
-      await db.execute('''
-        CREATE TABLE user_emails (
-          id TEXT PRIMARY KEY,
-          email TEXT NOT NULL,
-          is_verified INTEGER DEFAULT 0,
-          is_synced INTEGER DEFAULT 1
-        )
-      ''');
-    }
+    // Current final schema is defined in _createDB for version 1
   }
 }

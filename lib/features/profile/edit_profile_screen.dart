@@ -2,12 +2,11 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:go_router/go_router.dart';
 import 'package:heavy_duty/core/theme/app_colors.dart';
 import 'package:heavy_duty/core/theme/app_text_styles.dart';
 import 'package:heavy_duty/features/auth/provider/auth_provider.dart';
 import 'package:provider/provider.dart';
-import 'package:heavy_duty/core/navigation/app_routes.dart';
+import 'package:heavy_duty/core/widgets/elite_settings_app_bar.dart';
 import 'package:intl/intl.dart';
 
 class EditProfileScreen extends StatefulWidget {
@@ -108,47 +107,47 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        title: Text("EDIT PROFILE", style: AppTextStyles.h3),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white),
-          onPressed: () => context.pop(),
-        ),
-      ),
-      body: SingleChildScrollView(
-        padding: EdgeInsets.all(24.r),
+      body: SafeArea(
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildLabel("NAME"),
-            _buildTextField(_nameController, "YOUR NAME", Icons.person_outline, onChanged: (_) => _triggerAutoSave()),
-            SizedBox(height: 20.h),
-            
-            _buildLabel("GENDER"),
-            _GenderSelector(
-              selectedGender: _selectedGender,
-              onChanged: (val) {
-                setState(() => _selectedGender = val);
-                _handleSave(); // Save immediately
-              },
+            const EliteSettingsAppBar(title: "EDIT PROFILE"),
+            Expanded(
+              child: SingleChildScrollView(
+                padding: EdgeInsets.all(24.r),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildLabel("NAME"),
+                    _buildTextField(_nameController, "YOUR NAME", Icons.person_outline, onChanged: (_) => _triggerAutoSave()),
+                    SizedBox(height: 20.h),
+                    
+                    _buildLabel("GENDER"),
+                    _GenderSelector(
+                      selectedGender: _selectedGender,
+                      onChanged: (val) {
+                        setState(() => _selectedGender = val);
+                        _handleSave(); // Save immediately
+                      },
+                    ),
+                    SizedBox(height: 20.h),
+                    
+                    _buildLabel("BIRTHDAY"),
+                    _SelectorField(
+                      hint: _selectedBirthday == null 
+                          ? 'PICK BIRTHDAY' 
+                          : DateFormat('MMM dd, yyyy').format(_selectedBirthday!).toUpperCase(),
+                      icon: Icons.cake_outlined,
+                      onTap: () => _selectBirthday(context),
+                    ),
+                    SizedBox(height: 20.h),
+                    
+                    _buildLabel("HEIGHT (CM)"),
+                    _buildTextField(_heightController, "180", Icons.height_outlined, isNumber: true, onChanged: (_) => _triggerAutoSave()),
+                    SizedBox(height: 40.h),
+                  ],
+                ),
+              ),
             ),
-            SizedBox(height: 20.h),
-            
-            _buildLabel("BIRTHDAY"),
-            _SelectorField(
-              hint: _selectedBirthday == null 
-                  ? 'PICK BIRTHDAY' 
-                  : DateFormat('MMM dd, yyyy').format(_selectedBirthday!).toUpperCase(),
-              icon: Icons.cake_outlined,
-              onTap: () => _selectBirthday(context),
-            ),
-            SizedBox(height: 20.h),
-            
-            _buildLabel("HEIGHT (CM)"),
-            _buildTextField(_heightController, "180", Icons.height_outlined, isNumber: true, onChanged: (_) => _triggerAutoSave()),
-            SizedBox(height: 40.h),
           ],
         ),
       ),

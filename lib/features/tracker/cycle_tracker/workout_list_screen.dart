@@ -1015,7 +1015,7 @@ class _WorkoutListScreenState extends State<WorkoutListScreen> {
       final logs = provider.logs.where((l) => l.exerciseId == e.id).toList();
       double vol = 0;
       for (var l in logs) {
-        vol += l.weight * l.positiveReps;
+        vol += l.weightKg * l.positiveReps;
       }
       return {'name': e.name, 'volume': vol};
     }).where((element) => (element['volume'] as double) > 0).toList();

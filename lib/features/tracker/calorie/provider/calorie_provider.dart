@@ -114,11 +114,11 @@ class CalorieProvider with ChangeNotifier {
     _realtimeChannel?.unsubscribe();
     _realtimeChannel = _supabase.channel('public:calorie_sync:$userId');
 
-    // 1. Listen for Calorie Logs
+    // 1. Listen for Calorie Logs (calorie_meal_logs)
     _realtimeChannel!.onPostgresChanges(
       event: PostgresChangeEvent.all,
       schema: 'public',
-      table: 'calorie_logs',
+      table: 'calorie_meal_logs',
       callback: (payload) async {
         debugPrint("Realtime Calorie Log Update: ${payload.eventType}");
         
@@ -176,11 +176,11 @@ class CalorieProvider with ChangeNotifier {
       },
     );
 
-    // 3. Listen for Saved Meals
+    // 3. Listen for Saved Meals (calorie_meals)
     _realtimeChannel!.onPostgresChanges(
       event: PostgresChangeEvent.all,
       schema: 'public',
-      table: 'saved_meals',
+      table: 'calorie_meals',
       callback: (payload) async {
         debugPrint("Realtime Saved Meal Update: ${payload.eventType}");
         
@@ -235,7 +235,7 @@ class CalorieProvider with ChangeNotifier {
         final id = del['id'] as String;
         final table = del['table_name'] as String;
         try {
-          if (table == 'calorie_logs') await _cloudRepo.deleteLog(id);
+          if (table == 'calorie_meal_logs') await _cloudRepo.deleteLog(id);
           await _localRepo!.removeFromDeletionQueue(id);
         } catch (_) {}
       }
@@ -425,7 +425,7 @@ class CalorieProvider with ChangeNotifier {
 
     try {
       await _localRepo!.deleteLog(id);
-      await _localRepo!.addToDeletionQueue(id, 'calorie_logs');
+      await _localRepo!.addToDeletionQueue(id, 'calorie_meal_logs');
       _syncCalorieDelete(id);
     } catch (e) {
       debugPrint("Error deleting calorie log locally: $e");

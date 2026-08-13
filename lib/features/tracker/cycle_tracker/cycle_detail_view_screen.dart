@@ -6,8 +6,6 @@ import 'package:heavy_duty/core/widgets/elite_confirm_dialog.dart';
 import 'package:heavy_duty/features/tracker/cycle_tracker/provider/cycle_provider.dart';
 import 'package:provider/provider.dart';
 import 'model/workout.dart';
-import 'model/exercise.dart';
-import 'model/training_cycle.dart';
 
 class CycleDetailViewScreen extends StatelessWidget {
   final String cycleId;

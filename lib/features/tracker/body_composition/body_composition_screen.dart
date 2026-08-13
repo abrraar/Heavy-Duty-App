@@ -10,6 +10,7 @@ import 'package:heavy_duty/features/tracker/body_composition/widgets/body_comp_g
 import 'package:heavy_duty/core/widgets/elite_confirm_dialog.dart';
 import 'package:provider/provider.dart';
 import 'package:heavy_duty/core/widgets/elite_snackbar.dart';
+import 'package:heavy_duty/features/tracker/cycle_tracker/model/cycle_settings.dart'; // For WeightUnit
 
 import '../../main_wrapper.dart';
 
@@ -213,21 +214,21 @@ class _BodyCompositionScreenState extends State<BodyCompositionScreen> with Sing
           for (var ts in sortedMoments) {
             final momentLogs = sortedLogs.where((l) => l.timestamp.isAtSameMomentAs(ts)).toList();
             
-            final weightLog = momentLogs.firstWhere((l) => l.type == BodyMetricType.weight, orElse: () => BodyCompLog(value: -1, type: BodyMetricType.weight));
-            if (weightLog.value != -1) {
-              lastKnownWeight = weightLog.value;
+            final weightLog = momentLogs.firstWhere((l) => l.type == BodyMetricType.weight, orElse: () => BodyCompLog(valueKg: -1, valueLbs: -1, type: BodyMetricType.weight, unit: BodyMetricUnit.kg, timestamp: DateTime.now()));
+            if (weightLog.valueKg != -1) {
+              lastKnownWeight = provider.getDisplayValue(weightLog);
               aggregatedData["weight"]!.add(lastKnownWeight);
             } else {
               aggregatedData["weight"]!.add(lastKnownWeight > 0 ? lastKnownWeight : null);
             }
 
             for (var typeKey in ["fat", "muscle"]) {
-              final log = momentLogs.firstWhere((l) => l.type.name == typeKey, orElse: () => BodyCompLog(value: -1, type: BodyMetricType.weight));
-              if (log.value != -1) {
-                 if (log.unit == BodyMetricUnit.kg) {
-                   aggregatedData[typeKey]!.add(log.value);
+              final log = momentLogs.firstWhere((l) => l.type.name == typeKey, orElse: () => BodyCompLog(valueKg: -1, valueLbs: -1, type: BodyMetricType.weight, unit: BodyMetricUnit.kg, timestamp: DateTime.now()));
+              if (log.valueKg != -1) {
+                 if (log.unit != BodyMetricUnit.percentage) {
+                   aggregatedData[typeKey]!.add(provider.getDisplayValue(log));
                  } else {
-                   aggregatedData[typeKey]!.add(lastKnownWeight > 0 ? (log.value / 100) * lastKnownWeight : null);
+                   aggregatedData[typeKey]!.add(lastKnownWeight > 0 ? (log.valueKg / 100) * lastKnownWeight : null);
                  }
               } else {
                 aggregatedData[typeKey]!.add(null);
@@ -442,15 +443,15 @@ class _BodyCompositionScreenState extends State<BodyCompositionScreen> with Sing
           if (_entryMetrics.isNotEmpty) ...[
             SizedBox(height: 12.h),
             Divider(color: AppColors.white.withValues(alpha: 0.03), height: 24.h),
-            if (_entryMetrics.contains("weight")) _buildInputRow('Weight', 'kg', _weightController),
+            if (_entryMetrics.contains("weight")) _buildInputRow('Weight', provider.settings.weightUnit == WeightUnit.kgs ? 'kg' : 'lbs', _weightController),
             if (_entryMetrics.contains("weight") && (_entryMetrics.contains("fat") || _entryMetrics.contains("muscle")))
               Divider(color: AppColors.white.withValues(alpha: 0.03), height: 24.h),
-            if (_entryMetrics.contains("fat")) _buildInputRow('Body Fat', _fatUnit == BodyMetricUnit.kg ? 'kg' : '%', _fatController, onUnitToggle: () {
+            if (_entryMetrics.contains("fat")) _buildInputRow('Body Fat', _fatUnit == BodyMetricUnit.percentage ? '%' : (provider.settings.weightUnit == WeightUnit.kgs ? 'kg' : 'lbs'), _fatController, onUnitToggle: () {
               setState(() => _fatUnit = _fatUnit == BodyMetricUnit.kg ? BodyMetricUnit.percentage : BodyMetricUnit.kg);
             }),
             if (_entryMetrics.contains("fat") && _entryMetrics.contains("muscle"))
               Divider(color: AppColors.white.withValues(alpha: 0.03), height: 24.h),
-            if (_entryMetrics.contains("muscle")) _buildInputRow('Muscle Mass', _muscleUnit == BodyMetricUnit.kg ? 'kg' : '%', _muscleController, onUnitToggle: () {
+            if (_entryMetrics.contains("muscle")) _buildInputRow('Muscle Mass', _muscleUnit == BodyMetricUnit.percentage ? '%' : (provider.settings.weightUnit == WeightUnit.kgs ? 'kg' : 'lbs'), _muscleController, onUnitToggle: () {
               setState(() => _muscleUnit = _muscleUnit == BodyMetricUnit.kg ? BodyMetricUnit.percentage : BodyMetricUnit.kg);
             }),
           ] else ...[
@@ -492,17 +493,20 @@ class _BodyCompositionScreenState extends State<BodyCompositionScreen> with Sing
               if (_entryMetrics.contains("weight") && w > 0) {
                 final existing = existingLogs.cast<BodyCompLog?>().firstWhere((l) => l?.type == BodyMetricType.weight, orElse: () => null);
                 if (existing != null) await provider.deleteLog(existing.id, existing.type);
-                await provider.addLog(BodyCompLog(value: w, type: BodyMetricType.weight, unit: BodyMetricUnit.kg, timestamp: _selectedLogDate));
+                final dual = provider.calculateDualValues(w, BodyMetricUnit.kg);
+                await provider.addLog(BodyCompLog(valueKg: dual['kg']!, valueLbs: dual['lbs']!, type: BodyMetricType.weight, unit: BodyMetricUnit.kg, timestamp: _selectedLogDate));
               }
               if (_entryMetrics.contains("fat") && f > 0) {
                 final existing = existingLogs.cast<BodyCompLog?>().firstWhere((l) => l?.type == BodyMetricType.fat, orElse: () => null);
                 if (existing != null) await provider.deleteLog(existing.id, existing.type);
-                await provider.addLog(BodyCompLog(value: f, type: BodyMetricType.fat, unit: _fatUnit, timestamp: _selectedLogDate));
+                final dual = provider.calculateDualValues(f, _fatUnit);
+                await provider.addLog(BodyCompLog(valueKg: dual['kg']!, valueLbs: dual['lbs']!, type: BodyMetricType.fat, unit: _fatUnit, timestamp: _selectedLogDate));
               }
               if (_entryMetrics.contains("muscle") && m > 0) {
                 final existing = existingLogs.cast<BodyCompLog?>().firstWhere((l) => l?.type == BodyMetricType.muscle, orElse: () => null);
                 if (existing != null) await provider.deleteLog(existing.id, existing.type);
-                await provider.addLog(BodyCompLog(value: m, type: BodyMetricType.muscle, unit: _muscleUnit, timestamp: _selectedLogDate));
+                final dual = provider.calculateDualValues(m, _muscleUnit);
+                await provider.addLog(BodyCompLog(valueKg: dual['kg']!, valueLbs: dual['lbs']!, type: BodyMetricType.muscle, unit: _muscleUnit, timestamp: _selectedLogDate));
               }
 
               _weightController.clear();
@@ -586,14 +590,7 @@ class _BodyCompositionScreenState extends State<BodyCompositionScreen> with Sing
                   controller: controller,
                   keyboardType: const TextInputType.numberWithOptions(decimal: true),
                   inputFormatters: [
-                    TextInputFormatter.withFunction((oldValue, newValue) {
-                      final text = newValue.text;
-                      if (text.isEmpty) return newValue;
-                      if (RegExp(r'^\d{0,3}(\.\d{0,3})?$').hasMatch(text)) {
-                        return newValue;
-                      }
-                      return oldValue;
-                    }),
+                    FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,3}')),
                   ],
                   textAlign: TextAlign.end,
                   style: AppTextStyles.h3.copyWith(fontSize: 18.sp, color: AppColors.white),
@@ -626,6 +623,10 @@ class _BodyCompositionScreenState extends State<BodyCompositionScreen> with Sing
   }
 
   Widget _buildUnitToggle(String currentUnit, VoidCallback onToggle) {
+    final bool isPercentage = currentUnit == "%";
+    final provider = context.read<BodyCompProvider>();
+    final String massUnit = provider.settings.weightUnit == WeightUnit.kgs ? "kg" : "lbs";
+
     return GestureDetector(
       onTap: onToggle,
       child: Container(
@@ -638,8 +639,8 @@ class _BodyCompositionScreenState extends State<BodyCompositionScreen> with Sing
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            _buildUnitChip("kg", currentUnit == "kg"),
-            _buildUnitChip("%", currentUnit == "%"),
+            _buildUnitChip(massUnit, !isPercentage),
+            _buildUnitChip("%", isPercentage),
           ],
         ),
       ),
@@ -793,7 +794,7 @@ class _BodyCompositionScreenState extends State<BodyCompositionScreen> with Sing
     Color metricColor;
     IconData metricIcon;
     String label;
-    String unit = log.unit == BodyMetricUnit.kg ? "kg" : "%";
+    String unit = provider.getDisplayUnit(log);
 
     switch (log.type) {
       case BodyMetricType.weight:
@@ -883,7 +884,7 @@ class _BodyCompositionScreenState extends State<BodyCompositionScreen> with Sing
               textBaseline: TextBaseline.alphabetic,
               children: [
                 Text(
-                  log.value.toStringAsFixed(1),
+                  double.parse(provider.getDisplayValue(log).toStringAsFixed(3)).toString(),
                   style: AppTextStyles.h3.copyWith(fontSize: 18.sp, color: Colors.white),
                 ),
                 SizedBox(width: 4.w),

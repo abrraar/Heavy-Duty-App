@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:heavy_duty/core/widgets/elite_settings_app_bar.dart';
 import 'package:heavy_duty/core/theme/app_colors.dart';
 import 'package:heavy_duty/core/theme/app_text_styles.dart';
 
@@ -26,35 +27,7 @@ class _SupplementSettingsScreenState extends State<SupplementSettingsScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            // Header (Heavy Duty Protocol)
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 8.h),
-              child: IntrinsicHeight(
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    IconButton(
-                      icon: const Icon(Icons.arrow_back_ios_new_rounded, color: AppColors.white),
-                      onPressed: () => Navigator.pop(context),
-                    ),
-                    Expanded(
-                      child: Text(
-                        "STACK SETTINGS",
-                        textAlign: TextAlign.center,
-                        style: AppTextStyles.h2.copyWith(
-                          color: AppColors.white,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                    const Opacity(
-                      opacity: 0,
-                      child: IconButton(icon: Icon(Icons.close), onPressed: null),
-                    ),
-                  ],
-                ),
-              ),
-            ),
+            const EliteSettingsAppBar(title: "STACK SETTINGS"),
 
             // Content
             Expanded(

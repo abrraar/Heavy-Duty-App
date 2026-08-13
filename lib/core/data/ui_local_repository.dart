@@ -10,7 +10,7 @@ class UiLocalRepository {
 
   Future<Map<String, dynamic>?> getSettings() async {
     final db = await _db;
-    final results = await db.query('ui_settings', where: 'id = 1');
+    final results = await db.query('home_widget_settings', where: 'id = 1');
     if (results.isNotEmpty) return results.first;
     return null;
   }
@@ -18,7 +18,7 @@ class UiLocalRepository {
   Future<void> saveSettings(Map<String, dynamic> settings) async {
     final db = await _db;
     await db.insert(
-      'ui_settings',
+      'home_widget_settings',
       settings,
       conflictAlgorithm: ConflictAlgorithm.replace,
     );
@@ -26,6 +26,6 @@ class UiLocalRepository {
 
   Future<void> markSettingsSynced() async {
     final db = await _db;
-    await db.update('ui_settings', {'is_synced': 1}, where: 'id = 1');
+    await db.update('home_widget_settings', {'is_synced': 1}, where: 'id = 1');
   }
 }

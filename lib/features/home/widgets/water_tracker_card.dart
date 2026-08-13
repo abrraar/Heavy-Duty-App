@@ -24,10 +24,10 @@ class WaterTrackerCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     double progress = (currentMl / targetMl).clamp(0.0, 1.0);
-    const double mlPerOz = 29.5735;
-    String displayCurrent = useMetric ? currentMl.toString() : (currentMl / mlPerOz).toStringAsFixed(1);
-    String displayTarget = useMetric ? targetMl.toString() : (targetMl / mlPerOz).toStringAsFixed(0);
-    String unit = useMetric ? "ml" : "oz";
+    const double mlToOzFactor = 0.03;
+    String displayCurrent = useMetric ? currentMl.toString() : (currentMl * mlToOzFactor).toStringAsFixed(1);
+    String displayTarget = useMetric ? targetMl.toString() : (targetMl * mlToOzFactor).toStringAsFixed(0);
+    String unit = useMetric ? "ML" : "OZ";
 
     return Container(
       width: double.infinity,
@@ -83,9 +83,17 @@ class WaterTrackerCard extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              _buildBtn("${minusValueMl}ml", -minusValueMl, true),
+              _buildBtn(
+                useMetric ? "-${minusValueMl}ML" : "-${(minusValueMl * mlToOzFactor).toStringAsFixed(1)}OZ", 
+                -minusValueMl, 
+                true
+              ),
               SizedBox(width: 24.w),
-              _buildBtn("${addValueMl}ml", addValueMl, false),
+              _buildBtn(
+                useMetric ? "+${addValueMl}ML" : "+${(addValueMl * mlToOzFactor).toStringAsFixed(1)}OZ", 
+                addValueMl, 
+                false
+              ),
             ],
           ),
         ],

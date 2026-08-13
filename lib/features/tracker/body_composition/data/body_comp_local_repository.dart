@@ -1,6 +1,7 @@
 import 'package:sqflite/sqflite.dart';
 import '../../../../../core/database/database_helper.dart';
 import '../model/body_comp_log.dart';
+import '../model/body_comp_settings.dart';
 
 class BodyCompLocalRepository {
   final String userId;
@@ -14,11 +15,33 @@ class BodyCompLocalRepository {
 
   String _getTableName(BodyMetricType type) {
     switch (type) {
-      case BodyMetricType.weight: return 'weight_logs';
-      case BodyMetricType.fat: return 'body_fat_logs';
-      case BodyMetricType.muscle: return 'muscle_mass_logs';
+      case BodyMetricType.weight: return 'BodyComp_weight_logs';
+      case BodyMetricType.fat: return 'BodyComp_fats_logs';
+      case BodyMetricType.muscle: return 'BodyComp_muscle_logs';
     }
   }
+
+  // --- Settings ---
+
+  Future<BodyCompSettings> getSettings() async {
+    final db = await _getDatabase();
+    final List<Map<String, dynamic>> maps = await db.query('BodyComp_settings', where: 'id = 1');
+    if (maps.isNotEmpty) {
+      return BodyCompSettings.fromMap(maps.first);
+    }
+    final defaultSettings = BodyCompSettings();
+    await saveSettings(defaultSettings);
+    return defaultSettings;
+  }
+
+  Future<void> saveSettings(BodyCompSettings settings) async {
+    final db = await _getDatabase();
+    final map = settings.toMap();
+    map['id'] = 1;
+    await db.insert('BodyComp_settings', map, conflictAlgorithm: ConflictAlgorithm.replace);
+  }
+
+  // --- Logs ---
 
   Future<List<BodyCompLog>> getAllLogs() async {
     final db = await _getDatabase();
@@ -59,7 +82,7 @@ class BodyCompLocalRepository {
 
   Future<List<Map<String, dynamic>>> getPendingDeletions() async {
     final db = await _getDatabase();
-    return await db.query('pending_deletions', where: "table_name IN ('weight_logs', 'body_fat_logs', 'muscle_mass_logs')");
+    return await db.query('pending_deletions', where: "table_name IN ('BodyComp_weight_logs', 'BodyComp_fats_logs', 'BodyComp_muscle_logs')");
   }
 
   Future<List<BodyCompLog>> getUnsyncedLogs() async {
@@ -73,8 +96,20 @@ class BodyCompLocalRepository {
     return unsynced;
   }
 
+  Future<BodyCompSettings?> getUnsyncedSettings() async {
+    final db = await _getDatabase();
+    final List<Map<String, dynamic>> maps = await db.query('BodyComp_settings', where: 'is_synced = 0 AND id = 1');
+    if (maps.isNotEmpty) return BodyCompSettings.fromMap(maps.first);
+    return null;
+  }
+
   Future<void> markLogSynced(String id, BodyMetricType type) async {
     final db = await _getDatabase();
     await db.update(_getTableName(type), {'is_synced': 1}, where: 'id = ?', whereArgs: [id]);
+  }
+
+  Future<void> markSettingsSynced() async {
+    final db = await _getDatabase();
+    await db.update('BodyComp_settings', {'is_synced': 1}, where: 'id = 1');
   }
 }

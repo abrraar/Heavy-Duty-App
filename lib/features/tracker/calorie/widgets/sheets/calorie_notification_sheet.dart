@@ -52,40 +52,24 @@ class _CalorieNotificationSheetState extends State<CalorieNotificationSheet> {
   }
 
   void _handleSaveAndExit() {
-    List<CalorieReminder> validReminders = [];
+    List<CalorieReminder> updatedReminders = [];
     
-    if (notificationsEnabled) {
-      for (int i = 0; i < reminders.length; i++) {
-        final r = reminders[i].copyWith(reminderMode: _selectedMode);
-        
-        if (_selectedMode == CalorieReminderMode.schedule) {
-          if (r.days.isNotEmpty) {
-            if (r.times.isEmpty) {
-              validReminders.add(r.copyWith(times: [TimeOfDay.now()]));
-            } else {
-              validReminders.add(r);
-            }
-          }
-        } else {
-          int minAllowed = r.intervalUnit == CalorieIntervalUnit.minute ? 15 : 1;
-          if ((r.intervalValue ?? 0) >= minAllowed) {
-            validReminders.add(r);
-          }
-        }
+    // Always process current UI state into the reminders list
+    for (int i = 0; i < reminders.length; i++) {
+      final r = reminders[i].copyWith(reminderMode: _selectedMode);
+      if (_selectedMode == CalorieReminderMode.schedule) {
+        updatedReminders.add(r.times.isEmpty ? r.copyWith(times: [TimeOfDay.now()]) : r);
+      } else {
+        updatedReminders.add(r);
       }
     }
 
     final updatedMeal = widget.meal.copyWith(
-      notificationsEnabled: notificationsEnabled && validReminders.isNotEmpty,
-      reminders: validReminders,
+      notificationsEnabled: notificationsEnabled, // This is the master switch
+      reminders: updatedReminders, // Preserves data in JSON
     );
 
     context.read<CalorieProvider>().updateSavedMeal(updatedMeal);
-    if (updatedMeal.notificationsEnabled) {
-      NotificationService().scheduleMealReminders(updatedMeal);
-    } else {
-      NotificationService().cancelMealReminders(updatedMeal.id);
-    }
   }
 
   @override

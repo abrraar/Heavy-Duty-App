@@ -22,7 +22,7 @@ class HydrationProvider with ChangeNotifier {
   HydrationSettings _settings = HydrationSettings();
   bool _isLoading = false;
 
-  static const double mlPerOz = 29.5735;
+  static const double mlToOzFactor = 0.03;
 
   List<HydrationLog> get logs => _logs;
   HydrationSettings get settings => _settings;
@@ -45,7 +45,7 @@ class HydrationProvider with ChangeNotifier {
             log.timestamp.year == now.year &&
             log.timestamp.month == now.month &&
             log.timestamp.day == now.day)
-        .fold(0, (sum, log) => sum + log.amount);
+        .fold(0, (sum, log) => sum + log.amountMl);
   }
 
   void initializeForUser(String userId) {
@@ -260,18 +260,20 @@ class HydrationProvider with ChangeNotifier {
           log.timestamp.year == targetDate.year &&
           log.timestamp.month == targetDate.month &&
           log.timestamp.day == targetDate.day &&
-          log.amount > 0
+          log.amountMl > 0
       ).toList()..sort((a, b) => b.timestamp.compareTo(a.timestamp));
 
       for (var log in dayLogs) {
         if (toDeduct <= 0) break;
         
-        if (log.amount <= toDeduct) {
-          toDeduct -= log.amount;
+        if (log.amountMl <= toDeduct) {
+          toDeduct -= log.amountMl;
           await deleteLog(log.id);
         } else {
+          final int newMl = log.amountMl - toDeduct;
           final updatedLog = log.copyWith(
-            amount: log.amount - toDeduct,
+            amountMl: newMl,
+            amountOz: newMl * mlToOzFactor,
             isSynced: 0,
           );
           toDeduct = 0;
@@ -297,7 +299,8 @@ class HydrationProvider with ChangeNotifier {
 
     final log = HydrationLog(
       id: const Uuid().v4(),
-      amount: amountInMl,
+      amountMl: amountInMl,
+      amountOz: amountInMl * mlToOzFactor,
       timestamp: targetDate,
       isSynced: 0,
     );
@@ -407,11 +410,11 @@ class HydrationProvider with ChangeNotifier {
   }
 
   // Helper conversion methods
-  double mlToOz(int ml) => ml / mlPerOz;
-  int ozToMl(double oz) => (oz * mlPerOz).round();
+  double mlToOz(int ml) => ml * mlToOzFactor;
+  int ozToMl(double oz) => (oz / mlToOzFactor).round();
 
   String formatAmount(int ml) {
-    if (_settings.useMetric) {
+    if (_settings.unit == HydrationUnit.ml) {
       return "$ml ML";
     } else {
       return "${mlToOz(ml).toStringAsFixed(1)} OZ";

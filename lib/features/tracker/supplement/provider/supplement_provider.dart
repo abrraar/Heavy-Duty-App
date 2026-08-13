@@ -76,11 +76,11 @@ class SupplementProvider with ChangeNotifier {
 
     _realtimeChannel = _supabase.channel('public:supplement_sync:$userId');
 
-    // 1. Listen for Supplement changes
+    // 1. Listen for Supplement changes (SS_supplements)
     _realtimeChannel!.onPostgresChanges(
       event: PostgresChangeEvent.all,
       schema: 'public',
-      table: 'supplements',
+      table: 'SS_supplements',
       callback: (payload) async {
         debugPrint("Realtime Supplement Update: ${payload.eventType}");
         
@@ -113,11 +113,11 @@ class SupplementProvider with ChangeNotifier {
       },
     );
 
-    // 2. Listen for Stack changes
+    // 2. Listen for Stack changes (SS_stack)
     _realtimeChannel!.onPostgresChanges(
       event: PostgresChangeEvent.all,
       schema: 'public',
-      table: 'stacks',
+      table: 'SS_stack',
       callback: (payload) async {
         debugPrint("Realtime Stack Update: ${payload.eventType}");
         
@@ -147,11 +147,11 @@ class SupplementProvider with ChangeNotifier {
       },
     );
 
-    // 3. Listen for History changes
+    // 3. Listen for History changes (SS_records)
     _realtimeChannel!.onPostgresChanges(
       event: PostgresChangeEvent.all,
       schema: 'public',
-      table: 'history',
+      table: 'SS_records',
       callback: (payload) async {
         debugPrint("Realtime History Update: ${payload.eventType}");
         
@@ -378,10 +378,23 @@ class SupplementProvider with ChangeNotifier {
     required Map<String, double> lowStockThresholds,
   }) async {
     debugPrint("SupplementProvider: updateNotificationSettings called for $targetId");
+    
+    // 1. Fetch current reminders to preserve what isn't being explicitly updated
     List<SupplementReminder> finalReminders = [];
+    
+    if (isStack) {
+      final idx = _supplementStacks.indexWhere((s) => s.id == targetId);
+      if (idx != -1) finalReminders = List.from(_supplementStacks[idx].reminders);
+    } else {
+      final idx = _library.indexWhere((s) => s.id == targetId);
+      if (idx != -1) finalReminders = List.from(_library[idx].reminders);
+    }
 
-    // 1. Process Intake Reminders
-    if (recordEnabled) {
+    // 2. Update Intake Reminders if provided, otherwise KEEP current ones (don't clear)
+    if (intakeReminders.isNotEmpty) {
+      // Remove old intake reminders, keep lowStock ones
+      finalReminders.removeWhere((r) => r.type == ReminderType.intake);
+      
       for (var r in intakeReminders) {
         if (r.days.isNotEmpty && r.times.isEmpty) {
           r.times.add(TimeOfDay.now());
@@ -390,8 +403,13 @@ class SupplementProvider with ChangeNotifier {
       finalReminders.addAll(intakeReminders);
     }
 
-    // 2. Process Low Stock Alerts
-    if (restockEnabled) {
+    // 3. Process Low Stock Alerts
+    if (lowStockThresholds.isNotEmpty) {
+      // Remove old low stock reminders for these IDs
+      lowStockThresholds.keys.forEach((id) {
+        finalReminders.removeWhere((r) => r.type == ReminderType.lowStock && r.supplementId == id);
+      });
+
       lowStockThresholds.forEach((id, val) {
         finalReminders.add(
           SupplementReminder(
@@ -405,7 +423,7 @@ class SupplementProvider with ChangeNotifier {
       });
     }
 
-    // 3. Routing the update & syncing to Local Storage + Cloud
+    // 4. Routing the update & syncing to Local Storage + Cloud
     if (isStack) {
       final stackIndex = _supplementStacks.indexWhere((s) => s.id == targetId);
       if (stackIndex != -1) {
@@ -414,56 +432,29 @@ class SupplementProvider with ChangeNotifier {
           notificationsEnabled: masterEnabled,
         );
         
-        // Notify listeners IMMEDIATELY for instant UI feedback
         notifyListeners();
-
         await _localRepo!.saveStack(_supplementStacks[stackIndex]);
-        await _notificationService.scheduleStackReminders(
-          _supplementStacks[stackIndex],
-        );
+        await _notificationService.scheduleStackReminders(_supplementStacks[stackIndex]);
 
-        // --- NEW: Sync low stock thresholds to individual supplements ---
-        if (restockEnabled) {
-          for (var entry in lowStockThresholds.entries) {
-            final suppId = entry.key;
-            final threshold = entry.value;
-            final suppIndex = _library.indexWhere((s) => s.id == suppId);
-            if (suppIndex != -1) {
-              final List<SupplementReminder> suppReminders = List.from(
-                _library[suppIndex].reminders,
-              );
-              suppReminders.removeWhere((r) => r.type == ReminderType.lowStock);
-              suppReminders.add(
-                SupplementReminder(
-                  days: [],
-                  times: [],
-                  value: threshold,
-                  type: ReminderType.lowStock,
-                  supplementId: suppId,
-                ),
-              );
-              _library[suppIndex] = _library[suppIndex].copyWith(
-                reminders: suppReminders,
-              );
-              await _localRepo!.saveSupplement(_library[suppIndex]);
-
-              // --- NEW: Immediate check for low stock after stack update ---
-              if ((_library[suppIndex].remainingStock ?? 0.0) <= threshold) {
-                _notificationService.showLowStockNotification(_library[suppIndex]);
-              }
-
-              try {
-                await _cloudRepo.saveSupplement(_library[suppIndex]);
-              } catch (_) {}
+        // Sync low stock thresholds to individual supplements if applicable
+        for (var entry in lowStockThresholds.entries) {
+          final suppId = entry.key;
+          final threshold = entry.value;
+          final suppIndex = _library.indexWhere((s) => s.id == suppId);
+          if (suppIndex != -1) {
+            final List<SupplementReminder> suppReminders = List.from(_library[suppIndex].reminders);
+            suppReminders.removeWhere((r) => r.type == ReminderType.lowStock);
+            suppReminders.add(SupplementReminder(days: [], times: [], value: threshold, type: ReminderType.lowStock, supplementId: suppId));
+            _library[suppIndex] = _library[suppIndex].copyWith(reminders: suppReminders);
+            await _localRepo!.saveSupplement(_library[suppIndex]);
+            if ((_library[suppIndex].remainingStock ?? 0.0) <= threshold) {
+              _notificationService.showLowStockNotification(_library[suppIndex]);
             }
+            try { await _cloudRepo.saveSupplement(_library[suppIndex]); } catch (_) {}
           }
         }
 
-        try {
-          await _cloudRepo.saveStack(_supplementStacks[stackIndex]);
-        } catch (e) {
-          debugPrint("Cloud Stack Sync Error: $e");
-        }
+        try { await _cloudRepo.saveStack(_supplementStacks[stackIndex]); } catch (e) { debugPrint("Cloud Stack Sync Error: $e"); }
       }
     } else {
       final suppIndex = _library.indexWhere((s) => s.id == targetId);
@@ -473,13 +464,10 @@ class SupplementProvider with ChangeNotifier {
           notificationsEnabled: masterEnabled,
         );
         
-        // Notify listeners IMMEDIATELY for instant UI feedback
         notifyListeners();
-
         await _localRepo!.saveSupplement(_library[suppIndex]);
         
-        // --- NEW: Immediate check for low stock after setting update ---
-        if (restockEnabled) {
+        if (masterEnabled && restockEnabled) {
           final double currentStock = _library[suppIndex].remainingStock ?? 0.0;
           final lowStockReminder = finalReminders.firstWhere(
             (r) => r.type == ReminderType.lowStock,
@@ -488,18 +476,12 @@ class SupplementProvider with ChangeNotifier {
           if (lowStockReminder.value >= 0 && currentStock <= lowStockReminder.value) {
             _notificationService.showLowStockNotification(_library[suppIndex]);
           }
-        } else {
-          // Explicitly cancel if inventory alerts were turned off
+        } else if (!masterEnabled) {
           _notificationService.cancelLowStockNotification(targetId);
         }
 
-        debugPrint("SupplementProvider: Calling NotificationService for ${_library[suppIndex].name}");
         await _notificationService.scheduleSupplementReminders(_library[suppIndex]);
-        try {
-          await _cloudRepo.saveSupplement(_library[suppIndex]);
-        } catch (e) {
-          debugPrint("Cloud Supplement Sync Error: $e");
-        }
+        try { await _cloudRepo.saveSupplement(_library[suppIndex]); } catch (e) { debugPrint("Cloud Supplement Sync Error: $e"); }
       }
     }
   }

@@ -5,7 +5,10 @@ import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:heavy_duty/core/theme/app_colors.dart';
 import 'package:heavy_duty/core/theme/app_text_styles.dart';
+import 'package:heavy_duty/core/widgets/elite_settings_app_bar.dart';
+import 'package:heavy_duty/core/widgets/elite_unit_toggle_card.dart';
 import 'package:provider/provider.dart';
+import '../tracker/hydration/model/hydration_settings.dart';
 import '../tracker/hydration/provider/hydration_provider.dart';
 
 class HydrationSettingsScreen extends StatefulWidget {
@@ -25,8 +28,8 @@ class _HydrationSettingsScreenState extends State<HydrationSettingsScreen> {
     final provider = context.read<HydrationProvider>();
     final settings = provider.settings;
     
-    double goalVal = settings.useMetric ? settings.dailyGoal.toDouble() : provider.mlToOz(settings.dailyGoal);
-    double incVal = settings.useMetric ? settings.addValue.toDouble() : provider.mlToOz(settings.addValue);
+    double goalVal = settings.unit == HydrationUnit.ml ? settings.dailyGoal.toDouble() : provider.mlToOz(settings.dailyGoal);
+    double incVal = settings.unit == HydrationUnit.ml ? settings.addValue.toDouble() : provider.mlToOz(settings.addValue);
     
     _goalController = TextEditingController(text: goalVal.toStringAsFixed(0));
     _incrementController = TextEditingController(text: incVal.toStringAsFixed(0));
@@ -47,11 +50,10 @@ class _HydrationSettingsScreenState extends State<HydrationSettingsScreen> {
 
         return Scaffold(
           backgroundColor: AppColors.background,
-          appBar: null,
           body: SafeArea(
             child: Column(
               children: [
-                _buildHeader(),
+                const EliteSettingsAppBar(title: "HYDRATION SETTINGS"),
                 Expanded(
                   child: SingleChildScrollView(
                     padding: EdgeInsets.symmetric(horizontal: 24.w),
@@ -66,26 +68,29 @@ class _HydrationSettingsScreenState extends State<HydrationSettingsScreen> {
                           title: "DAILY GOAL",
                           subtitle: "YOUR TARGET WATER INTAKE",
                           controller: _goalController,
-                          suffix: settings.useMetric ? "ML" : "OZ",
+                          suffix: settings.unit == HydrationUnit.ml ? "ML" : "OZ",
                           onChanged: (val) {
                             int? numeric = int.tryParse(val);
                             if (numeric != null && numeric > 0) {
-                              int mlValue = settings.useMetric ? numeric : provider.ozToMl(numeric.toDouble());
+                              int mlValue = settings.unit == HydrationUnit.ml ? numeric : provider.ozToMl(numeric.toDouble());
                               provider.updateSettings(settings.copyWith(dailyGoal: mlValue));
                             }
                           },
                         ),
                         SizedBox(height: 12.h),
-                        _buildToggleTile(
-                          icon: Icons.water_drop_rounded,
-                          title: settings.useMetric ? "UNIT: MILLILITERS (ML)" : "UNIT: OUNCES (OZ)",
-                          value: settings.useMetric,
-                          onChanged: (val) {
+                        EliteUnitToggleCard(
+                          title: "Hydration Unit",
+                          subtitle: "Switch between ML and OZ",
+                          options: const ["OZ", "ML"],
+                          selectedIndex: settings.unit == HydrationUnit.ml ? 1 : 0,
+                          selectedColor: Colors.blueAccent,
+                          onSelected: (index) {
+                            final HydrationUnit newUnit = index == 1 ? HydrationUnit.ml : HydrationUnit.oz;
                             // Update display controllers first
                             int currentGoalMl = settings.dailyGoal;
                             int currentIncMl = settings.addValue;
                             
-                            if (val) { // Switched to ML
+                            if (newUnit == HydrationUnit.ml) { // Switched to ML
                               _goalController.text = currentGoalMl.toString();
                               _incrementController.text = currentIncMl.toString();
                             } else { // Switched to OZ
@@ -93,7 +98,7 @@ class _HydrationSettingsScreenState extends State<HydrationSettingsScreen> {
                               _incrementController.text = provider.mlToOz(currentIncMl).toStringAsFixed(0);
                             }
                             
-                            provider.updateSettings(settings.copyWith(useMetric: val));
+                            provider.updateSettings(settings.copyWith(unit: newUnit));
                           },
                         ),
                         SizedBox(height: 32.h),
@@ -103,11 +108,11 @@ class _HydrationSettingsScreenState extends State<HydrationSettingsScreen> {
                           title: "CUSTOM INCREMENT",
                           subtitle: "ADJUST THE + / - BUTTON VALUES",
                           controller: _incrementController,
-                          suffix: settings.useMetric ? "ML" : "OZ",
+                          suffix: settings.unit == HydrationUnit.ml ? "ML" : "OZ",
                           onChanged: (val) {
                             int? numeric = int.tryParse(val);
                             if (numeric != null && numeric > 0) {
-                              int mlValue = settings.useMetric ? numeric : provider.ozToMl(numeric.toDouble());
+                              int mlValue = settings.unit == HydrationUnit.ml ? numeric : provider.ozToMl(numeric.toDouble());
                               provider.updateSettings(settings.copyWith(addValue: mlValue));
                             }
                           },
@@ -125,30 +130,6 @@ class _HydrationSettingsScreenState extends State<HydrationSettingsScreen> {
     );
   }
 
-  Widget _buildHeader() {
-    return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 8.h),
-      child: IntrinsicHeight(
-        child: Row(
-          children: [
-            IconButton(
-              icon: const Icon(Icons.arrow_back_ios_new_rounded, color: AppColors.white),
-              onPressed: () => Navigator.pop(context),
-            ),
-            Expanded(
-              child: Text(
-                "HYDRATION SETTINGS",
-                textAlign: TextAlign.center,
-                style: AppTextStyles.h2.copyWith(color: AppColors.white, fontWeight: FontWeight.bold),
-              ),
-            ),
-            const Opacity(opacity: 0, child: IconButton(icon: Icon(Icons.close), onPressed: null)),
-          ],
-        ),
-      ),
-    );
-  }
-
   // ─── REUSABLE COMPONENTS ──────────────────────────────────────────────────
 
   Widget _buildSectionHeader(String title) {
@@ -156,22 +137,11 @@ class _HydrationSettingsScreenState extends State<HydrationSettingsScreen> {
       padding: EdgeInsets.only(bottom: 12.h, left: 4.w),
       child: Text(
         title,
-        style: AppTextStyles.labelSmall.copyWith(color: Colors.blueAccent, fontWeight: FontWeight.w900, letterSpacing: 1.5),
-      ),
-    );
-  }
-
-  Widget _buildToggleTile({required IconData icon, required String title, required bool value, required ValueChanged<bool> onChanged}) {
-    return Container(
-      padding: EdgeInsets.all(16.r),
-      decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(12.r), border: Border.all(color: AppColors.white.withValues(alpha: 0.05))),
-      child: Row(
-        children: [
-          Icon(icon, color: AppColors.white, size: 22.r),
-          SizedBox(width: 16.w),
-          Expanded(child: Text(title, style: AppTextStyles.labelSmall.copyWith(color: AppColors.white, fontWeight: FontWeight.bold))),
-          Switch(value: value, activeThumbColor: Colors.blueAccent, onChanged: onChanged),
-        ],
+        style: AppTextStyles.labelSmall.copyWith(
+          color: Colors.blueAccent, 
+          fontWeight: FontWeight.w900, 
+          letterSpacing: 1.5
+        ),
       ),
     );
   }
@@ -186,7 +156,11 @@ class _HydrationSettingsScreenState extends State<HydrationSettingsScreen> {
   }) {
     return Container(
       padding: EdgeInsets.all(16.r),
-      decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(12.r), border: Border.all(color: AppColors.white.withValues(alpha: 0.05))),
+      decoration: BoxDecoration(
+        color: AppColors.surface, 
+        borderRadius: BorderRadius.circular(12.r), 
+        border: Border.all(color: AppColors.white.withValues(alpha: 0.05))
+      ),
       child: Row(
         children: [
           Icon(icon, color: AppColors.white, size: 22.r),

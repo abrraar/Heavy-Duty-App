@@ -1061,7 +1061,7 @@ class _CycleTrackingScreenState extends State<CycleTrackingScreen>
   Widget _dateRow(String label, DateTime date) { return Column(crossAxisAlignment: CrossAxisAlignment.end, children: [Text(label, style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary.withOpacity(0.4), fontSize: 7.sp, fontWeight: FontWeight.w900, letterSpacing: 0.5)), Text(DateFormat('MMM dd, yyyy').format(date).toUpperCase(), style: AppTextStyles.labelSmall.copyWith(color: AppColors.white, fontSize: 10.sp, fontWeight: FontWeight.w500))]); }
   DateTime? _getCycleStartDate(TrainingCycle cycle) { final completed = cycle.workouts.where((w) => w.status == WorkoutStatus.completed && w.completedAt != null).toList(); if (completed.isEmpty) return null; completed.sort((a, b) => a.completedAt!.compareTo(b.completedAt!)); return completed.first.completedAt; }
   DateTime? _getCycleEndDate(TrainingCycle cycle) { final completed = cycle.workouts.where((w) => w.status == WorkoutStatus.completed && w.completedAt != null).toList(); if (completed.isEmpty) return null; completed.sort((a, b) => a.completedAt!.compareTo(b.completedAt!)); return completed.last.completedAt; }
-  double _calculateTotalCycleVolume(TrainingCycle cycle, List<ExerciseLog> logs) { double total = 0; final exerciseIds = cycle.workouts.expand((w) => w.exercises.map((e) => e.id)).toSet(); final cycleLogs = logs.where((l) => exerciseIds.contains(l.exerciseId)).toList(); for (var log in cycleLogs) { total += log.weight * log.positiveReps; } return total; }
+  double _calculateTotalCycleVolume(TrainingCycle cycle, List<ExerciseLog> logs) { double total = 0; final exerciseIds = cycle.workouts.expand((w) => w.exercises.map((e) => e.id)).toSet(); final cycleLogs = logs.where((l) => exerciseIds.contains(l.exerciseId)).toList(); for (var log in cycleLogs) { total += log.weightKg * log.positiveReps; } return total; }
 
   double _calculateCycleAbsoluteStrength(TrainingCycle cycle, List<ExerciseLog> logs) {
     double totalStrength = 0;
@@ -1072,8 +1072,8 @@ class _CycleTrackingScreenState extends State<CycleTrackingScreen>
           ..sort((a, b) => b.timestamp.compareTo(a.timestamp));
         if (exLogs.isNotEmpty) {
           final l = exLogs.first;
-          if (l.weight > 0 && l.positiveReps > 0) {
-            totalStrength += l.weight / (1.0278 - (0.0278 * l.positiveReps));
+          if (l.weightKg > 0 && l.positiveReps > 0) {
+            totalStrength += l.weightKg / (1.0278 - (0.0278 * l.positiveReps));
             count++;
           }
         }

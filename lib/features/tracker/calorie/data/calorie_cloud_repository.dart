@@ -18,7 +18,7 @@ class CalorieCloudRepository {
 
     try {
       final List<Map<String, dynamic>> response = await _supabase
-          .from('calorie_logs')
+          .from('calorie_meal_logs')
           .select()
           .eq('user_id', uid)
           .order('timestamp', ascending: false);
@@ -64,7 +64,7 @@ class CalorieCloudRepository {
         'servings': log.servings,
       };
 
-      await _supabase.from('calorie_logs').upsert(data, onConflict: 'id');
+      await _supabase.from('calorie_meal_logs').upsert(data, onConflict: 'id');
     } catch (e) {
       debugPrint("Cloud Calorie Error (insertLog): $e");
       rethrow;
@@ -76,7 +76,7 @@ class CalorieCloudRepository {
     if (uid == null) return;
 
     try {
-      await _supabase.from('calorie_logs').delete().eq('id', id).eq('user_id', uid);
+      await _supabase.from('calorie_meal_logs').delete().eq('id', id).eq('user_id', uid);
     } catch (e) {
       debugPrint("Cloud Calorie Error (deleteLog): $e");
       rethrow;
@@ -133,7 +133,7 @@ class CalorieCloudRepository {
 
     try {
       final List<Map<String, dynamic>> response = await _supabase
-          .from('saved_meals')
+          .from('calorie_meals')
           .select()
           .eq('user_id', uid)
           .order('name', ascending: true);
@@ -186,8 +186,8 @@ class CalorieCloudRepository {
         'is_synced': 1,
       };
 
-      debugPrint("CalorieCloudRepo: Attempting upsert for saved_meal: ${meal.name} (ID: ${meal.id})");
-      await _supabase.from('saved_meals').upsert(data, onConflict: 'id');
+      debugPrint("CalorieCloudRepo: Attempting upsert for calorie_meals: ${meal.name} (ID: ${meal.id})");
+      await _supabase.from('calorie_meals').upsert(data, onConflict: 'id');
       debugPrint("CalorieCloudRepo: Successfully saved meal to cloud.");
     } catch (e) {
       debugPrint("Cloud Calorie Error (insertSavedMeal): $e");
@@ -200,7 +200,7 @@ class CalorieCloudRepository {
     if (uid == null) return;
 
     try {
-      await _supabase.from('saved_meals').delete().eq('id', id).eq('user_id', uid);
+      await _supabase.from('calorie_meals').delete().eq('id', id).eq('user_id', uid);
     } catch (e) {
       debugPrint("Cloud Calorie Error (deleteSavedMeal): $e");
       rethrow;

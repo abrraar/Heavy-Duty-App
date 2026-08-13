@@ -44,8 +44,8 @@ class ProfileScreen extends StatelessWidget {
         String bestGainExercise = "N/A";
 
         for (var log in cycleProv.logs) {
-          if (log.weight > heaviestWeight) {
-            heaviestWeight = log.weight;
+          if (log.weightKg > heaviestWeight) {
+            heaviestWeight = log.weightKg;
             heaviestExercise = cycleProv.getExerciseName(log.exerciseId) ?? "Unknown";
           }
         }

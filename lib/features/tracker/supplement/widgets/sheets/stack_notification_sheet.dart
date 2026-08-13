@@ -99,29 +99,22 @@ class _StackNotificationSheetState extends State<StackNotificationSheet> {
   }
 
   void _performFinalCleanupAndSave() {
-    List<SupplementReminder> validIntake = [];
-    if (recordEnabled) {
-      for (int i = 0; i < intakeReminders.length; i++) {
-        var r = intakeReminders[i].copyWith(reminderMode: _selectedMode);
-        final Map<String, double> itemValues = {};
-        for (var item in widget.stack.items) {
-          double? val = double.tryParse(_itemControllers[i][item.id]?.text ?? "");
-          itemValues[item.id] = (val == null || val <= 0) ? 1.0 : val;
-        }
-        r = r.copyWith(stackItemValues: itemValues);
-
-        if (_selectedMode == ReminderMode.schedule) {
-          if (r.days.isNotEmpty && (r.supplementIds ?? []).isNotEmpty) {
-            if (r.times.isEmpty) r.times.add(TimeOfDay.now());
-            validIntake.add(r);
-          }
-        } else {
-          int min = r.intervalUnit == IntervalUnit.minute ? 15 : 1;
-          if ((r.intervalValue ?? 0) >= min && (r.supplementIds ?? []).isNotEmpty) {
-            validIntake.add(r);
-          }
-        }
+    List<SupplementReminder> updatedIntake = [];
+    
+    // Always process current intake UI state into a list, regardless of recordEnabled toggle
+    for (int i = 0; i < intakeReminders.length; i++) {
+      var r = intakeReminders[i].copyWith(reminderMode: _selectedMode);
+      final Map<String, double> itemValues = {};
+      for (var item in widget.stack.items) {
+        double? val = double.tryParse(_itemControllers[i][item.id]?.text ?? "");
+        itemValues[item.id] = (val == null || val <= 0) ? 1.0 : val;
       }
+      r = r.copyWith(stackItemValues: itemValues);
+
+      if (_selectedMode == ReminderMode.schedule) {
+        if (r.times.isEmpty) r.times.add(TimeOfDay.now());
+      }
+      updatedIntake.add(r);
     }
 
     final Map<String, double> thresholds = {};
@@ -130,11 +123,17 @@ class _StackNotificationSheetState extends State<StackNotificationSheet> {
       thresholds[item.id] = (lowStockUseServings[item.id] ?? false) ? raw * item.weightPerServing : raw;
     }
 
-    bool active = (recordEnabled && validIntake.isNotEmpty) || restockEnabled;
+    // Master Switch Logic: Active if either section is toggled ON
+    bool masterActive = recordEnabled || restockEnabled;
+
     context.read<SupplementProvider>().updateNotificationSettings(
-      targetId: widget.stack.id, isStack: true, masterEnabled: active,
-      recordEnabled: recordEnabled, restockEnabled: restockEnabled,
-      intakeReminders: validIntake, lowStockThresholds: thresholds,
+      targetId: widget.stack.id, 
+      isStack: true, 
+      masterEnabled: masterActive,
+      recordEnabled: recordEnabled, 
+      restockEnabled: restockEnabled,
+      intakeReminders: updatedIntake, // Data is preserved in JSON
+      lowStockThresholds: thresholds,
     );
   }
 

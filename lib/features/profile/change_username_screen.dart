@@ -3,6 +3,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:heavy_duty/core/theme/app_colors.dart';
 import 'package:heavy_duty/core/theme/app_text_styles.dart';
+import 'package:heavy_duty/core/widgets/elite_settings_app_bar.dart';
 import 'package:heavy_duty/features/auth/provider/auth_provider.dart';
 import 'package:provider/provider.dart';
 
@@ -77,64 +78,64 @@ class _ChangeUsernameScreenState extends State<ChangeUsernameScreen> {
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        title: Text("IDENTITY", style: AppTextStyles.h3),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white),
-          onPressed: () => context.pop(),
-        ),
-      ),
-      body: Padding(
-        padding: EdgeInsets.all(24.r),
+      body: SafeArea(
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              "CHANGE USERNAME",
-              style: AppTextStyles.h1.copyWith(fontSize: 32.sp, letterSpacing: -1),
-            ),
-            SizedBox(height: 8.h),
-            Text(
-              "CHOOSE YOUR UNIQUE ELITE TAG",
-              style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary, letterSpacing: 1.5),
-            ),
-            SizedBox(height: 40.h),
+            const EliteSettingsAppBar(title: "IDENTITY"),
+            Expanded(
+              child: Padding(
+                padding: EdgeInsets.all(24.r),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      "CHANGE USERNAME",
+                      style: AppTextStyles.h1.copyWith(fontSize: 32.sp, letterSpacing: -1),
+                    ),
+                    SizedBox(height: 8.h),
+                    Text(
+                      "CHOOSE YOUR UNIQUE ELITE TAG",
+                      style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary, letterSpacing: 1.5),
+                    ),
+                    SizedBox(height: 40.h),
 
-            _buildLabel("NEW USERNAME"),
-            TextField(
-              controller: _usernameController,
-              style: AppTextStyles.inputText.copyWith(color: Colors.white),
-              onChanged: (_) => setState(() {
-                _isAvailable = null;
-                _errorText = null;
-              }),
-              decoration: InputDecoration(
-                hintText: "ENTER USERNAME",
-                hintStyle: const TextStyle(color: Colors.white24),
-                filled: true,
-                fillColor: AppColors.surfaceLight.withOpacity(0.3),
-                prefixIcon: Icon(Icons.alternate_email_rounded, color: AppColors.crimson, size: 20.r),
-                suffixIcon: _isAvailable == true 
-                  ? const Icon(Icons.check_circle_outline_rounded, color: Colors.greenAccent)
-                  : (_isAvailable == false ? const Icon(Icons.error_outline_rounded, color: AppColors.error) : null),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12.r), borderSide: BorderSide.none),
+                    _buildLabel("NEW USERNAME"),
+                    TextField(
+                      controller: _usernameController,
+                      style: AppTextStyles.inputText.copyWith(color: Colors.white),
+                      onChanged: (_) => setState(() {
+                        _isAvailable = null;
+                        _errorText = null;
+                      }),
+                      decoration: InputDecoration(
+                        hintText: "ENTER USERNAME",
+                        hintStyle: const TextStyle(color: Colors.white24),
+                        filled: true,
+                        fillColor: AppColors.surfaceLight.withOpacity(0.3),
+                        prefixIcon: Icon(Icons.alternate_email_rounded, color: AppColors.crimson, size: 20.r),
+                        suffixIcon: _isAvailable == true 
+                          ? const Icon(Icons.check_circle_outline_rounded, color: Colors.greenAccent)
+                          : (_isAvailable == false ? const Icon(Icons.error_outline_rounded, color: AppColors.error) : null),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12.r), borderSide: BorderSide.none),
+                      ),
+                    ),
+                    if (_errorText != null)
+                      Padding(
+                        padding: EdgeInsets.only(top: 8.h, left: 4.w),
+                        child: Text(_errorText!, style: TextStyle(color: AppColors.error, fontSize: 10.sp, fontWeight: FontWeight.bold)),
+                      ),
+
+                    const Spacer(),
+                    _PrimaryButton(
+                      label: "VERIFY & SAVE",
+                      isLoading: isLoading,
+                      onTap: _handleVerifyAndSave,
+                    ),
+                    SizedBox(height: 20.h),
+                  ],
+                ),
               ),
             ),
-            if (_errorText != null)
-              Padding(
-                padding: EdgeInsets.only(top: 8.h, left: 4.w),
-                child: Text(_errorText!, style: TextStyle(color: AppColors.error, fontSize: 10.sp, fontWeight: FontWeight.bold)),
-              ),
-
-            const Spacer(),
-            _PrimaryButton(
-              label: "VERIFY & SAVE",
-              isLoading: isLoading,
-              onTap: _handleVerifyAndSave,
-            ),
-            SizedBox(height: 20.h),
           ],
         ),
       ),

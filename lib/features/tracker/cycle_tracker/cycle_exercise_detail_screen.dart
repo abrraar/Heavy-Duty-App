@@ -42,6 +42,7 @@ class _CycleExerciseDetailScreenState extends State<CycleExerciseDetailScreen> {
   ExerciseLog? _currentSessionLog;
   bool _isInitialLoad = true;
   bool _isManualEditMode = false;
+  WeightUnit? _lastUnit;
 
   @override
   void initState() {
@@ -86,12 +87,13 @@ class _CycleExerciseDetailScreenState extends State<CycleExerciseDetailScreen> {
     }
 
     final provider = context.read<CycleProvider>();
-    final weight = provider.convertFromDisplay(displayWeight);
+    final dualWeights = provider.calculateDualWeights(displayWeight);
     
     final log = ExerciseLog(
       id: _currentSessionLog?.id, 
       exerciseId: widget.exerciseId,
-      weight: weight,
+      weightKg: dualWeights['kg']!,
+      weightLbs: dualWeights['lbs']!,
       positiveReps: posReps,
       staticHoldSeconds: staticSecs,
       negativeReps: negReps,
@@ -133,6 +135,13 @@ class _CycleExerciseDetailScreenState extends State<CycleExerciseDetailScreen> {
       builder: (context, provider, _) {
         final sessionLogs = provider.logs.where((l) => l.exerciseId == widget.exerciseId).toList();
         
+        // --- REACTIVE UI REFRESH ON UNIT CHANGE ---
+        if (_lastUnit != null && _lastUnit != provider.settings.weightUnit) {
+          // Force re-load controllers from the raw database columns of the current log
+          _isInitialLoad = true;
+        }
+        _lastUnit = provider.settings.weightUnit;
+        
         // Discover all exercise instances of this name across cycles/workouts for logical history
         final List<Exercise> exerciseInstances = [];
         final sortedCycles = provider.cycles.where((c) => c.status != CycleStatus.template).toList()
@@ -173,8 +182,8 @@ class _CycleExerciseDetailScreenState extends State<CycleExerciseDetailScreen> {
           if (isCycleFinished) {
             if (sessionLogs.isNotEmpty) {
               _currentSessionLog = sessionLogs.first;
-              final displayWeight = provider.convertToDisplay(_currentSessionLog!.weight);
-              _weightController.text = displayWeight > 0 ? displayWeight.toStringAsFixed(1) : "";
+              final displayWeight = provider.getWeightForDisplay(_currentSessionLog!);
+              _weightController.text = displayWeight > 0 ? double.parse(displayWeight.toStringAsFixed(3)).toString() : "";
               _posRepsController.text = _currentSessionLog!.positiveReps > 0 ? _currentSessionLog!.positiveReps.toString() : "";
               _staticSecsController.text = _currentSessionLog!.staticHoldSeconds > 0 ? _currentSessionLog!.staticHoldSeconds.toString() : "";
               _negRepsController.text = _currentSessionLog!.negativeReps > 0 ? _currentSessionLog!.negativeReps.toString() : "";
@@ -191,8 +200,8 @@ class _CycleExerciseDetailScreenState extends State<CycleExerciseDetailScreen> {
             if (sessionLogs.isNotEmpty) {
               sessionLogs.sort((a, b) => b.timestamp.compareTo(a.timestamp));
               _currentSessionLog = sessionLogs.first;
-              final displayWeight = provider.convertToDisplay(_currentSessionLog!.weight);
-              _weightController.text = displayWeight > 0 ? displayWeight.toStringAsFixed(1) : "";
+              final displayWeight = provider.getWeightForDisplay(_currentSessionLog!);
+              _weightController.text = displayWeight > 0 ? double.parse(displayWeight.toStringAsFixed(3)).toString() : "";
               _posRepsController.text = _currentSessionLog!.positiveReps > 0 ? _currentSessionLog!.positiveReps.toString() : "";
               _staticSecsController.text = _currentSessionLog!.staticHoldSeconds > 0 ? _currentSessionLog!.staticHoldSeconds.toString() : "";
               _negRepsController.text = _currentSessionLog!.negativeReps > 0 ? _currentSessionLog!.negativeReps.toString() : "";
@@ -347,10 +356,11 @@ class _CycleExerciseDetailScreenState extends State<CycleExerciseDetailScreen> {
     }
 
     List<String> metrics = [];
-    if (lastLog.weight > 0) {
-      final displayWeight = provider.convertToDisplay(lastLog.weight);
+    if (lastLog.weightKg > 0 || lastLog.weightLbs > 0) {
+      final displayWeight = provider.getWeightForDisplay(lastLog);
       final unit = provider.settings.weightUnit == WeightUnit.kgs ? "KGS" : "LBS";
-      metrics.add("${displayWeight.toStringAsFixed(1)} $unit");
+      final String formattedWeight = double.parse(displayWeight.toStringAsFixed(3)).toString();
+      metrics.add("$formattedWeight $unit");
     }
     
     if (lastLog.positiveReps > 0) metrics.add("${lastLog.positiveReps} POS");
@@ -358,7 +368,7 @@ class _CycleExerciseDetailScreenState extends State<CycleExerciseDetailScreen> {
     if (lastLog.negativeReps > 0) metrics.add("${lastLog.negativeReps} NEG");
     if (lastLog.forcedReps > 0) metrics.add("${lastLog.forcedReps} FORCED");
 
-    final double volumeValue = lastLog.weight * lastLog.positiveReps;
+    final double volumeValue = lastLog.weightKg * lastLog.positiveReps;
 
     return Container(
       padding: EdgeInsets.all(20.r),
@@ -426,17 +436,19 @@ class _CycleExerciseDetailScreenState extends State<CycleExerciseDetailScreen> {
     int repDiff = 0;
     bool hasAnalysis = false;
 
-    if (currentWeight != null && currentWeight > 0 && currentReps != null && currentReps > 0 && lastLog.weight > 0 && lastLog.positiveReps > 0) {
-      final double weightKg = provider.convertFromDisplay(currentWeight);
-      final double current1RM = weightKg / (1.0278 - (0.0278 * currentReps));
-      final double last1RM = lastLog.weight / (1.0278 - (0.0278 * lastLog.positiveReps));
+    if (currentWeight != null && currentWeight > 0 && currentReps != null && currentReps > 0 && (lastLog.weightKg > 0 || lastLog.weightLbs > 0) && lastLog.positiveReps > 0) {
+      final dualWeights = provider.calculateDualWeights(currentWeight);
+      final currentKg = dualWeights['kg']!;
+      
+      final double current1RM = currentKg / (1.0278 - (0.0278 * currentReps));
+      final double last1RM = lastLog.weightKg / (1.0278 - (0.0278 * lastLog.positiveReps));
       strengthChange = ((current1RM / last1RM) - 1) * 100;
 
-      final double currentVol = weightKg * currentReps;
-      final double lastVol = lastLog.weight * lastLog.positiveReps;
+      final double currentVol = currentKg * currentReps;
+      final double lastVol = lastLog.weightKg * lastLog.positiveReps;
       volumeChange = ((currentVol / lastVol) - 1) * 100;
 
-      loadDiff = currentWeight - provider.convertToDisplay(lastLog.weight);
+      loadDiff = currentWeight - provider.getWeightForDisplay(lastLog);
       repDiff = currentReps - lastLog.positiveReps;
 
       hasAnalysis = true;
@@ -601,7 +613,7 @@ class _CycleExerciseDetailScreenState extends State<CycleExerciseDetailScreen> {
                 textBaseline: TextBaseline.alphabetic,
                 children: [
                   Text(
-                    "${isPositive ? "+" : ""}${value.abs() < 0.01 ? "0.0" : value.toStringAsFixed(value % 1 == 0 ? 0 : 1)}",
+                    "${isPositive ? "+" : ""}${value.abs() < 0.001 ? "0.0" : double.parse(value.abs().toStringAsFixed(3)).toString()}",
                     style: AppTextStyles.labelMedium.copyWith(
                       color: color, 
                       fontWeight: FontWeight.w900,
@@ -691,7 +703,7 @@ class _CycleExerciseDetailScreenState extends State<CycleExerciseDetailScreen> {
         enabled: true,
         onChanged: (_) => setState(() {}),
         inputFormatters: [
-          FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
+          FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,3}')),
         ],
         keyboardType: const TextInputType.numberWithOptions(decimal: true),
         style: AppTextStyles.h1.copyWith(color: AppColors.white, fontSize: 28.sp),

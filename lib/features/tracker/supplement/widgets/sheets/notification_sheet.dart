@@ -107,44 +107,28 @@ class _NotificationSheetState extends State<NotificationSheet> {
   }
 
   void _handleSaveAndExit() {
-    List<SupplementReminder> validIntake = [];
+    List<SupplementReminder> updatedIntake = [];
     
-    if (recordEnabled) {
-      for (int i = 0; i < intakeReminders.length; i++) {
-        final r = intakeReminders[i].copyWith(reminderMode: _selectedMode);
-        
-        if (_selectedMode == ReminderMode.schedule) {
-          if (r.days.isNotEmpty) {
-            if (r.times.isEmpty) {
-              validIntake.add(r.copyWith(times: [TimeOfDay.now()]));
-            } else {
-              validIntake.add(r);
-            }
-          }
-        } else {
-          int minAllowed = r.intervalUnit == IntervalUnit.minute ? 15 : 1;
-          if ((r.intervalValue ?? 0) >= minAllowed) {
-            validIntake.add(r);
-          }
-        }
+    // Always process current intake UI state into a list, regardless of recordEnabled toggle
+    for (int i = 0; i < intakeReminders.length; i++) {
+      final r = intakeReminders[i].copyWith(reminderMode: _selectedMode);
+      if (_selectedMode == ReminderMode.schedule) {
+        updatedIntake.add(r.times.isEmpty ? r.copyWith(times: [TimeOfDay.now()]) : r);
+      } else {
+        updatedIntake.add(r);
       }
     }
 
-    bool shouldNotificationBeActive = (recordEnabled && validIntake.isNotEmpty) || restockEnabled;
-
-    if (!shouldNotificationBeActive) {
-      context.read<SupplementProvider>().updateNotificationSettings(
-        targetId: widget.supplement.id,
-        isStack: false, masterEnabled: false, recordEnabled: false, restockEnabled: false,
-        intakeReminders: [], lowStockThresholds: {},
-      );
-      return;
-    }
+    // Master Switch Logic: Active if either section is toggled ON
+    bool masterActive = recordEnabled || restockEnabled;
 
     context.read<SupplementProvider>().updateNotificationSettings(
       targetId: widget.supplement.id,
-      isStack: false, masterEnabled: true, recordEnabled: recordEnabled, restockEnabled: restockEnabled,
-      intakeReminders: validIntake,
+      isStack: false, 
+      masterEnabled: masterActive, 
+      recordEnabled: recordEnabled, 
+      restockEnabled: restockEnabled,
+      intakeReminders: updatedIntake, // Data is preserved in JSON even if recordEnabled is false
       lowStockThresholds: {
         widget.supplement.id: restockUseServings
             ? lowStockThreshold * widget.supplement.weightPerServing
@@ -280,18 +264,17 @@ class _NotificationSheetState extends State<NotificationSheet> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text("SET DOSE CONFIG", style: AppTextStyles.labelSmall.copyWith(fontWeight: FontWeight.w900, color: Colors.white)),
-              if (intakeReminders.length > 1)
-                IconButton(
-                  onPressed: () => setState(() {
-                    intakeReminders.removeAt(index);
-                    intakeUseServings.removeAt(index);
-                    _intakeControllers[index].dispose();
-                    _intakeControllers.removeAt(index);
-                    _intervalControllers[index].dispose();
-                    _intervalControllers.removeAt(index);
-                  }),
-                  icon: Icon(Icons.delete_outline_rounded, color: AppColors.crimson.withOpacity(0.7), size: 20.r),
-                ),
+              IconButton(
+                onPressed: () => setState(() {
+                  intakeReminders.removeAt(index);
+                  intakeUseServings.removeAt(index);
+                  _intakeControllers[index].dispose();
+                  _intakeControllers.removeAt(index);
+                  _intervalControllers[index].dispose();
+                  _intervalControllers.removeAt(index);
+                }),
+                icon: Icon(Icons.delete_outline_rounded, color: AppColors.crimson.withOpacity(0.7), size: 20.r),
+              ),
             ],
           ),
           SizedBox(height: 8.h),

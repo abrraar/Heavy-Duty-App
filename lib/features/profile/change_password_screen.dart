@@ -3,6 +3,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:heavy_duty/core/theme/app_colors.dart';
 import 'package:heavy_duty/core/theme/app_text_styles.dart';
+import 'package:heavy_duty/core/widgets/elite_settings_app_bar.dart';
 import 'package:heavy_duty/core/widgets/elite_snackbar.dart';
 import 'package:heavy_duty/features/auth/provider/auth_provider.dart';
 import 'package:provider/provider.dart';
@@ -86,95 +87,95 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        title: Text("SECURITY", style: AppTextStyles.h3),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white),
-          onPressed: () => context.pop(),
-        ),
-      ),
-      body: SingleChildScrollView(
-        padding: EdgeInsets.all(24.r),
+      body: SafeArea(
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              "CHANGE PASSWORD",
-              style: AppTextStyles.h1.copyWith(fontSize: 32.sp, letterSpacing: -1),
-            ),
-            SizedBox(height: 8.h),
-            Text(
-              "PROTECT YOUR HIGH INTENSITY DATA",
-              style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary, letterSpacing: 1.5),
-            ),
-            SizedBox(height: 40.h),
-
-            if (!_isCurrentVerified) ...[
-              _buildLabel("CURRENT PASSWORD"),
-              _buildTextField(
-                controller: _currentPasswordController,
-                hint: "ENTER CURRENT PASSWORD",
-                icon: Icons.lock_outline,
-                obscure: _obscureCurrent,
-                toggleObscure: () => setState(() => _obscureCurrent = !_obscureCurrent),
-              ),
-              SizedBox(height: 24.h),
-              _PrimaryButton(
-                label: "VERIFY PASSWORD",
-                isLoading: isLoading,
-                onTap: _verifyCurrent,
-              ),
-              SizedBox(height: 32.h),
-              Center(
-                child: TextButton(
-                  onPressed: isLoading ? null : _sendResetEmail,
-                  child: Text(
-                    "FORGOT CURRENT PASSWORD?",
-                    style: AppTextStyles.labelSmall.copyWith(
-                      color: AppColors.crimson,
-                      fontWeight: FontWeight.bold,
-                      decoration: TextDecoration.underline,
+            const EliteSettingsAppBar(title: "SECURITY"),
+            Expanded(
+              child: SingleChildScrollView(
+                padding: EdgeInsets.all(24.r),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      "CHANGE PASSWORD",
+                      style: AppTextStyles.h1.copyWith(fontSize: 32.sp, letterSpacing: -1),
                     ),
-                  ),
+                    SizedBox(height: 8.h),
+                    Text(
+                      "PROTECT YOUR HIGH INTENSITY DATA",
+                      style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary, letterSpacing: 1.5),
+                    ),
+                    SizedBox(height: 40.h),
+
+                    if (!_isCurrentVerified) ...[
+                      _buildLabel("CURRENT PASSWORD"),
+                      _buildTextField(
+                        controller: _currentPasswordController,
+                        hint: "ENTER CURRENT PASSWORD",
+                        icon: Icons.lock_outline,
+                        obscure: _obscureCurrent,
+                        toggleObscure: () => setState(() => _obscureCurrent = !_obscureCurrent),
+                      ),
+                      SizedBox(height: 24.h),
+                      _PrimaryButton(
+                        label: "VERIFY PASSWORD",
+                        isLoading: isLoading,
+                        onTap: _verifyCurrent,
+                      ),
+                      SizedBox(height: 32.h),
+                      Center(
+                        child: TextButton(
+                          onPressed: isLoading ? null : _sendResetEmail,
+                          child: Text(
+                            "FORGOT CURRENT PASSWORD?",
+                            style: AppTextStyles.labelSmall.copyWith(
+                              color: AppColors.crimson,
+                              fontWeight: FontWeight.bold,
+                              decoration: TextDecoration.underline,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ] else ...[
+                      _buildLabel("NEW PASSWORD"),
+                      _buildTextField(
+                        controller: _newPasswordController,
+                        hint: "ENTER NEW PASSWORD",
+                        icon: Icons.vpn_key_outlined,
+                        obscure: _obscureNew,
+                        toggleObscure: () => setState(() => _obscureNew = !_obscureNew),
+                        onChanged: (_) => setState(() {}),
+                      ),
+                      SizedBox(height: 20.h),
+                      _buildLabel("CONFIRM NEW PASSWORD"),
+                      _buildTextField(
+                        controller: _confirmPasswordController,
+                        hint: "RE-TYPE NEW PASSWORD",
+                        icon: Icons.check_circle_outline_rounded,
+                        obscure: _obscureConfirm,
+                        toggleObscure: () => setState(() => _obscureConfirm = !_obscureConfirm),
+                        onChanged: (_) => setState(() {}),
+                      ),
+                      if (_newPasswordController.text.isNotEmpty && 
+                          _confirmPasswordController.text.isNotEmpty && 
+                          _newPasswordController.text != _confirmPasswordController.text)
+                        Padding(
+                          padding: EdgeInsets.only(top: 8.h, left: 4.w),
+                          child: Text("PASSWORDS DO NOT MATCH", style: TextStyle(color: AppColors.error, fontSize: 10.sp, fontWeight: FontWeight.bold)),
+                        ),
+                      SizedBox(height: 40.h),
+                      _PrimaryButton(
+                        label: "UPDATE PASSWORD",
+                        isLoading: isLoading,
+                        onTap: _canSave ? _handleChangePassword : () {},
+                        enabled: _canSave,
+                      ),
+                    ],
+                  ],
                 ),
               ),
-            ] else ...[
-              _buildLabel("NEW PASSWORD"),
-              _buildTextField(
-                controller: _newPasswordController,
-                hint: "ENTER NEW PASSWORD",
-                icon: Icons.vpn_key_outlined,
-                obscure: _obscureNew,
-                toggleObscure: () => setState(() => _obscureNew = !_obscureNew),
-                onChanged: (_) => setState(() {}),
-              ),
-              SizedBox(height: 20.h),
-              _buildLabel("CONFIRM NEW PASSWORD"),
-              _buildTextField(
-                controller: _confirmPasswordController,
-                hint: "RE-TYPE NEW PASSWORD",
-                icon: Icons.check_circle_outline_rounded,
-                obscure: _obscureConfirm,
-                toggleObscure: () => setState(() => _obscureConfirm = !_obscureConfirm),
-                onChanged: (_) => setState(() {}),
-              ),
-              if (_newPasswordController.text.isNotEmpty && 
-                  _confirmPasswordController.text.isNotEmpty && 
-                  _newPasswordController.text != _confirmPasswordController.text)
-                Padding(
-                  padding: EdgeInsets.only(top: 8.h, left: 4.w),
-                  child: Text("PASSWORDS DO NOT MATCH", style: TextStyle(color: AppColors.error, fontSize: 10.sp, fontWeight: FontWeight.bold)),
-                ),
-              SizedBox(height: 40.h),
-              _PrimaryButton(
-                label: "UPDATE PASSWORD",
-                isLoading: isLoading,
-                onTap: _canSave ? _handleChangePassword : () {},
-                enabled: _canSave,
-              ),
-            ],
+            ),
           ],
         ),
       ),

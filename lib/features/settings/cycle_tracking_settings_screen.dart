@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:heavy_duty/core/theme/app_colors.dart';
 import 'package:heavy_duty/core/theme/app_text_styles.dart';
+import 'package:heavy_duty/core/widgets/elite_settings_app_bar.dart';
+import 'package:heavy_duty/core/widgets/elite_unit_toggle_card.dart';
 import 'package:heavy_duty/features/tracker/cycle_tracker/model/cycle_settings.dart';
 import 'package:heavy_duty/features/tracker/cycle_tracker/provider/cycle_provider.dart';
 import 'package:provider/provider.dart';
@@ -14,142 +16,103 @@ class CycleTrackingSettingsScreen extends StatefulWidget {
 }
 
 class _CycleTrackingSettingsScreenState extends State<CycleTrackingSettingsScreen> {
+  @override
+  void initState() {
+    super.initState();
+    // Initialize notification states from provider
+    final settings = context.read<CycleProvider>().settings;
+    _workoutReminders = settings.workoutRemindersEnabled;
+    _workoutDaysInterval = settings.workoutReminderInterval;
+  }
+
   // Notification States
-  bool _workoutReminders = true;
-  int _workoutDaysInterval = 2;
+  late bool _workoutReminders;
+  late int _workoutDaysInterval;
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        centerTitle: true,
-        title: Text(
-          'HIT TRACKER SETTINGS',
-          style: AppTextStyles.labelMedium.copyWith(letterSpacing: 2),
-        ),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white, size: 20),
-          onPressed: () => Navigator.pop(context),
-        ),
-      ),
-      body: SingleChildScrollView(
-        physics: const BouncingScrollPhysics(),
-        child: Padding(
-          padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 10.h),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildSectionHeader('WORKOUT REMINDERS'),
-              SizedBox(height: 12.h),
-              
-              _buildNotificationCard(
-                title: "Workout Schedule",
-                subtitle: "Remind me to train every",
-                value: _workoutReminders,
-                onChanged: (val) => setState(() => _workoutReminders = val),
-                child: _buildSmallDropdown(
-                  value: _workoutDaysInterval,
-                  items: [2, 3, 4, 5, 7, 10, 14],
-                  suffix: "Days",
-                  onChanged: (val) => setState(() => _workoutDaysInterval = val!),
-                ),
-              ),
-
-              SizedBox(height: 32.h),
-
-              _buildSectionHeader('CYCLE EVOLUTION'),
-              SizedBox(height: 12.h),
-              
-              _buildProgressionCard(),
-
-              SizedBox(height: 32.h),
-
-              _buildSectionHeader('DISPLAY UNITS'),
-              SizedBox(height: 12.h),
-
-              _buildUnitToggleCard(context),
-
-              // ── NAVIGATION & SPACING FIX ──
-              SizedBox(height: MediaQuery.of(context).padding.bottom + 100.h),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildUnitToggleCard(BuildContext context) {
     return Consumer<CycleProvider>(
       builder: (context, provider, _) {
-        return Container(
-          padding: EdgeInsets.all(16.r),
-          decoration: BoxDecoration(
-            color: AppColors.surfaceLight.withValues(alpha: 0.3),
-            borderRadius: BorderRadius.circular(16.r),
-            border: Border.all(color: AppColors.white.withValues(alpha: 0.05)),
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text("Weight Unit", style: AppTextStyles.labelMedium),
-                  SizedBox(height: 4.h),
-                  Text(
-                    "Switch between LBS and KGS",
-                    style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary),
+        return Scaffold(
+          backgroundColor: AppColors.background,
+          body: SafeArea(
+            child: Column(
+              children: [
+                const EliteSettingsAppBar(title: 'TRAINING SETTINGS'),
+                Expanded(
+                  child: SingleChildScrollView(
+                    physics: const BouncingScrollPhysics(),
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 10.h),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _buildSectionHeader('WORKOUT REMINDERS'),
+                          SizedBox(height: 12.h),
+                          
+                          _buildNotificationCard(
+                            title: "Workout Schedule",
+                            subtitle: "Remind me to train every",
+                            value: _workoutReminders,
+                            onChanged: (val) {
+                              setState(() => _workoutReminders = val);
+                              provider.updateSettings(provider.settings.copyWith(
+                                workoutRemindersEnabled: val,
+                                workoutReminderInterval: _workoutDaysInterval,
+                              ));
+                            },
+                            child: _buildSmallDropdown(
+                              value: _workoutDaysInterval,
+                              items: [2, 3, 4, 5, 7, 10, 14],
+                              suffix: "Days",
+                              onChanged: (val) {
+                                if (val != null) {
+                                  setState(() => _workoutDaysInterval = val);
+                                  provider.updateSettings(provider.settings.copyWith(
+                                    workoutRemindersEnabled: _workoutReminders,
+                                    workoutReminderInterval: val,
+                                  ));
+                                }
+                              },
+                            ),
+                          ),
+
+                          SizedBox(height: 32.h),
+
+                          _buildSectionHeader('CYCLE EVOLUTION'),
+                          SizedBox(height: 12.h),
+                          
+                          _buildProgressionCard(),
+
+                          SizedBox(height: 32.h),
+
+                          _buildSectionHeader('DISPLAY UNITS'),
+                          SizedBox(height: 12.h),
+
+                          EliteUnitToggleCard(
+                            title: "Weight Unit",
+                            subtitle: "Switch between LBS and KGS",
+                            options: const ["LBS", "KGS"],
+                            selectedIndex: provider.settings.weightUnit == WeightUnit.lbs ? 0 : 1,
+                            onSelected: (index) {
+                              provider.updateSettings(provider.settings.copyWith(
+                                weightUnit: index == 0 ? WeightUnit.lbs : WeightUnit.kgs,
+                              ));
+                            },
+                          ),
+
+                          // ── NAVIGATION & SPACING FIX ──
+                          SizedBox(height: MediaQuery.of(context).padding.bottom + 100.h),
+                        ],
+                      ),
+                    ),
                   ),
-                ],
-              ),
-              Container(
-                decoration: BoxDecoration(
-                  color: AppColors.background,
-                  borderRadius: BorderRadius.circular(12.r),
                 ),
-                child: Row(
-                  children: [
-                    _buildUnitButton(
-                      label: "LBS",
-                      isSelected: provider.settings.weightUnit == WeightUnit.lbs,
-                      onTap: () => provider.updateSettings(provider.settings.copyWith(weightUnit: WeightUnit.lbs)),
-                    ),
-                    _buildUnitButton(
-                      label: "KGS",
-                      isSelected: provider.settings.weightUnit == WeightUnit.kgs,
-                      onTap: () => provider.updateSettings(provider.settings.copyWith(weightUnit: WeightUnit.kgs)),
-                    ),
-                  ],
-                ),
-              ),
-            ],
+              ],
+            ),
           ),
         );
       },
-    );
-  }
-
-  Widget _buildUnitButton({required String label, required bool isSelected, required VoidCallback onTap}) {
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
-        decoration: BoxDecoration(
-          color: isSelected ? AppColors.crimson : Colors.transparent,
-          borderRadius: BorderRadius.circular(10.r),
-        ),
-        child: Text(
-          label,
-          style: AppTextStyles.labelSmall.copyWith(
-            color: isSelected ? AppColors.white : AppColors.textSecondary,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-      ),
     );
   }
 

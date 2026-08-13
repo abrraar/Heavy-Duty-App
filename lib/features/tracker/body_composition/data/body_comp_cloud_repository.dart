@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../model/body_comp_log.dart';
+import '../model/body_comp_settings.dart';
 
 class BodyCompCloudRepository {
   final SupabaseClient _supabase = Supabase.instance.client;
@@ -9,11 +10,50 @@ class BodyCompCloudRepository {
 
   String _getTableName(BodyMetricType type) {
     switch (type) {
-      case BodyMetricType.weight: return 'weight_logs';
-      case BodyMetricType.fat: return 'body_fat_logs';
-      case BodyMetricType.muscle: return 'muscle_mass_logs';
+      case BodyMetricType.weight: return 'BodyComp_weight_logs';
+      case BodyMetricType.fat: return 'BodyComp_fats_logs';
+      case BodyMetricType.muscle: return 'BodyComp_muscle_logs';
     }
   }
+
+  // --- Settings ---
+
+  Future<BodyCompSettings?> getSettings() async {
+    final uid = _currentUserId;
+    if (uid == null) return null;
+
+    try {
+      final response = await _supabase
+          .from('BodyComp_settings')
+          .select()
+          .eq('user_id', uid)
+          .maybeSingle();
+
+      if (response != null) {
+        return BodyCompSettings.fromMap(response);
+      }
+    } catch (e) {
+      debugPrint("Cloud Body Comp Error (getSettings): $e");
+    }
+    return null;
+  }
+
+  Future<void> saveSettings(BodyCompSettings settings) async {
+    final uid = _currentUserId;
+    if (uid == null) return;
+
+    try {
+      final data = settings.toMap();
+      data['user_id'] = uid;
+      data.remove('id'); 
+      data.remove('is_synced');
+      await _supabase.from('BodyComp_settings').upsert(data, onConflict: 'user_id');
+    } catch (e) {
+      debugPrint("Cloud Body Comp Error (saveSettings): $e");
+    }
+  }
+
+  // --- Logs ---
 
   Future<List<BodyCompLog>?> getAllLogs() async {
     final uid = _currentUserId;
