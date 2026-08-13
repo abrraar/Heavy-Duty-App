@@ -18,6 +18,11 @@ class ProfileScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Register settings context for MainWrapper header
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      activeSettingsContext.value = "profile";
+    });
+
     return Consumer3<AuthProvider, BodyCompProvider, CycleProvider>(
       builder: (context, authProv, bodyProv, cycleProv, _) {
         final lastWeightLog = bodyProv.logs.where((l) => l.type == BodyMetricType.weight).firstOrNull;

@@ -21,8 +21,19 @@ class AppRoutes {
   static const String profile   = '/profile';
   static const String editProfile = '/profile/edit';
   static const String changeUsername = '/profile/change-username';
-  static const String manageEmail = '/profile/manage-email';
-  static const String changePassword = '/profile/change-password';
+  
+  // ── Settings ──────────────────────────────────────────
+  static const String settings = '/settings';
+  static const String settingsNotifications = '/settings/notifications';
+  static const String settingsCycle = '/settings/cycle';
+  static const String settingsCalorie = '/settings/calorie';
+  static const String settingsHydration = '/settings/hydration';
+  static const String settingsSupplement = '/settings/supplement';
+  static const String settingsSleep = '/settings/sleep';
+  static const String settingsBodyComp = '/settings/body-comp';
+  static const String manageEmail = '/settings/manage-email';
+  static const String changePassword = '/settings/change-password';
+
   static const String alarmRinging = '/alarm-ringing';
   static const String shareCycle = '/share/cycle';
   static const String shareMeal = '/share/meal';

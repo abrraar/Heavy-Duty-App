@@ -90,18 +90,16 @@ class MainWrapper extends StatelessWidget {
 
   void _openSettings(BuildContext context) {
     final String currentContext = activeSettingsContext.value;
-    Widget target;
     switch (currentContext) {
-      case "hydration": target = const HydrationSettingsScreen(); break;
-      case "body_comp": target = const BodyCompSettingsScreen(); break;
-      case "cycle": target = const CycleTrackingSettingsScreen(); break;
-      case "sleep": target = const SleepSettingsScreen(); break;
-      case "calorie": target = const CalorieSettingsScreen(); break;
-      case "supplement": target = const SupplementSettingsScreen(); break;
-      case "affirmation": AffirmationSettingsSheet.show(context); return;
-      default: target = const SettingsScreen();
+      case "hydration": context.push(AppRoutes.settingsHydration); break;
+      case "body_comp": context.push(AppRoutes.settingsBodyComp); break;
+      case "cycle": context.push(AppRoutes.settingsCycle); break;
+      case "sleep": context.push(AppRoutes.settingsSleep); break;
+      case "calorie": context.push(AppRoutes.settingsCalorie); break;
+      case "supplement": context.push(AppRoutes.settingsSupplement); break;
+      case "affirmation": AffirmationSettingsSheet.show(context); break;
+      default: context.push(AppRoutes.settings);
     }
-    Navigator.push(context, MaterialPageRoute(builder: (context) => target));
   }
 
   String _getTitle(int index) {

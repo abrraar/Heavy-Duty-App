@@ -154,18 +154,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               label: "CHANGE USERNAME",
               onTap: () => context.push(AppRoutes.changeUsername),
             ),
-            SizedBox(height: 16.h),
-            
-            _buildNavigationRow(
-              label: "CHANGE PASSWORD",
-              onTap: () => context.push(AppRoutes.changePassword),
-            ),
-            SizedBox(height: 16.h),
-            
-            _buildNavigationRow(
-              label: "MANAGE EMAIL ADDRESS",
-              onTap: () => context.push(AppRoutes.manageEmail),
-            ),
             SizedBox(height: 40.h),
           ],
         ),

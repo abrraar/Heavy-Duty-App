@@ -19,6 +19,14 @@ import 'package:heavy_duty/features/profile/edit_profile_screen.dart';
 import 'package:heavy_duty/features/profile/change_username_screen.dart';
 import 'package:heavy_duty/features/profile/change_password_screen.dart';
 import 'package:heavy_duty/features/profile/manage_email_screen.dart';
+import 'package:heavy_duty/features/settings/settings_screen.dart';
+import 'package:heavy_duty/features/settings/notification_screen.dart';
+import 'package:heavy_duty/features/settings/cycle_tracking_settings_screen.dart';
+import 'package:heavy_duty/features/settings/calorie_settings_screen.dart';
+import 'package:heavy_duty/features/settings/hydration_settings_screen.dart';
+import 'package:heavy_duty/features/settings/supplement_settings_screen.dart';
+import 'package:heavy_duty/features/settings/sleep_settings_screen.dart';
+import 'package:heavy_duty/features/settings/body_comp_settings_screen.dart';
 import 'package:heavy_duty/features/splash/splash_screen.dart';
 import 'package:heavy_duty/features/tracker/tracker_screen.dart';
 import 'package:heavy_duty/features/tracker/calorie/calorie_screen.dart';
@@ -269,15 +277,57 @@ final appRouter = GoRouter(
               parentNavigatorKey: _rootNavigatorKey,
               builder: (context, state) => const ChangeUsernameScreen(),
             ),
+          ],
+        ),
+        GoRoute(
+          path: AppRoutes.settings,
+          parentNavigatorKey: _rootNavigatorKey,
+          builder: (context, state) => const SettingsScreen(),
+          routes: [
             GoRoute(
-              path: 'change-password',
+              path: 'notifications',
               parentNavigatorKey: _rootNavigatorKey,
-              builder: (context, state) => const ChangePasswordScreen(),
+              builder: (context, state) => const NotificationSettingsScreen(),
+            ),
+            GoRoute(
+              path: 'cycle',
+              parentNavigatorKey: _rootNavigatorKey,
+              builder: (context, state) => const CycleTrackingSettingsScreen(),
+            ),
+            GoRoute(
+              path: 'calorie',
+              parentNavigatorKey: _rootNavigatorKey,
+              builder: (context, state) => const CalorieSettingsScreen(),
+            ),
+            GoRoute(
+              path: 'hydration',
+              parentNavigatorKey: _rootNavigatorKey,
+              builder: (context, state) => const HydrationSettingsScreen(),
+            ),
+            GoRoute(
+              path: 'supplement',
+              parentNavigatorKey: _rootNavigatorKey,
+              builder: (context, state) => const SupplementSettingsScreen(),
+            ),
+            GoRoute(
+              path: 'sleep',
+              parentNavigatorKey: _rootNavigatorKey,
+              builder: (context, state) => const SleepSettingsScreen(),
+            ),
+            GoRoute(
+              path: 'body-comp',
+              parentNavigatorKey: _rootNavigatorKey,
+              builder: (context, state) => const BodyCompSettingsScreen(),
             ),
             GoRoute(
               path: 'manage-email',
               parentNavigatorKey: _rootNavigatorKey,
               builder: (context, state) => const ManageEmailScreen(),
+            ),
+            GoRoute(
+              path: 'change-password',
+              parentNavigatorKey: _rootNavigatorKey,
+              builder: (context, state) => const ChangePasswordScreen(),
             ),
           ],
         ),

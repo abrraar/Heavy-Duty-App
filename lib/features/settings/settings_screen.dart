@@ -4,8 +4,8 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:heavy_duty/core/theme/app_colors.dart';
 import 'package:heavy_duty/core/theme/app_text_styles.dart';
+import 'package:heavy_duty/core/navigation/app_routes.dart';
 import 'package:heavy_duty/features/auth/provider/auth_provider.dart';
-import 'package:heavy_duty/features/settings/notification_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -15,63 +15,42 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
-  // Unit States
-  bool _useMetricWeight = true; // KG vs LBS
-  bool _useMetricDistance = true; // CM vs INCH
-  bool _useMetricVolume = true; // ML vs OZ
+  // Unit States (These should eventually come from a GlobalSettingsProvider)
+  bool _useMetricWeight = true; 
+  bool _useMetricVolume = true; 
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: null,
-      // SafeArea prevents overlap with phone notch/camera
       body: SafeArea(
         child: Column(
           children: [
-            // Heavy Duty Header Protocol
+            // ── HEADER ───────────────────────────────────────────────────────
             Padding(
-              padding: EdgeInsets.only(
-                top: 8.h,
-                left: 8.w,
-                right: 8.w,
-                bottom: 8.h,
-              ),
+              padding: EdgeInsets.symmetric(vertical: 16.h, horizontal: 8.w),
               child: IntrinsicHeight(
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     IconButton(
-                      icon: const Icon(
-                        Icons.arrow_back_ios_new_rounded,
-                        color: AppColors.white,
-                      ),
-                      // Standardized to use GoRouter pop
+                      icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white),
                       onPressed: () => context.pop(),
                     ),
                     Expanded(
                       child: Text(
-                        "SETTINGS",
+                        "SYSTEM SETTINGS",
                         textAlign: TextAlign.center,
-                        style: AppTextStyles.h2.copyWith(
-                          color: AppColors.white,
-                          fontWeight: FontWeight.bold,
-                        ),
+                        style: AppTextStyles.h2.copyWith(color: Colors.white, fontWeight: FontWeight.bold),
                       ),
                     ),
-                    const Opacity(
-                      opacity: 0,
-                      child: IconButton(
-                        icon: Icon(Icons.arrow_back_ios_new_rounded),
-                        onPressed: null,
-                      ),
-                    ),
+                    const Opacity(opacity: 0, child: IconButton(icon: Icon(Icons.info), onPressed: null)),
                   ],
                 ),
               ),
             ),
 
-            // Settings Content
+            // ── CONTENT ──────────────────────────────────────────────────────
             Expanded(
               child: SingleChildScrollView(
                 padding: EdgeInsets.symmetric(horizontal: 24.w),
@@ -79,89 +58,95 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    SizedBox(height: 16.h),
-
-                    _buildSectionHeader("UNITS & MEASURES"),
-
+                    _buildSectionHeader("ACCOUNT & SECURITY"),
                     _buildSettingTile(
-                      icon: Icons.fitness_center_rounded,
-                      title: _useMetricWeight
-                          ? "WEIGHT: KILOGRAMS (KG)"
-                          : "WEIGHT: POUNDS (LBS)",
-                      trailing: Switch(
-                        value: _useMetricWeight,
-                        activeColor: AppColors.crimson,
-                        onChanged: (val) =>
-                            setState(() => _useMetricWeight = val),
-                      ),
+                      icon: Icons.lock_outline_rounded,
+                      title: "CHANGE PASSWORD",
+                      subtitle: "Update your elite security key",
+                      onTap: () => context.push(AppRoutes.changePassword),
                     ),
                     _buildSettingTile(
-                      icon: Icons.straighten_rounded,
-                      title: _useMetricDistance
-                          ? "DISTANCE: CENTIMETERS (CM)"
-                          : "DISTANCE: INCHES (IN)",
-                      trailing: Switch(
-                        value: _useMetricDistance,
-                        activeColor: AppColors.crimson,
-                        onChanged: (val) =>
-                            setState(() => _useMetricDistance = val),
-                      ),
+                      icon: Icons.alternate_email_rounded,
+                      title: "MANAGE EMAILS",
+                      subtitle: "Primary and recovery addresses",
+                      onTap: () => context.push(AppRoutes.manageEmail),
+                    ),
+                    _buildSettingTile(
+                      icon: Icons.notifications_active_outlined,
+                      title: "PUSH NOTIFICATIONS",
+                      subtitle: "System alerts and workout reminders",
+                      onTap: () => context.push(AppRoutes.settingsNotifications),
+                    ),
+
+                    SizedBox(height: 24.h),
+                    _buildSectionHeader("MODULE CONFIGURATIONS"),
+                    _buildSettingTile(
+                      icon: Icons.bolt_rounded,
+                      title: "TRAINING PROTOCOLS",
+                      subtitle: "Cycle evolution and session settings",
+                      onTap: () => context.push(AppRoutes.settingsCycle),
+                    ),
+                    _buildSettingTile(
+                      icon: Icons.restaurant_rounded,
+                      title: "NUTRITION LEDGER",
+                      subtitle: "Calorie goals and macro targets",
+                      onTap: () => context.push(AppRoutes.settingsCalorie),
                     ),
                     _buildSettingTile(
                       icon: Icons.water_drop_rounded,
-                      title: _useMetricVolume
-                          ? "FLUIDS: MILLILITERS (ML)"
-                          : "FLUIDS: OUNCES (OZ)",
-                      trailing: Switch(
-                        value: _useMetricVolume,
-                        activeColor: AppColors.crimson,
-                        onChanged: (val) =>
-                            setState(() => _useMetricVolume = val),
-                      ),
+                      title: "HYDRATION SYSTEM",
+                      subtitle: "Daily intake and quick-add values",
+                      onTap: () => context.push(AppRoutes.settingsHydration),
                     ),
-
-                    SizedBox(height: 32.h),
-                    _buildSectionHeader("ACCOUNT & PREFERENCES"),
-
                     _buildSettingTile(
-                      icon: Icons.notifications_none_rounded,
-                      title: "PUSH NOTIFICATIONS",
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) =>
-                                const NotificationSettingsScreen(),
-                          ),
-                        );
-                      },
+                      icon: Icons.layers_rounded,
+                      title: "SUPPLEMENT STACKS",
+                      subtitle: "Inventory alerts and stack defaults",
+                      onTap: () => context.push(AppRoutes.settingsSupplement),
                     ),
-
                     _buildSettingTile(
-                      icon: Icons.security_rounded,
-                      title: "PRIVACY & SECURITY",
-                      onTap: () {},
+                      icon: Icons.bedtime_rounded,
+                      title: "RECOVERY & SLEEP",
+                      subtitle: "Alarms and performance metrics",
+                      onTap: () => context.push(AppRoutes.settingsSleep),
+                    ),
+                    _buildSettingTile(
+                      icon: Icons.analytics_outlined,
+                      title: "BODY COMPOSITION",
+                      subtitle: "Visual trend and target tracking",
+                      onTap: () => context.push(AppRoutes.settingsBodyComp),
                     ),
 
-                    SizedBox(height: 32.h),
+                    SizedBox(height: 24.h),
+                    _buildSectionHeader("GLOBAL PREFERENCES"),
+                    _buildToggleTile(
+                      icon: Icons.fitness_center_rounded,
+                      title: "WEIGHT UNIT",
+                      valueText: _useMetricWeight ? "METRIC (KG)" : "IMPERIAL (LBS)",
+                      value: _useMetricWeight,
+                      onChanged: (v) => setState(() => _useMetricWeight = v),
+                    ),
+                    _buildToggleTile(
+                      icon: Icons.local_drink_rounded,
+                      title: "FLUID UNIT",
+                      valueText: _useMetricVolume ? "METRIC (ML)" : "IMPERIAL (OZ)",
+                      value: _useMetricVolume,
+                      onChanged: (v) => setState(() => _useMetricVolume = v),
+                    ),
+
+                    SizedBox(height: 24.h),
                     _buildSectionHeader("SYSTEM"),
                     _buildSettingTile(
-                      icon: Icons.cloud_upload_outlined,
-                      title: "BACKUP & SYNC",
+                      icon: Icons.cloud_sync_rounded,
+                      title: "BACKUP & CLOUD SYNC",
+                      subtitle: "Force database synchronization",
                       onTap: () {},
                     ),
                     _buildSettingTile(
                       icon: Icons.info_outline_rounded,
-                      title: "VERSION 1.0.4",
-                      trailing: Text(
-                        "UP TO DATE",
-                        style: AppTextStyles.labelSmall.copyWith(
-                          color: AppColors.success,
-                          letterSpacing: 1.5,
-                          fontSize: 10.sp,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
+                      title: "HEAVY DUTY v1.0.5",
+                      subtitle: "All systems operational",
+                      trailing: Text("UP TO DATE", style: AppTextStyles.labelSmall.copyWith(color: AppColors.success, fontSize: 9.sp, fontWeight: FontWeight.bold)),
                     ),
 
                     SizedBox(height: 48.h),
@@ -177,18 +162,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  // ─── REUSABLE SETTINGS COMPONENTS ──────────────────────────────────────────
+  // ─── UI COMPONENTS ────────────────────────────────────────────────────────
 
   Widget _buildSectionHeader(String title) {
     return Padding(
       padding: EdgeInsets.only(bottom: 12.h, left: 4.w),
       child: Text(
         title,
-        style: AppTextStyles.labelSmall.copyWith(
-          color: AppColors.crimson,
-          fontWeight: FontWeight.w900,
-          letterSpacing: 1.5,
-        ),
+        style: AppTextStyles.labelSmall.copyWith(color: AppColors.crimson, fontWeight: FontWeight.w900, letterSpacing: 1.5),
       ),
     );
   }
@@ -196,6 +177,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Widget _buildSettingTile({
     required IconData icon,
     required String title,
+    String? subtitle,
     Widget? trailing,
     VoidCallback? onTap,
   }) {
@@ -203,33 +185,75 @@ class _SettingsScreenState extends State<SettingsScreen> {
       onTap: onTap,
       child: Container(
         margin: EdgeInsets.only(bottom: 12.h),
-        padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 16.h),
+        padding: EdgeInsets.all(16.r),
         decoration: BoxDecoration(
           color: AppColors.surface,
-          borderRadius: BorderRadius.circular(12.r),
+          borderRadius: BorderRadius.circular(16.r),
           border: Border.all(color: AppColors.white.withValues(alpha: 0.05)),
         ),
         child: Row(
           children: [
-            Icon(icon, color: AppColors.white, size: 22.r),
+            Container(
+              padding: EdgeInsets.all(10.r),
+              decoration: BoxDecoration(color: AppColors.white.withValues(alpha: 0.03), borderRadius: BorderRadius.circular(12.r)),
+              child: Icon(icon, color: AppColors.white, size: 20.r),
+            ),
             SizedBox(width: 16.w),
             Expanded(
-              child: Text(
-                title,
-                style: AppTextStyles.labelSmall.copyWith(
-                  color: AppColors.white,
-                  fontWeight: FontWeight.w500,
-                ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title, style: AppTextStyles.labelSmall.copyWith(color: Colors.white, fontWeight: FontWeight.bold)),
+                  if (subtitle != null)
+                    Text(subtitle, style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary, fontSize: 10.sp)),
+                ],
               ),
             ),
-            trailing ??
-                Icon(
-                  Icons.arrow_forward_ios_rounded,
-                  color: AppColors.textSecondary,
-                  size: 14.r,
-                ),
+            trailing ?? Icon(Icons.arrow_forward_ios_rounded, color: AppColors.textSecondary.withValues(alpha: 0.3), size: 12.r),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildToggleTile({
+    required IconData icon,
+    required String title,
+    required String valueText,
+    required bool value,
+    required Function(bool) onChanged,
+  }) {
+    return Container(
+      margin: EdgeInsets.only(bottom: 12.h),
+      padding: EdgeInsets.all(16.r),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(16.r),
+        border: Border.all(color: AppColors.white.withValues(alpha: 0.05)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: EdgeInsets.all(10.r),
+            decoration: BoxDecoration(color: AppColors.white.withValues(alpha: 0.03), borderRadius: BorderRadius.circular(12.r)),
+            child: Icon(icon, color: AppColors.white, size: 20.r),
+          ),
+          SizedBox(width: 16.w),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title, style: AppTextStyles.labelSmall.copyWith(color: Colors.white, fontWeight: FontWeight.bold)),
+                Text(valueText, style: AppTextStyles.labelSmall.copyWith(color: AppColors.crimson, fontSize: 10.sp, fontWeight: FontWeight.w900)),
+              ],
+            ),
+          ),
+          Switch.adaptive(
+            value: value, 
+            onChanged: onChanged,
+            activeColor: AppColors.crimson,
+          ),
+        ],
       ),
     );
   }
@@ -238,36 +262,24 @@ class _SettingsScreenState extends State<SettingsScreen> {
     return GestureDetector(
       onTap: () async {
         try {
-          // Triggers global session clearance via Supabase Auth
           await context.read<AuthProvider>().signOut();
         } catch (e) {
           if (!mounted) return;
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                'LOGOUT FAILED: ${e.toString().replaceAll('Exception: ', '')}',
-                style: AppTextStyles.bodySmall,
-              ),
-              backgroundColor: AppColors.error,
-            ),
-          );
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('LOGOUT FAILED: $e'), backgroundColor: AppColors.error));
         }
       },
       child: Container(
         width: double.infinity,
         padding: EdgeInsets.symmetric(vertical: 16.h),
         decoration: BoxDecoration(
+          color: AppColors.crimson.withValues(alpha: 0.1),
           border: Border.all(color: AppColors.crimson.withValues(alpha: 0.3)),
-          borderRadius: BorderRadius.circular(12.r),
+          borderRadius: BorderRadius.circular(16.r),
         ),
         child: Center(
           child: Text(
-            "LOGOUT",
-            style: AppTextStyles.labelMedium.copyWith(
-              color: AppColors.crimson,
-              fontWeight: FontWeight.bold,
-              letterSpacing: 2,
-            ),
+            "TERMINATE SESSION (LOGOUT)",
+            style: AppTextStyles.labelMedium.copyWith(color: AppColors.crimson, fontWeight: FontWeight.w900, letterSpacing: 2),
           ),
         ),
       ),
