@@ -60,6 +60,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   children: [
                     _buildSectionHeader("ACCOUNT & SECURITY"),
                     _buildSettingTile(
+                      icon: Icons.person_outline_rounded,
+                      title: "CHANGE USERNAME",
+                      subtitle: "Update your unique elite tag",
+                      onTap: () => context.push(AppRoutes.changeUsername),
+                    ),
+                    _buildSettingTile(
                       icon: Icons.lock_outline_rounded,
                       title: "CHANGE PASSWORD",
                       subtitle: "Update your elite security key",

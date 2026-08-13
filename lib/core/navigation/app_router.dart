@@ -279,57 +279,49 @@ final appRouter = GoRouter(
             ),
           ],
         ),
+      ],
+    ),
+    // Move Settings outside the ShellRoute to avoid redundancy issues and clarify hierarchy
+    GoRoute(
+      path: AppRoutes.settings,
+      parentNavigatorKey: _rootNavigatorKey,
+      builder: (context, state) => const SettingsScreen(),
+      routes: [
         GoRoute(
-          path: AppRoutes.settings,
-          parentNavigatorKey: _rootNavigatorKey,
-          builder: (context, state) => const SettingsScreen(),
-          routes: [
-            GoRoute(
-              path: 'notifications',
-              parentNavigatorKey: _rootNavigatorKey,
-              builder: (context, state) => const NotificationSettingsScreen(),
-            ),
-            GoRoute(
-              path: 'cycle',
-              parentNavigatorKey: _rootNavigatorKey,
-              builder: (context, state) => const CycleTrackingSettingsScreen(),
-            ),
-            GoRoute(
-              path: 'calorie',
-              parentNavigatorKey: _rootNavigatorKey,
-              builder: (context, state) => const CalorieSettingsScreen(),
-            ),
-            GoRoute(
-              path: 'hydration',
-              parentNavigatorKey: _rootNavigatorKey,
-              builder: (context, state) => const HydrationSettingsScreen(),
-            ),
-            GoRoute(
-              path: 'supplement',
-              parentNavigatorKey: _rootNavigatorKey,
-              builder: (context, state) => const SupplementSettingsScreen(),
-            ),
-            GoRoute(
-              path: 'sleep',
-              parentNavigatorKey: _rootNavigatorKey,
-              builder: (context, state) => const SleepSettingsScreen(),
-            ),
-            GoRoute(
-              path: 'body-comp',
-              parentNavigatorKey: _rootNavigatorKey,
-              builder: (context, state) => const BodyCompSettingsScreen(),
-            ),
-            GoRoute(
-              path: 'manage-email',
-              parentNavigatorKey: _rootNavigatorKey,
-              builder: (context, state) => const ManageEmailScreen(),
-            ),
-            GoRoute(
-              path: 'change-password',
-              parentNavigatorKey: _rootNavigatorKey,
-              builder: (context, state) => const ChangePasswordScreen(),
-            ),
-          ],
+          path: 'notifications',
+          builder: (context, state) => const NotificationSettingsScreen(),
+        ),
+        GoRoute(
+          path: 'cycle',
+          builder: (context, state) => const CycleTrackingSettingsScreen(),
+        ),
+        GoRoute(
+          path: 'calorie',
+          builder: (context, state) => const CalorieSettingsScreen(),
+        ),
+        GoRoute(
+          path: 'hydration',
+          builder: (context, state) => const HydrationSettingsScreen(),
+        ),
+        GoRoute(
+          path: 'supplement',
+          builder: (context, state) => const SupplementSettingsScreen(),
+        ),
+        GoRoute(
+          path: 'sleep',
+          builder: (context, state) => const SleepSettingsScreen(),
+        ),
+        GoRoute(
+          path: 'body-comp',
+          builder: (context, state) => const BodyCompSettingsScreen(),
+        ),
+        GoRoute(
+          path: 'manage-email',
+          builder: (context, state) => const ManageEmailScreen(),
+        ),
+        GoRoute(
+          path: 'change-password',
+          builder: (context, state) => const ChangePasswordScreen(),
         ),
       ],
     ),

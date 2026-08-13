@@ -526,6 +526,13 @@ class CalorieProvider with ChangeNotifier {
       try {
         await _localRepo!.insertSavedMeal(localMeal);
         _syncSavedMeal(localMeal);
+        
+        // Ensure notifications are updated
+        if (localMeal.notificationsEnabled) {
+          await _notificationService.scheduleMealReminders(localMeal);
+        } else {
+          await _notificationService.cancelMealReminders(localMeal.id);
+        }
       } catch (e) {
         debugPrint("Error updating saved meal: $e");
       }

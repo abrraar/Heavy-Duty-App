@@ -148,12 +148,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             
             _buildLabel("HEIGHT (CM)"),
             _buildTextField(_heightController, "180", Icons.height_outlined, isNumber: true, onChanged: (_) => _triggerAutoSave()),
-            SizedBox(height: 32.h),
-            
-            _buildNavigationRow(
-              label: "CHANGE USERNAME",
-              onTap: () => context.push(AppRoutes.changeUsername),
-            ),
             SizedBox(height: 40.h),
           ],
         ),

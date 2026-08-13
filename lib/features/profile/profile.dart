@@ -8,9 +8,9 @@ import 'package:heavy_duty/core/theme/app_text_styles.dart';
 import 'package:heavy_duty/features/auth/provider/auth_provider.dart';
 import 'package:heavy_duty/features/tracker/body_composition/provider/body_comp_provider.dart';
 import 'package:heavy_duty/features/tracker/cycle_tracker/provider/cycle_provider.dart';
+import '../main_wrapper.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
-
 import '../tracker/body_composition/model/body_comp_log.dart';
 
 class ProfileScreen extends StatelessWidget {
@@ -74,7 +74,7 @@ class ProfileScreen extends StatelessWidget {
                   child: Container(
                     padding: EdgeInsets.all(8.r),
                     decoration: BoxDecoration(
-                      color: AppColors.crimson.withOpacity(0.1),
+                      color: AppColors.crimson.withValues(alpha: 0.1),
                       shape: BoxShape.circle,
                     ),
                     child: Icon(Icons.edit_rounded, color: AppColors.crimson, size: 18.r),
@@ -152,9 +152,9 @@ class ProfileScreen extends StatelessWidget {
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.03),
+        color: Colors.white.withValues(alpha: 0.03),
         borderRadius: BorderRadius.circular(24.r),
-        border: Border.all(color: Colors.white.withOpacity(0.05)),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -171,7 +171,7 @@ class ProfileScreen extends StatelessWidget {
                     Text(title, style: AppTextStyles.labelSmall.copyWith(letterSpacing: 1.2)),
                   ],
                 ),
-                if (action != null) action,
+                action ?? const SizedBox.shrink(),
               ],
             ),
           ),
@@ -185,7 +185,7 @@ class ProfileScreen extends StatelessWidget {
     return Container(
       padding: EdgeInsets.symmetric(vertical: 12.h),
       decoration: BoxDecoration(
-        border: isLast ? null : Border(bottom: BorderSide(color: Colors.white.withOpacity(0.05))),
+        border: isLast ? null : Border(bottom: BorderSide(color: Colors.white.withValues(alpha: 0.05))),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -200,7 +200,7 @@ class ProfileScreen extends StatelessWidget {
   Widget _buildMetricBox(String label, String value, String unit) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.03),
+        color: Colors.white.withValues(alpha: 0.03),
         borderRadius: BorderRadius.circular(16.r),
       ),
       child: Column(

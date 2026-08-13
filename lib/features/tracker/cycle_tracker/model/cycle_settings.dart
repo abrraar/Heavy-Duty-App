@@ -6,11 +6,15 @@ enum WeightUnit { lbs, kgs }
 class CycleSettings {
   final WeightUnit weightUnit;
   final Set<String> visibleMetrics;
+  final bool workoutRemindersEnabled;
+  final int workoutReminderInterval;
   final int isSynced;
 
   CycleSettings({
     this.weightUnit = WeightUnit.lbs,
     this.visibleMetrics = const {"strength", "volume"},
+    this.workoutRemindersEnabled = true,
+    this.workoutReminderInterval = 2,
     this.isSynced = 1,
   });
 
@@ -19,6 +23,8 @@ class CycleSettings {
       'id': 1,
       'weight_unit': weightUnit.name,
       'visible_metrics_json': jsonEncode(visibleMetrics.toList()),
+      'workout_reminders_enabled': workoutRemindersEnabled ? 1 : 0,
+      'workout_reminder_interval': workoutReminderInterval,
       'is_synced': isSynced,
     };
   }
@@ -46,6 +52,8 @@ class CycleSettings {
         orElse: () => WeightUnit.lbs,
       ),
       visibleMetrics: metrics,
+      workoutRemindersEnabled: map['workout_reminders_enabled'] == 1,
+      workoutReminderInterval: map['workout_reminder_interval'] ?? 2,
       isSynced: map['is_synced'] ?? 1,
     );
   }
@@ -53,11 +61,15 @@ class CycleSettings {
   CycleSettings copyWith({
     WeightUnit? weightUnit,
     Set<String>? visibleMetrics,
+    bool? workoutRemindersEnabled,
+    int? workoutReminderInterval,
     int? isSynced,
   }) {
     return CycleSettings(
       weightUnit: weightUnit ?? this.weightUnit,
       visibleMetrics: visibleMetrics ?? this.visibleMetrics,
+      workoutRemindersEnabled: workoutRemindersEnabled ?? this.workoutRemindersEnabled,
+      workoutReminderInterval: workoutReminderInterval ?? this.workoutReminderInterval,
       isSynced: isSynced ?? this.isSynced,
     );
   }
