@@ -76,11 +76,11 @@ class SupplementProvider with ChangeNotifier {
 
     _realtimeChannel = _supabase.channel('public:supplement_sync:$userId');
 
-    // 1. Listen for Supplement changes (SS_supplements)
+    // 1. Listen for Supplement changes (ss_supplements)
     _realtimeChannel!.onPostgresChanges(
       event: PostgresChangeEvent.all,
       schema: 'public',
-      table: 'SS_supplements',
+      table: 'ss_supplements',
       callback: (payload) async {
         debugPrint("Realtime Supplement Update: ${payload.eventType}");
         
@@ -113,11 +113,11 @@ class SupplementProvider with ChangeNotifier {
       },
     );
 
-    // 2. Listen for Stack changes (SS_stack)
+    // 2. Listen for Stack changes (ss_stack)
     _realtimeChannel!.onPostgresChanges(
       event: PostgresChangeEvent.all,
       schema: 'public',
-      table: 'SS_stack',
+      table: 'ss_stack',
       callback: (payload) async {
         debugPrint("Realtime Stack Update: ${payload.eventType}");
         
@@ -147,11 +147,11 @@ class SupplementProvider with ChangeNotifier {
       },
     );
 
-    // 3. Listen for History changes (SS_records)
+    // 3. Listen for History changes (ss_records)
     _realtimeChannel!.onPostgresChanges(
       event: PostgresChangeEvent.all,
       schema: 'public',
-      table: 'SS_records',
+      table: 'ss_records',
       callback: (payload) async {
         debugPrint("Realtime History Update: ${payload.eventType}");
         
@@ -390,11 +390,9 @@ class SupplementProvider with ChangeNotifier {
       if (idx != -1) finalReminders = List.from(_library[idx].reminders);
     }
 
-    // 2. Update Intake Reminders if provided, otherwise KEEP current ones (don't clear)
-    if (intakeReminders.isNotEmpty) {
-      // Remove old intake reminders, keep lowStock ones
-      finalReminders.removeWhere((r) => r.type == ReminderType.intake);
-      
+    // 2. Update Intake Reminders: Clear old ones and only add new ones if enabled
+    finalReminders.removeWhere((r) => r.type == ReminderType.intake);
+    if (recordEnabled) {
       for (var r in intakeReminders) {
         if (r.days.isNotEmpty && r.times.isEmpty) {
           r.times.add(TimeOfDay.now());
@@ -403,13 +401,12 @@ class SupplementProvider with ChangeNotifier {
       finalReminders.addAll(intakeReminders);
     }
 
-    // 3. Process Low Stock Alerts
-    if (lowStockThresholds.isNotEmpty) {
-      // Remove old low stock reminders for these IDs
-      lowStockThresholds.keys.forEach((id) {
-        finalReminders.removeWhere((r) => r.type == ReminderType.lowStock && r.supplementId == id);
-      });
+    // 3. Process Low Stock Alerts: Clear old ones and only add new ones if enabled
+    lowStockThresholds.keys.forEach((id) {
+      finalReminders.removeWhere((r) => r.type == ReminderType.lowStock && r.supplementId == id);
+    });
 
+    if (restockEnabled) {
       lowStockThresholds.forEach((id, val) {
         finalReminders.add(
           SupplementReminder(

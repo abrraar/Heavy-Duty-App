@@ -71,11 +71,11 @@ class CycleProvider with ChangeNotifier {
     _realtimeChannel?.unsubscribe();
     _realtimeChannel = _supabase.channel('public:cycle_sync:$userId');
 
-    // 1. Listen for Training Cycles (HIT_cycles)
+    // 1. Listen for Training Cycles (hit_cycles)
     _realtimeChannel!.onPostgresChanges(
       event: PostgresChangeEvent.all,
       schema: 'public',
-      table: 'HIT_cycles',
+      table: 'hit_cycles',
       callback: (payload) async {
         debugPrint("Realtime Training Cycle Update: ${payload.eventType}");
         
@@ -105,11 +105,11 @@ class CycleProvider with ChangeNotifier {
       },
     );
 
-    // 1b. Listen for Workouts (HIT_workouts)
+    // 1b. Listen for Workouts (hit_workouts)
     _realtimeChannel!.onPostgresChanges(
       event: PostgresChangeEvent.all,
       schema: 'public',
-      table: 'HIT_workouts',
+      table: 'hit_workouts',
       callback: (payload) async {
         debugPrint("Realtime Workout Update: ${payload.eventType}");
         final String? recordUserId = payload.newRecord['user_id'] ?? payload.oldRecord['user_id'];
@@ -129,11 +129,11 @@ class CycleProvider with ChangeNotifier {
       },
     );
 
-    // 1c. Listen for Exercises (HIT_exercises)
+    // 1c. Listen for Exercises (hit_exercises)
     _realtimeChannel!.onPostgresChanges(
       event: PostgresChangeEvent.all,
       schema: 'public',
-      table: 'HIT_exercises',
+      table: 'hit_exercises',
       callback: (payload) async {
         debugPrint("Realtime Exercise Update: ${payload.eventType}");
         final String? recordUserId = payload.newRecord['user_id'] ?? payload.oldRecord['user_id'];
@@ -193,11 +193,11 @@ class CycleProvider with ChangeNotifier {
       },
     );
 
-    // 3. Listen for Cycle Settings (HIT_settings)
+    // 3. Listen for Cycle Settings (hit_settings)
     _realtimeChannel!.onPostgresChanges(
       event: PostgresChangeEvent.all,
       schema: 'public',
-      table: 'HIT_settings',
+      table: 'hit_settings',
       callback: (payload) async {
         debugPrint("Realtime Cycle Settings Update: ${payload.eventType}");
         
@@ -233,9 +233,9 @@ class CycleProvider with ChangeNotifier {
       final id = del['id'] as String;
       final table = del['table_name'] as String;
       try {
-        if (table == 'HIT_cycles') await _cloudRepo.deleteCycle(id);
-        if (table == 'HIT_workouts') await _cloudRepo.deleteWorkout(id);
-        if (table == 'HIT_exercises') await _cloudRepo.deleteExercise(id);
+        if (table == 'hit_cycles') await _cloudRepo.deleteCycle(id);
+        if (table == 'hit_workouts') await _cloudRepo.deleteWorkout(id);
+        if (table == 'hit_exercises') await _cloudRepo.deleteExercise(id);
         if (table == 'exercise_logs') await _cloudRepo.deleteLog(id);
         await _localRepo!.removeFromDeletionQueue(id);
       } catch (_) {}
@@ -654,7 +654,7 @@ class CycleProvider with ChangeNotifier {
         notifyListeners();
         
         await _localRepo!.deleteWorkout(id);
-        await _localRepo!.addToDeletionQueue(id, 'HIT_workouts');
+        await _localRepo!.addToDeletionQueue(id, 'hit_workouts');
         _syncWorkoutDelete(id);
         break;
       }
@@ -688,7 +688,7 @@ class CycleProvider with ChangeNotifier {
           notifyListeners();
           
           await _localRepo!.deleteExercise(id);
-          await _localRepo!.addToDeletionQueue(id, 'HIT_exercises');
+          await _localRepo!.addToDeletionQueue(id, 'hit_exercises');
           _syncExerciseDelete(id);
           found = true;
           break;
@@ -713,7 +713,7 @@ class CycleProvider with ChangeNotifier {
     notifyListeners();
 
     await _localRepo!.deleteCycle(id);
-    await _localRepo!.addToDeletionQueue(id, 'HIT_cycles');
+    await _localRepo!.addToDeletionQueue(id, 'hit_cycles');
     _syncCycleDelete(id);
   }
 

@@ -11,6 +11,7 @@ import 'dart:async';
 import 'package:share_plus/share_plus.dart';
 import 'package:heavy_duty/features/auth/provider/auth_provider.dart';
 import 'package:heavy_duty/core/widgets/elite_snackbar.dart';
+import 'create_cycle_screen.dart';
 import 'model/training_cycle.dart';
 import 'model/workout.dart';
 
@@ -420,126 +421,7 @@ class _WorkoutListScreenState extends State<WorkoutListScreen> {
     );
   }
 
-  void _editWorkoutName(Workout workout) {
-    TextEditingController titleController = TextEditingController(text: workout.name);
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: AppColors.surface,
-        surfaceTintColor: Colors.transparent,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(28.r),
-        ),
-        title: Column(
-          children: [
-            Container(
-              padding: EdgeInsets.all(12.r),
-              decoration: BoxDecoration(
-                color: AppColors.crimson.withOpacity(0.1),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(
-                Icons.edit_rounded,
-                color: AppColors.crimson,
-                size: 28.r,
-              ),
-            ),
-            SizedBox(height: 16.h),
-            Text(
-              "RENAME WORKOUT",
-              style: AppTextStyles.h3.copyWith(
-                fontSize: 16.sp,
-                letterSpacing: 1.2,
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: titleController,
-              autofocus: true,
-              style: AppTextStyles.h3.copyWith(color: AppColors.white, fontSize: 16.sp),
-              textCapitalization: TextCapitalization.characters,
-              textAlign: TextAlign.center,
-              decoration: InputDecoration(
-                hintText: "ENTER NEW TITLE",
-                hintStyle: AppTextStyles.labelSmall.copyWith(
-                  color: AppColors.textSecondary,
-                  fontSize: 12.sp,
-                ),
-                enabledBorder: const UnderlineInputBorder(
-                  borderSide: BorderSide(color: AppColors.crimson, width: 2),
-                ),
-                focusedBorder: const UnderlineInputBorder(
-                  borderSide: BorderSide(color: AppColors.crimson, width: 2),
-                ),
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          Padding(
-            padding: EdgeInsets.fromLTRB(12.w, 0, 12.w, 16.h),
-            child: Row(
-              children: [
-                Expanded(
-                  child: GestureDetector(
-                    onTap: () => Navigator.pop(context),
-                    child: Container(
-                      padding: EdgeInsets.symmetric(vertical: 12.h),
-                      decoration: BoxDecoration(
-                        color: Colors.transparent,
-                        borderRadius: BorderRadius.circular(12.r),
-                        border: Border.all(color: AppColors.white.withOpacity(0.1)),
-                      ),
-                      alignment: Alignment.center,
-                      child: Text(
-                        "CANCEL",
-                        style: AppTextStyles.labelSmall.copyWith(
-                          color: AppColors.textSecondary,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-                SizedBox(width: 12.w),
-                Expanded(
-                  child: GestureDetector(
-                    onTap: () async {
-                      if (titleController.text.isNotEmpty) {
-                        await context.read<CycleProvider>().updateWorkoutName(workout.id, titleController.text);
-                        if (mounted) Navigator.pop(context);
-                      }
-                    },
-                    child: Container(
-                      padding: EdgeInsets.symmetric(vertical: 12.h),
-                      decoration: BoxDecoration(
-                        color: AppColors.crimson.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(12.r),
-                        border: Border.all(color: AppColors.crimson.withOpacity(0.5)),
-                      ),
-                      alignment: Alignment.center,
-                      child: Text(
-                        "SAVE",
-                        style: AppTextStyles.labelSmall.copyWith(
-                          color: AppColors.crimson,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -741,7 +623,11 @@ class _WorkoutListScreenState extends State<WorkoutListScreen> {
   }
 
   Widget _buildShareAction(CycleProvider provider) {
-    final bool isDefault = provider.isUnmodifiedDefault(widget.cycleId);
+    bool isDefault = false;
+    try {
+      final cycle = provider.cycles.firstWhere((c) => c.id == widget.cycleId);
+      isDefault = cycle.isDefault;
+    } catch (_) {}
 
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 8.h),
@@ -968,6 +854,7 @@ class _WorkoutListScreenState extends State<WorkoutListScreen> {
               color: AppColors.textSecondary,
               size: 22.r,
             ),
+            tooltip: "Rename Cycle",
           ),
           IconButton(
             onPressed: _showInstructions,
@@ -976,6 +863,7 @@ class _WorkoutListScreenState extends State<WorkoutListScreen> {
               color: AppColors.textSecondary,
               size: 24.r,
             ),
+            tooltip: "Instructions",
           ),
         ],
       ),
@@ -1269,8 +1157,11 @@ class _WorkoutListScreenState extends State<WorkoutListScreen> {
               ),
               GestureDetector(
                 onTap: () => setState(() {
-                  if (isExpanded) _expandedWorkoutIds.remove(workout.id);
-                  else _expandedWorkoutIds.add(workout.id);
+                  if (isExpanded) {
+                    _expandedWorkoutIds.remove(workout.id);
+                  } else {
+                    _expandedWorkoutIds.add(workout.id);
+                  }
                 }),
                 child: Container(
                   width: double.infinity,

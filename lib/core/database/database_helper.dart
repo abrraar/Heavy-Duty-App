@@ -32,9 +32,9 @@ class DatabaseHelper {
   }
 
   Future _createDB(Database db, int version) async {
-    // 1. Supplement Library Table (SS_supplements)
+    // 1. Supplement Library Table (ss_supplements)
     await db.execute('''
-      CREATE TABLE SS_supplements (
+      CREATE TABLE ss_supplements (
         id TEXT PRIMARY KEY,
         name TEXT NOT NULL,
         description TEXT,
@@ -58,13 +58,14 @@ class DatabaseHelper {
         pinned_use_servings_restock INTEGER DEFAULT 1,
         reminders_json TEXT,
         ingredients_json TEXT,
-        is_synced INTEGER DEFAULT 1
+        is_synced INTEGER DEFAULT 1,
+        created_at TEXT DEFAULT CURRENT_TIMESTAMP
       )
     ''');
 
-    // 2. Stacks Table (SS_stack)
+    // 2. Stacks Table (ss_stack)
     await db.execute('''
-      CREATE TABLE SS_stack (
+      CREATE TABLE ss_stack (
         id TEXT PRIMARY KEY,
         name TEXT NOT NULL,
         is_pinned INTEGER DEFAULT 0,
@@ -76,13 +77,14 @@ class DatabaseHelper {
         pinned_use_servings_json TEXT,
         pinned_amounts_json TEXT,
         supplement_ids_json TEXT, 
-        is_synced INTEGER DEFAULT 1
+        is_synced INTEGER DEFAULT 1,
+        created_at TEXT DEFAULT CURRENT_TIMESTAMP
       )
     ''');
 
-    // 3. History Table (SS_records)
+    // 3. History Table (ss_records)
     await db.execute('''
-      CREATE TABLE SS_records (
+      CREATE TABLE ss_records (
         id TEXT PRIMARY KEY,
         supplement_id TEXT NOT NULL,
         supplement_name TEXT NOT NULL,
@@ -91,7 +93,8 @@ class DatabaseHelper {
         weight_adjustment REAL NOT NULL,
         timestamp TEXT NOT NULL,
         source_id TEXT,
-        is_synced INTEGER DEFAULT 0
+        is_synced INTEGER DEFAULT 0,
+        created_at TEXT DEFAULT CURRENT_TIMESTAMP
       )
     ''');
 
@@ -102,7 +105,8 @@ class DatabaseHelper {
         amount_ml INTEGER NOT NULL,
         amount_oz REAL NOT NULL,
         timestamp TEXT NOT NULL,
-        is_synced INTEGER DEFAULT 1
+        is_synced INTEGER DEFAULT 1,
+        created_at TEXT DEFAULT CURRENT_TIMESTAMP
       )
     ''');
 
@@ -117,7 +121,8 @@ class DatabaseHelper {
         reminders_enabled INTEGER DEFAULT 1,
         is_pinned_to_home INTEGER DEFAULT 1,
         reminders_json TEXT,
-        is_synced INTEGER DEFAULT 1
+        is_synced INTEGER DEFAULT 1,
+        created_at TEXT DEFAULT CURRENT_TIMESTAMP
       )
     ''');
 
@@ -130,7 +135,8 @@ class DatabaseHelper {
         quality INTEGER NOT NULL,
         type TEXT NOT NULL,
         note TEXT,
-        is_synced INTEGER DEFAULT 1
+        is_synced INTEGER DEFAULT 1,
+        created_at TEXT DEFAULT CURRENT_TIMESTAMP
       )
     ''');
 
@@ -146,7 +152,8 @@ class DatabaseHelper {
         wake_up_hour INTEGER DEFAULT 6,
         wake_up_minute INTEGER DEFAULT 45,
         wake_up_audio_path TEXT,
-        is_synced INTEGER DEFAULT 1
+        is_synced INTEGER DEFAULT 1,
+        created_at TEXT DEFAULT CURRENT_TIMESTAMP
       )
     ''');
 
@@ -164,7 +171,8 @@ class DatabaseHelper {
         added_supplements_json TEXT,
         added_stacks_json TEXT,
         servings REAL DEFAULT 1.0,
-        is_synced INTEGER DEFAULT 1
+        is_synced INTEGER DEFAULT 1,
+        created_at TEXT DEFAULT CURRENT_TIMESTAMP
       )
     ''');
 
@@ -178,7 +186,8 @@ class DatabaseHelper {
         fat_percent INTEGER DEFAULT 20,
         track_macros INTEGER DEFAULT 1,
         show_remaining INTEGER DEFAULT 1,
-        is_synced INTEGER DEFAULT 1
+        is_synced INTEGER DEFAULT 1,
+        created_at TEXT DEFAULT CURRENT_TIMESTAMP
       )
     ''');
 
@@ -200,45 +209,49 @@ class DatabaseHelper {
         servings REAL DEFAULT 1.0,
         multiply_supps INTEGER DEFAULT 1,
         shared_by TEXT,
-        is_synced INTEGER DEFAULT 1
+        is_synced INTEGER DEFAULT 1,
+        created_at TEXT DEFAULT CURRENT_TIMESTAMP
       )
     ''');
 
     // 11. Body Composition Tables
     await db.execute('''
-      CREATE TABLE BodyComp_weight_logs (
+      CREATE TABLE body_comp_weight_logs (
         id TEXT PRIMARY KEY,
         value_kg REAL NOT NULL,
         value_lbs REAL NOT NULL,
         timestamp TEXT NOT NULL,
         unit TEXT DEFAULT 'kg',
-        is_synced INTEGER DEFAULT 1
+        is_synced INTEGER DEFAULT 1,
+        created_at TEXT DEFAULT CURRENT_TIMESTAMP
       )
     ''');
     await db.execute('''
-      CREATE TABLE BodyComp_fats_logs (
+      CREATE TABLE body_comp_fats_logs (
         id TEXT PRIMARY KEY,
         value_kg REAL NOT NULL,
         value_lbs REAL NOT NULL,
         timestamp TEXT NOT NULL,
         unit TEXT DEFAULT 'percentage',
-        is_synced INTEGER DEFAULT 1
+        is_synced INTEGER DEFAULT 1,
+        created_at TEXT DEFAULT CURRENT_TIMESTAMP
       )
     ''');
     await db.execute('''
-      CREATE TABLE BodyComp_muscle_logs (
+      CREATE TABLE body_comp_muscle_logs (
         id TEXT PRIMARY KEY,
         value_kg REAL NOT NULL,
         value_lbs REAL NOT NULL,
         timestamp TEXT NOT NULL,
         unit TEXT DEFAULT 'kg',
-        is_synced INTEGER DEFAULT 1
+        is_synced INTEGER DEFAULT 1,
+        created_at TEXT DEFAULT CURRENT_TIMESTAMP
       )
     ''');
 
-    // 12. Training Cycles Table (HIT_cycles)
+    // 12. Training Cycles Table (hit_cycles)
     await db.execute('''
-      CREATE TABLE HIT_cycles (
+      CREATE TABLE hit_cycles (
         id TEXT PRIMARY KEY,
         name TEXT NOT NULL,
         description TEXT,
@@ -248,13 +261,14 @@ class DatabaseHelper {
         completed_at TEXT,
         note TEXT,
         shared_by TEXT,
-        is_synced INTEGER DEFAULT 1
+        is_synced INTEGER DEFAULT 1,
+        created_at TEXT DEFAULT CURRENT_TIMESTAMP
       )
     ''');
 
-    // 13. Workouts Table (HIT_workouts)
+    // 13. Workouts Table (hit_workouts)
     await db.execute('''
-      CREATE TABLE HIT_workouts (
+      CREATE TABLE hit_workouts (
         id TEXT PRIMARY KEY,
         cycle_id TEXT NOT NULL,
         name TEXT NOT NULL,
@@ -263,20 +277,22 @@ class DatabaseHelper {
         completed_at TEXT,
         note TEXT,
         is_synced INTEGER DEFAULT 1,
-        FOREIGN KEY (cycle_id) REFERENCES HIT_cycles (id) ON DELETE CASCADE
+        created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (cycle_id) REFERENCES hit_cycles (id) ON DELETE CASCADE
       )
     ''');
 
-    // 14. Exercises Table (HIT_exercises)
+    // 14. Exercises Table (hit_exercises)
     await db.execute('''
-      CREATE TABLE HIT_exercises (
+      CREATE TABLE hit_exercises (
         id TEXT PRIMARY KEY,
         workout_id TEXT NOT NULL,
         name TEXT NOT NULL,
         exercise_order INTEGER NOT NULL,
         target_muscles TEXT,
         is_synced INTEGER DEFAULT 1,
-        FOREIGN KEY (workout_id) REFERENCES HIT_workouts (id) ON DELETE CASCADE
+        created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (workout_id) REFERENCES hit_workouts (id) ON DELETE CASCADE
       )
     ''');
 
@@ -293,7 +309,8 @@ class DatabaseHelper {
         forced_reps INTEGER DEFAULT 0,
         comment TEXT,
         timestamp TEXT NOT NULL,
-        is_synced INTEGER DEFAULT 1
+        is_synced INTEGER DEFAULT 1,
+        created_at TEXT DEFAULT CURRENT_TIMESTAMP
       )
     ''');
 
@@ -309,19 +326,21 @@ class DatabaseHelper {
         about_the_movement TEXT,
         image_url TEXT,
         shared_by TEXT,
-        is_synced INTEGER DEFAULT 1
+        is_synced INTEGER DEFAULT 1,
+        created_at TEXT DEFAULT CURRENT_TIMESTAMP
       )
     ''');
 
-    // 17. Cycle Settings Table (HIT_settings)
+    // 17. Cycle Settings Table (hit_settings)
     await db.execute('''
-      CREATE TABLE HIT_settings (
+      CREATE TABLE hit_settings (
         id INTEGER PRIMARY KEY CHECK (id = 1),
         weight_unit TEXT DEFAULT 'lbs',
         visible_metrics_json TEXT,
         workout_reminders_enabled INTEGER DEFAULT 1,
         workout_reminder_interval INTEGER DEFAULT 2,
-        is_synced INTEGER DEFAULT 1
+        is_synced INTEGER DEFAULT 1,
+        created_at TEXT DEFAULT CURRENT_TIMESTAMP
       )
     ''');
 
@@ -329,7 +348,8 @@ class DatabaseHelper {
     await db.execute('''
       CREATE TABLE pending_deletions (
         id TEXT PRIMARY KEY,
-        table_name TEXT NOT NULL
+        table_name TEXT NOT NULL,
+        created_at TEXT DEFAULT CURRENT_TIMESTAMP
       )
     ''');
 
@@ -338,7 +358,8 @@ class DatabaseHelper {
       CREATE TABLE home_widget_settings (
         id INTEGER PRIMARY KEY CHECK (id = 1),
         home_layout_json TEXT,
-        is_synced INTEGER DEFAULT 1
+        is_synced INTEGER DEFAULT 1,
+        created_at TEXT DEFAULT CURRENT_TIMESTAMP
       )
     ''');
 
@@ -364,7 +385,8 @@ class DatabaseHelper {
         show_custom INTEGER DEFAULT 1,
         order_direction TEXT DEFAULT 'asc',
         custom_order_json TEXT,
-        is_synced INTEGER DEFAULT 1
+        is_synced INTEGER DEFAULT 1,
+        created_at TEXT DEFAULT CURRENT_TIMESTAMP
       )
     ''');
 
@@ -374,7 +396,8 @@ class DatabaseHelper {
         id TEXT PRIMARY KEY,
         email TEXT NOT NULL,
         is_verified INTEGER DEFAULT 0,
-        is_synced INTEGER DEFAULT 1
+        is_synced INTEGER DEFAULT 1,
+        created_at TEXT DEFAULT CURRENT_TIMESTAMP
       )
     ''');
 
@@ -383,23 +406,40 @@ class DatabaseHelper {
       CREATE TABLE profiles (
         id TEXT PRIMARY KEY,
         full_name TEXT,
-        username TEXT,
+        username TEXT UNIQUE,
         birthday TEXT,
         gender TEXT,
         height REAL,
         weight REAL,
-        email TEXT,
-        is_synced INTEGER DEFAULT 1
+        is_synced INTEGER DEFAULT 1,
+        created_at TEXT DEFAULT CURRENT_TIMESTAMP
       )
     ''');
 
     // 24. Body Composition Settings Table
     await db.execute('''
-      CREATE TABLE BodyComp_settings (
+      CREATE TABLE body_comp_settings (
         id INTEGER PRIMARY KEY CHECK (id = 1),
         weight_unit TEXT DEFAULT 'kgs',
         height_unit TEXT DEFAULT 'cm',
-        is_synced INTEGER DEFAULT 1
+        weight_reminders_enabled INTEGER DEFAULT 0,
+        weight_reminders_json TEXT,
+        fat_reminders_enabled INTEGER DEFAULT 0,
+        fat_reminders_json TEXT,
+        muscle_reminders_enabled INTEGER DEFAULT 0,
+        muscle_reminders_json TEXT,
+        is_synced INTEGER DEFAULT 1,
+        created_at TEXT DEFAULT CURRENT_TIMESTAMP
+      )
+    ''');
+
+    // 25. Sleep Settings Table
+    await db.execute('''
+      CREATE TABLE sleep_settings (
+        user_id TEXT PRIMARY KEY,
+        use_24h_clock INTEGER DEFAULT 0,
+        is_synced INTEGER DEFAULT 1,
+        created_at TEXT DEFAULT CURRENT_TIMESTAMP
       )
     ''');
   }

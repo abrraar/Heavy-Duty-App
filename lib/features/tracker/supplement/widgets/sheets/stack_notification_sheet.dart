@@ -101,7 +101,7 @@ class _StackNotificationSheetState extends State<StackNotificationSheet> {
   void _performFinalCleanupAndSave() {
     List<SupplementReminder> updatedIntake = [];
     
-    // Always process current intake UI state into a list, regardless of recordEnabled toggle
+    // Process intake UI state
     for (int i = 0; i < intakeReminders.length; i++) {
       var r = intakeReminders[i].copyWith(reminderMode: _selectedMode);
       final Map<String, double> itemValues = {};
@@ -132,8 +132,8 @@ class _StackNotificationSheetState extends State<StackNotificationSheet> {
       masterEnabled: masterActive,
       recordEnabled: recordEnabled, 
       restockEnabled: restockEnabled,
-      intakeReminders: updatedIntake, // Data is preserved in JSON
-      lowStockThresholds: thresholds,
+      intakeReminders: recordEnabled ? updatedIntake : [], 
+      lowStockThresholds: restockEnabled ? thresholds : {},
     );
   }
 

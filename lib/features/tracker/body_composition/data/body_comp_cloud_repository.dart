@@ -10,9 +10,9 @@ class BodyCompCloudRepository {
 
   String _getTableName(BodyMetricType type) {
     switch (type) {
-      case BodyMetricType.weight: return 'BodyComp_weight_logs';
-      case BodyMetricType.fat: return 'BodyComp_fats_logs';
-      case BodyMetricType.muscle: return 'BodyComp_muscle_logs';
+      case BodyMetricType.weight: return 'body_comp_weight_logs';
+      case BodyMetricType.fat: return 'body_comp_fats_logs';
+      case BodyMetricType.muscle: return 'body_comp_muscle_logs';
     }
   }
 
@@ -24,7 +24,7 @@ class BodyCompCloudRepository {
 
     try {
       final response = await _supabase
-          .from('BodyComp_settings')
+          .from('body_comp_settings')
           .select()
           .eq('user_id', uid)
           .maybeSingle();
@@ -47,7 +47,7 @@ class BodyCompCloudRepository {
       data['user_id'] = uid;
       data.remove('id'); 
       data.remove('is_synced');
-      await _supabase.from('BodyComp_settings').upsert(data, onConflict: 'user_id');
+      await _supabase.from('body_comp_settings').upsert(data, onConflict: 'user_id');
     } catch (e) {
       debugPrint("Cloud Body Comp Error (saveSettings): $e");
     }

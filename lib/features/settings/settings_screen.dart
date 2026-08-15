@@ -8,6 +8,7 @@ import 'package:heavy_duty/core/widgets/elite_unit_toggle_card.dart';
 import 'package:heavy_duty/core/navigation/app_routes.dart';
 import 'package:heavy_duty/core/widgets/elite_settings_app_bar.dart';
 import 'package:heavy_duty/features/auth/provider/auth_provider.dart';
+import 'package:heavy_duty/features/settings/body_comp_settings_screen.dart';
 import 'package:heavy_duty/features/tracker/cycle_tracker/provider/cycle_provider.dart';
 import 'package:heavy_duty/features/tracker/hydration/provider/hydration_provider.dart';
 import 'package:heavy_duty/features/tracker/body_composition/provider/body_comp_provider.dart';

@@ -172,7 +172,7 @@ class _BodyCompositionScreenState extends State<BodyCompositionScreen> with Sing
                   dividerColor: Colors.transparent,
                   tabs: const [
                     Tab(text: "TRACKER"),
-                    Tab(text: "RECORDS"),
+                    Tab(text: "LOGS"),
                   ],
                 ),
               ],
@@ -262,7 +262,7 @@ class _BodyCompositionScreenState extends State<BodyCompositionScreen> with Sing
                     width: double.infinity,
                     child: Center(
                       child: Text(
-                        "RECORD DATA TO SEE TRENDS",
+                        "LOG DATA TO SEE TRENDS",
                         style: AppTextStyles.labelSmall.copyWith(
                           color: AppColors.textSecondary.withValues(alpha: 0.3),
                           letterSpacing: 1.5,
@@ -775,7 +775,7 @@ class _BodyCompositionScreenState extends State<BodyCompositionScreen> with Sing
                           constraints: BoxConstraints(minHeight: constraints.maxHeight),
                           child: Center(
                             child: Text(
-                              "No records for this date.",
+                              "No logs for this date.",
                               style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary),
                             ),
                           ),
@@ -820,8 +820,8 @@ class _BodyCompositionScreenState extends State<BodyCompositionScreen> with Sing
       confirmDismiss: (direction) async {
         return await EliteConfirmDialog.show(
           context,
-          title: "DELETE RECORD",
-          message: "ARE YOU SURE YOU WANT TO PERMANENTLY REMOVE THIS $label ENTRY FROM YOUR RECORDS?",
+          title: "DELETE LOG",
+          message: "ARE YOU SURE YOU WANT TO PERMANENTLY REMOVE THIS $label ENTRY FROM YOUR LOGS?",
         );
       },
       background: Container(

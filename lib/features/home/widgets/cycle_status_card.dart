@@ -24,8 +24,6 @@ class CycleStatusCard extends StatelessWidget {
 
     return Container(
       width: double.infinity,
-      // Increased height slightly to accommodate the progress bar while maintaining even spacing
-      height: 145.h,
       padding: EdgeInsets.all(20.r),
       decoration: BoxDecoration(
         color: AppColors.surfaceLight.withOpacity(0.6),
@@ -37,7 +35,7 @@ class CycleStatusCard extends StatelessWidget {
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        mainAxisSize: MainAxisSize.min,
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -75,17 +73,17 @@ class CycleStatusCard extends StatelessWidget {
             ],
           ),
           
+          SizedBox(height: 16.h),
+          
           // Data Rows
-          Column(
-            children: [
-              _buildStatusRow('Active Routine', activeCycle.toUpperCase()),
-              SizedBox(height: 8.h),
-              _buildStatusRow(
-                'Overall Progress',
-                '$completedWorkouts OF $totalWorkouts COMPLETED',
-              ),
-            ],
+          _buildStatusRow('Active Routine', activeCycle.toUpperCase()),
+          SizedBox(height: 10.h),
+          _buildStatusRow(
+            'Overall Progress',
+            '$completedWorkouts OF $totalWorkouts COMPLETED',
           ),
+
+          SizedBox(height: 16.h),
 
           // Progress Bar: Showing how far the user has progressed in the cycle
           ClipRRect(

@@ -13,6 +13,7 @@ import '../../features/tracker/supplement/model/supplement_stack.dart';
 import '../../features/tracker/hydration/model/hydration_settings.dart';
 import '../../features/tracker/hydration/model/hydration_reminder.dart';
 import '../utils/id_utils.dart';
+import '../../features/tracker/body_composition/model/body_comp_settings.dart';
 
 class NotificationService {
   static final NotificationService _instance = NotificationService._internal();
@@ -747,6 +748,66 @@ class NotificationService {
     await _notificationsPlugin.cancel(baseId + 3000);
     for (int m = 0; m <= 1440; m++) {
       await _notificationsPlugin.cancel(baseId + 4000 + m);
+    }
+  }
+
+  Future<void> scheduleBodyCompReminders(BodyCompSettings settings) async {
+    if (!_isInitialized) await init();
+
+    // Base IDs for each type
+    const String weightBase = "body_comp_weight";
+    const String fatBase = "body_comp_fat";
+    const String muscleBase = "body_comp_muscle";
+
+    await _cancelBodyCompReminders(weightBase);
+    await _cancelBodyCompReminders(fatBase);
+    await _cancelBodyCompReminders(muscleBase);
+
+    if (settings.weightRemindersEnabled) {
+      await _scheduleReminders(weightBase, "Weight", settings.weightReminders);
+    }
+    if (settings.fatRemindersEnabled) {
+      await _scheduleReminders(fatBase, "Body Fat", settings.fatReminders);
+    }
+    if (settings.muscleRemindersEnabled) {
+      await _scheduleReminders(muscleBase, "Muscle Mass", settings.muscleReminders);
+    }
+  }
+
+  Future<void> _cancelBodyCompReminders(String base) async {
+    final int baseId = IdUtils.stringToIntId(base);
+    for (int day = 1; day <= 7; day++) {
+      for (int i = 0; i < 20; i++) {
+        await _notificationsPlugin.cancel(baseId + (day * 100) + i);
+      }
+    }
+  }
+
+  Future<void> _scheduleReminders(String base, String label, List<BodyCompReminder> reminders) async {
+    final int baseId = IdUtils.stringToIntId(base);
+    for (var reminder in reminders) {
+      for (int day in reminder.days) {
+        for (int i = 0; i < reminder.times.length; i++) {
+          final time = reminder.times[i];
+          final int notificationId = baseId + (day * 100) + i;
+          await _notificationsPlugin.zonedSchedule(
+            notificationId,
+            'Time to track your $label',
+            'Stay consistent with your Heavy Duty progress.',
+            _nextInstance(day, time),
+            const NotificationDetails(
+              android: AndroidNotificationDetails(
+                'heavy_duty_channel', 'Body Comp Reminders',
+                importance: Importance.max, priority: Priority.high,
+              ),
+              iOS: DarwinNotificationDetails(),
+            ),
+            androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+            uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
+            matchDateTimeComponents: DateTimeComponents.dayOfWeekAndTime,
+          );
+        }
+      }
     }
   }
 }

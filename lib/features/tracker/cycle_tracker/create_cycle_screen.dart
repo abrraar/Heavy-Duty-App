@@ -13,7 +13,8 @@ import 'model/workout.dart';
 import 'model/exercise.dart';
 
 class CreateCycleScreen extends StatefulWidget {
-  const CreateCycleScreen({super.key});
+  final TrainingCycle? existingCycle;
+  const CreateCycleScreen({super.key, this.existingCycle});
 
   @override
   State<CreateCycleScreen> createState() => _CreateCycleScreenState();
@@ -22,6 +23,21 @@ class CreateCycleScreen extends StatefulWidget {
 class _CreateCycleScreenState extends State<CreateCycleScreen> {
   final TextEditingController _nameController = TextEditingController();
   final List<Map<String, dynamic>> _workouts = [];
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.existingCycle != null) {
+      _nameController.text = widget.existingCycle!.name;
+      for (var w in widget.existingCycle!.workouts) {
+        _workouts.add({
+          "id": w.id,
+          "name": w.name,
+          "exercises": w.exercises.map((e) => e.name).toList(),
+        });
+      }
+    }
+  }
 
   void _addWorkout() {
     TextEditingController titleController = TextEditingController();
@@ -215,7 +231,7 @@ class _CreateCycleScreenState extends State<CreateCycleScreen> {
                   SizedBox(height: 32.h),
                   _buildSectionHeader("WORKOUT ARCHITECTURE"),
                   SizedBox(height: 16.h),
-                  ..._workouts.map((w) => _buildWorkoutFormCard(w)).toList(),
+                  ..._workouts.map((w) => _buildWorkoutFormCard(w)),
                   _buildAddWorkoutButton(),
                   SizedBox(height: 40.h),
                   _buildSaveButton(),
@@ -390,7 +406,10 @@ class _CreateCycleScreenState extends State<CreateCycleScreen> {
 
     // If initializing, check if we need to replace an existing cycle
     if (shouldInitialize && active != null) {
-      if (!active.isReadyToFinish) {
+      if (widget.existingCycle != null && active.id == widget.existingCycle!.id) {
+        // We are editing the active cycle and want to re-initialize? 
+        // Actually, normally editing a template shouldn't affect the active cycle unless explicitly activated.
+      } else if (!active.isReadyToFinish) {
         // Warning for incomplete cycle
         final confirm = await EliteConfirmDialog.show(
           context,
@@ -399,8 +418,7 @@ class _CreateCycleScreenState extends State<CreateCycleScreen> {
           confirmText: "PROCEED",
         );
         if (confirm != true) return;
-      }
-else {
+      } else {
         // Confirmation for finished cycle
         final confirm = await showDialog<bool>(
           context: context,
@@ -478,16 +496,15 @@ else {
       if (confirm != true) return;
     }
 
-    // Always create a template first so it's saved in the library for future use
-    final String templateId = const Uuid().v4();
+    final String templateId = widget.existingCycle?.id ?? const Uuid().v4();
     final template = TrainingCycle(
       id: templateId,
       name: _nameController.text.trim(),
-      status: CycleStatus.template,
-      isDefault: false,
+      status: widget.existingCycle?.status ?? CycleStatus.template,
+      isDefault: widget.existingCycle?.isDefault ?? false,
       workouts: List.generate(_workouts.length, (i) {
         final wData = _workouts[i];
-        final workoutId = const Uuid().v4();
+        final workoutId = wData['id'] ?? const Uuid().v4();
         return Workout(
           id: workoutId,
           cycleId: templateId,
@@ -505,6 +522,16 @@ else {
       }),
     );
 
+    if (widget.existingCycle != null) {
+      // Delete old cycle first or use an update method if available
+      // addCycle actually uses insertCycle with replace if we have it
+      // Actually addCycle in provider just does list.add and localRepo.insertCycle
+      // I should probably delete the old one or make sure addCycle handles updates correctly.
+      // In CycleProvider, addCycle adds to the list: _cycles.add(localCycle);
+      // If we are editing, we should replace it.
+      await provider.deleteCycle(widget.existingCycle!.id);
+    }
+    
     await provider.addCycle(template);
 
     if (shouldInitialize) {
@@ -513,11 +540,11 @@ else {
     }
 
     if (mounted) {
-      Navigator.pop(context, shouldInitialize);
+      Navigator.pop(context, true);
       EliteSnackbar.show(
         context, 
         shouldInitialize
-            ? "Cycle '${template.name}' Initialized & Saved to Library!"
+            ? "Cycle '${template.name}' Initialized & Saved!"
             : "Cycle '${template.name}' saved to Library"
       );
     }

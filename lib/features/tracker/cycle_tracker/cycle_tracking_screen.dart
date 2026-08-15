@@ -296,7 +296,7 @@ class _CycleTrackingScreenState extends State<CycleTrackingScreen>
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
-              "YOUR CURRENT CYCLE '${currentName.toUpperCase()}' IS NOT YET COMPLETE. ACTIVATING '${newName.toUpperCase()}' WILL MOVE THE INCOMPLETE PROTOCOL TO YOUR HISTORY. PROCEED?",
+              "YOUR CURRENT CYCLE '${currentName.toUpperCase()}' IS NOT YET COMPLETE. ACTIVATING '${newName.toUpperCase()}' WILL MOVE THE INCOMPLETE PROTOCOL TO YOUR LOGS. PROCEED?",
               textAlign: TextAlign.center,
               style: AppTextStyles.labelMedium.copyWith(
                 color: AppColors.textSecondary,
@@ -365,7 +365,7 @@ class _CycleTrackingScreenState extends State<CycleTrackingScreen>
     return EliteConfirmDialog.show(
       context,
       title: "DELETE CYCLE",
-      message: "ARE YOU SURE YOU WANT TO PERMANENTLY REMOVE THE '$cycleName' PROTOCOL FROM YOUR RECORDS?",
+      message: "ARE YOU SURE YOU WANT TO PERMANENTLY REMOVE THE '$cycleName' PROTOCOL FROM YOUR LOGS?",
     );
   }
 
@@ -433,7 +433,7 @@ class _CycleTrackingScreenState extends State<CycleTrackingScreen>
                   labelColor: AppColors.crimson,
                   dividerColor: Colors.transparent,
                   tabs: const [
-                    Tab(text: "RECORDS"),
+                    Tab(text: "LOGS"),
                     Tab(text: "TRENDS"),
                     Tab(text: "LIBRARY"),
                   ],
@@ -496,7 +496,7 @@ class _CycleTrackingScreenState extends State<CycleTrackingScreen>
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  _buildSectionHeader("CYCLE HISTORY"),
+                  _buildSectionHeader("CYCLE LOGS"),
                   IconButton(
                     onPressed: _openFilterSheet,
                     icon: Icon(
@@ -508,7 +508,7 @@ class _CycleTrackingScreenState extends State<CycleTrackingScreen>
                     ),
                     padding: EdgeInsets.zero,
                     constraints: const BoxConstraints(),
-                    tooltip: "Filter History",
+                    tooltip: "Filter Logs",
                   ),
                 ],
               ),
@@ -1215,7 +1215,7 @@ class _CycleTrackingScreenState extends State<CycleTrackingScreen>
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text("SELECT RECORDING TIME", style: AppTextStyles.labelMedium.copyWith(color: AppColors.crimson, letterSpacing: 1.2)),
+              Text("SELECT LOG TIME", style: AppTextStyles.labelMedium.copyWith(color: AppColors.crimson, letterSpacing: 1.2)),
               SizedBox(height: 20.h),
               ConstrainedBox(
                 constraints: BoxConstraints(maxHeight: 300.h),
@@ -1357,7 +1357,7 @@ class _CycleFilterSheetState extends State<_CycleFilterSheet> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _buildHandle(),
-          Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Text("HISTORY FILTERS", style: AppTextStyles.h3.copyWith(color: AppColors.white)), TextButton(onPressed: () { setState(() { _currentFilter = CycleFilter(); _dateFilterType = _DateFilterType.all; _minStrengthController.clear(); _maxStrengthController.clear(); _minVolumeController.clear(); _maxVolumeController.clear(); }); }, child: Text("RESET", style: AppTextStyles.labelSmall.copyWith(color: AppColors.crimson, fontWeight: FontWeight.bold)))]),
+          Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Text("LOG FILTERS", style: AppTextStyles.h3.copyWith(color: AppColors.white)), TextButton(onPressed: () { setState(() { _currentFilter = CycleFilter(); _dateFilterType = _DateFilterType.all; _minStrengthController.clear(); _maxStrengthController.clear(); _minVolumeController.clear(); _maxVolumeController.clear(); }); }, child: Text("RESET", style: AppTextStyles.labelSmall.copyWith(color: AppColors.crimson, fontWeight: FontWeight.bold)))]),
           SizedBox(height: 24.h),
           Flexible(
             child: SingleChildScrollView(

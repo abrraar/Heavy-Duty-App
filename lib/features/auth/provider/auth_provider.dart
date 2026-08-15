@@ -344,7 +344,7 @@ class AuthProvider with ChangeNotifier {
         weight: extraMetadata?['weight'] ?? currentLocal?.weight,
         gender: extraMetadata?['gender'] ?? currentLocal?.gender,
         birthday: extraMetadata?['birthday'] != null ? DateTime.tryParse(extraMetadata!['birthday']) : currentLocal?.birthday,
-        email: _currentUser?.email,
+        isSynced: 0,
       );
       await _profileRepo?.saveProfile(updatedLocal);
       _userProfile = updatedLocal;

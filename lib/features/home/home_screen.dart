@@ -71,14 +71,15 @@ class _HomeScreenState extends State<HomeScreen> {
                 slivers: [
                   // ── HEADER ──
                   SliverPadding(
-                    padding: EdgeInsets.fromLTRB(hPad, 10.h, hPad, 16.r),
+                    padding: EdgeInsets.fromLTRB(hPad, 10.h, hPad, 0),
                     sliver: SliverToBoxAdapter(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           const WelcomeHeader(),
-                          SizedBox(height: 12.r),
+                          SizedBox(height: 8.h),
                           const AffirmationCard(),
+                          SizedBox(height: 12.h), // Consistent spacing before list
                         ],
                       ),
                     ),
@@ -94,10 +95,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         return ReorderableDelayedDragStartListener(
                           key: ValueKey(section),
                           index: index,
-                          child: Padding(
-                            padding: EdgeInsets.only(bottom: 16.r),
-                            child: _HomeSectionBuilder(section: section),
-                          ),
+                          child: _HomeSectionBuilder(section: section),
                         );
                       },
                       onReorder: (oldIndex, newIndex) {
@@ -111,7 +109,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                   
                   // Reduced bottom padding to only what's necessary
-                  SliverToBoxAdapter(child: SizedBox(height: 16.r)),
+                  SliverToBoxAdapter(child: SizedBox(height: 12.h)),
                 ],
               ),
             );
@@ -138,6 +136,19 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
+class _HomeSectionWrapper extends StatelessWidget {
+  final Widget child;
+  const _HomeSectionWrapper({required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.only(bottom: 12.h),
+      child: child,
+    );
+  }
+}
+
 class _HomeSectionBuilder extends StatelessWidget {
   final String section;
   const _HomeSectionBuilder({required this.section});
@@ -157,22 +168,26 @@ class _HomeSectionBuilder extends StatelessWidget {
             return Consumer<HydrationProvider>(
               builder: (context, provider, _) {
                 if (!provider.settings.isPinnedToHome) return const SizedBox.shrink();
-                return WaterTrackerCard(
-                  currentMl: provider.todayIntake,
-                  targetMl: provider.settings.dailyGoal,
-                  addValueMl: provider.settings.addValue,
-                  minusValueMl: provider.settings.minusValue,
-                  useMetric: provider.settings.useMetric,
-                  onAdjust: (amt) => provider.addWater(amt),
+                return _HomeSectionWrapper(
+                  child: WaterTrackerCard(
+                    currentMl: provider.todayIntake,
+                    targetMl: provider.settings.dailyGoal,
+                    addValueMl: provider.settings.addValue,
+                    minusValueMl: provider.settings.minusValue,
+                    useMetric: provider.settings.useMetric,
+                    onAdjust: (amt) => provider.addWater(amt),
+                  ),
                 );
               },
             );
           case 'cycle_status':
-            return CycleStatusCard(
-              activeCycle: activeCycle?.name ?? 'NO ACTIVE CYCLE',
-              completedWorkouts: workouts.where((w) => w.status == WorkoutStatus.completed).length,
-              totalWorkouts: workouts.length,
-              workOutputGrowth: activeCycle != null ? cycleProvider.calculateCyclePerformance(activeCycle.id) : 0.0,
+            return _HomeSectionWrapper(
+              child: CycleStatusCard(
+                activeCycle: activeCycle?.name ?? 'NO ACTIVE CYCLE',
+                completedWorkouts: workouts.where((w) => w.status == WorkoutStatus.completed).length,
+                totalWorkouts: workouts.length,
+                workOutputGrowth: activeCycle != null ? cycleProvider.calculateCyclePerformance(activeCycle.id) : 0.0,
+              ),
             );
           case 'metrics':
             return const _WorkoutMetricsPair();
@@ -199,14 +214,16 @@ class _WorkoutMetricsPair extends StatelessWidget {
         final pending = workouts.where((w) => w.status == WorkoutStatus.pending).toList();
         if (pending.isNotEmpty) pending.sort((a, b) => a.order.compareTo(b.order));
 
-        return IntrinsicHeight(
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Expanded(child: _WorkoutMetricTile(workout: completed.firstOrNull, activeCycle: activeCycle, isHistory: true)),
-              SizedBox(width: 12.r),
-              Expanded(child: _WorkoutMetricTile(workout: pending.firstOrNull, activeCycle: activeCycle, isHistory: false)),
-            ],
+        return _HomeSectionWrapper(
+          child: IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Expanded(child: _WorkoutMetricTile(workout: completed.firstOrNull, activeCycle: activeCycle, isHistory: true)),
+                SizedBox(width: 12.r),
+                Expanded(child: _WorkoutMetricTile(workout: pending.firstOrNull, activeCycle: activeCycle, isHistory: false)),
+              ],
+            ),
           ),
         );
       },
@@ -249,22 +266,24 @@ class _MealLogSection extends StatelessWidget {
       builder: (context, provider, _) {
         final pinned = provider.pinnedMeals;
         if (pinned.isEmpty) return const SizedBox.shrink();
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text("MEAL QUICK LOG", style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary, letterSpacing: 2.0, fontSize: 12.sp, fontWeight: FontWeight.bold)),
-            SizedBox(height: 12.r),
-            SizedBox(
-              height: 155.r,
-              child: ListView.builder(
-                scrollDirection: Axis.horizontal,
-                physics: const ClampingScrollPhysics(),
-                itemCount: pinned.length,
-                itemBuilder: (context, index) => MealQuickLogCard(meal: pinned[index], onTap: () => _handleMealLog(context, pinned[index], provider)),
+        return _HomeSectionWrapper(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text("MEAL QUICK LOG", style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary, letterSpacing: 2.0, fontSize: 12.sp, fontWeight: FontWeight.bold)),
+              SizedBox(height: 12.r),
+              SizedBox(
+                height: 155.r,
+                child: ListView.builder(
+                  scrollDirection: Axis.horizontal,
+                  physics: const ClampingScrollPhysics(),
+                  itemCount: pinned.length,
+                  itemBuilder: (context, index) => MealQuickLogCard(meal: pinned[index], onTap: () => _handleMealLog(context, pinned[index], provider)),
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         );
       },
     );
@@ -352,21 +371,23 @@ class _SupplementLogSection extends StatelessWidget {
             EliteSnackbar.show(context, "${item.name} RESTOCKED", onUndo: () => provider.deleteLastEntry());
           }));
         }
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text("SUPPLEMENT QUICK LOG", style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary, letterSpacing: 2.0, fontSize: 12.sp, fontWeight: FontWeight.bold)),
-            SizedBox(height: 12.r),
-            SizedBox(
-              height: 160.r, 
-              child: ListView(
-                scrollDirection: Axis.horizontal, 
-                physics: const ClampingScrollPhysics(),
-                children: cards,
+        return _HomeSectionWrapper(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text("SUPPLEMENT QUICK LOG", style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary, letterSpacing: 2.0, fontSize: 12.sp, fontWeight: FontWeight.bold)),
+              SizedBox(height: 12.r),
+              SizedBox(
+                height: 160.r, 
+                child: ListView(
+                  scrollDirection: Axis.horizontal, 
+                  physics: const ClampingScrollPhysics(),
+                  children: cards,
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         );
       },
     );
@@ -381,25 +402,27 @@ class _StackLogSection extends StatelessWidget {
       builder: (context, provider, _) {
         final pinnedStacks = provider.pinnedStacks;
         if (pinnedStacks.isEmpty) return const SizedBox.shrink();
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text("STACK QUICK LOG", style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary, letterSpacing: 2.0, fontSize: 12.sp, fontWeight: FontWeight.bold)),
-            SizedBox(height: 12.r),
-            SizedBox(
-              height: 165.r,
-              child: ListView.builder(
-                scrollDirection: Axis.horizontal, 
-                physics: const ClampingScrollPhysics(),
-                itemCount: pinnedStacks.length, 
-                itemBuilder: (context, index) => StackQuickLogCard(stack: pinnedStacks[index], onTap: () {
-                  provider.quickLogStack(pinnedStacks[index].id);
-                  EliteSnackbar.show(context, "${pinnedStacks[index].name} LOGGED", onUndo: () => provider.deleteLastEntry());
-                }),
+        return _HomeSectionWrapper(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text("STACK QUICK LOG", style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary, letterSpacing: 2.0, fontSize: 12.sp, fontWeight: FontWeight.bold)),
+              SizedBox(height: 12.r),
+              SizedBox(
+                height: 165.r,
+                child: ListView.builder(
+                  scrollDirection: Axis.horizontal, 
+                  physics: const ClampingScrollPhysics(),
+                  itemCount: pinnedStacks.length, 
+                  itemBuilder: (context, index) => StackQuickLogCard(stack: pinnedStacks[index], onTap: () {
+                    provider.quickLogStack(pinnedStacks[index].id);
+                    EliteSnackbar.show(context, "${pinnedStacks[index].name} LOGGED", onUndo: () => provider.deleteLastEntry());
+                  }),
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         );
       },
     );

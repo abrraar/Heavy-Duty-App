@@ -299,7 +299,7 @@ class _HydrationScreenState extends State<HydrationScreen>
   Future<bool?> _showDeleteLogConfirmation(String amount) async {
     return EliteConfirmDialog.show(
       context,
-      title: "DELETE RECORD",
+      title: "DELETE LOG",
       message: "ARE YOU SURE YOU WANT TO PERMANENTLY REMOVE THE '$amount' ENTRY?",
       icon: Icons.delete_forever_rounded,
     );
@@ -375,7 +375,7 @@ class _HydrationScreenState extends State<HydrationScreen>
                       tabs: const [
                         Tab(text: "TRACKER"),
                         Tab(text: "TRENDS"),
-                        Tab(text: "RECORDS"),
+                        Tab(text: "LOGS"),
                       ],
                     ),
                   ],
@@ -423,7 +423,7 @@ class _HydrationScreenState extends State<HydrationScreen>
     if (provider.logs.isEmpty) {
       return Center(
         child: Text(
-          "RECORD INTAKE TO VIEW TRENDS",
+          "LOG INTAKE TO VIEW TRENDS",
           style: AppTextStyles.labelSmall.copyWith(
             color: AppColors.textSecondary.withOpacity(0.3),
             letterSpacing: 1,
@@ -623,7 +623,7 @@ class _HydrationScreenState extends State<HydrationScreen>
                           constraints: BoxConstraints(minHeight: constraints.maxHeight),
                           child: Center(
                             child: Text(
-                              _recordsFilter.isInitial ? "NO RECORDS FOR THIS DATE" : "NO MATCHING RECORDS",
+                              _recordsFilter.isInitial ? "NO LOGS FOR THIS DATE" : "NO MATCHING LOGS",
                               style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary.withOpacity(0.5)),
                             ),
                           ),
@@ -889,7 +889,7 @@ class _HydrationScreenState extends State<HydrationScreen>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('MANUAL RECORD', style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary, letterSpacing: 1.2)),
+          Text('MANUAL LOG', style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary, letterSpacing: 1.2)),
           SizedBox(height: 16.h),
           Row(
             children: [
@@ -965,7 +965,7 @@ class _HydrationScreenState extends State<HydrationScreen>
                 borderRadius: BorderRadius.circular(12.r),
               ),
               alignment: Alignment.center,
-              child: Text('RECORD INTAKE', style: AppTextStyles.buttonPrimary.copyWith(color: Colors.white)),
+              child: Text('LOG INTAKE', style: AppTextStyles.buttonPrimary.copyWith(color: Colors.white)),
             ),
           ),
         ],

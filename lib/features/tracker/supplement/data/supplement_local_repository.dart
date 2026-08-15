@@ -30,7 +30,7 @@ class SupplementLocalRepository {
     final db = await _getDatabase();
 
     await db.update(
-      'SS_supplements', // Aligned table name
+      'ss_supplements', // Aligned table name
       {'remaining_stock': newStockAmount},
       where: 'id = ?',
       whereArgs: [supplementId],
@@ -41,7 +41,7 @@ class SupplementLocalRepository {
   Future<List<Supplement>> getAllSupplements() async {
     final db = await _getDatabase();
     final List<Map<String, dynamic>> maps = await db.query(
-      'SS_supplements',
+      'ss_supplements',
     ); // Aligned table name
 
     return maps.map((map) => Supplement.fromMap(map)).toList();
@@ -51,7 +51,7 @@ class SupplementLocalRepository {
   Future<void> saveSupplement(Supplement supplement) async {
     final db = await _getDatabase();
     await db.insert(
-      'SS_supplements', // Aligned table name
+      'ss_supplements', // Aligned table name
       supplement.toMap(),
       conflictAlgorithm: ConflictAlgorithm.replace,
     );
@@ -61,7 +61,7 @@ class SupplementLocalRepository {
   Future<void> deleteSupplement(String id) async {
     final db = await _getDatabase();
     await db.delete(
-      'SS_supplements',
+      'ss_supplements',
       where: 'id = ?',
       whereArgs: [id],
     ); // Aligned table name
@@ -75,7 +75,7 @@ class SupplementLocalRepository {
   Future<void> insertSupplementItem(SupplementItem entry) async {
     final db = await _getDatabase();
     await db.insert(
-      'SS_records', // Aligned table name
+      'ss_records', // Aligned table name
       entry.toMap(),
       conflictAlgorithm: ConflictAlgorithm.replace,
     );
@@ -85,7 +85,7 @@ class SupplementLocalRepository {
   Future<void> markHistoryAsSynced(String id) async {
     final db = await _getDatabase();
     await db.update(
-      'SS_records', // Aligned table name
+      'ss_records', // Aligned table name
       {'is_synced': 1},
       where: 'id = ?',
       whereArgs: [id],
@@ -96,7 +96,7 @@ class SupplementLocalRepository {
   Future<void> deleteSupplementItem(String id) async {
     final db = await _getDatabase();
     await db.delete(
-      'SS_records',
+      'ss_records',
       where: 'id = ?',
       whereArgs: [id],
     ); // Aligned table name
@@ -107,7 +107,7 @@ class SupplementLocalRepository {
     final db = await _getDatabase();
 
     final List<Map<String, dynamic>> maps = await db.query(
-      'SS_records',
+      'ss_records',
       orderBy: 'timestamp DESC',
     );
 
@@ -119,7 +119,7 @@ class SupplementLocalRepository {
     final db = await _getDatabase();
 
     final List<Map<String, dynamic>> maps = await db.query(
-      'SS_records', // Aligned table name
+      'ss_records', // Aligned table name
       where: 'is_synced = ?',
       whereArgs: [0], // Pull rows where is_synced is false/0
     );
@@ -137,7 +137,7 @@ class SupplementLocalRepository {
   ) async {
     final db = await _getDatabase();
     final List<Map<String, dynamic>> maps = await db.query(
-      'SS_stack',
+      'ss_stack',
     ); // Aligned table name
 
     return maps.map((stackMap) {
@@ -167,7 +167,7 @@ class SupplementLocalRepository {
   Future<void> saveStack(SupplementStack stack) async {
     final db = await _getDatabase();
     await db.insert(
-      'SS_stack', // Aligned table name
+      'ss_stack', // Aligned table name
       stack.toMap(),
       conflictAlgorithm: ConflictAlgorithm.replace,
     );
@@ -177,7 +177,7 @@ class SupplementLocalRepository {
   Future<void> deleteStack(String id) async {
     final db = await _getDatabase();
     await db.delete(
-      'SS_stack',
+      'ss_stack',
       where: 'id = ?',
       whereArgs: [id],
     ); // Aligned table name

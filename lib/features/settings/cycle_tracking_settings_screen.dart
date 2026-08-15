@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:flutter/services.dart';
 import 'package:heavy_duty/core/theme/app_colors.dart';
 import 'package:heavy_duty/core/theme/app_text_styles.dart';
 import 'package:heavy_duty/core/widgets/elite_settings_app_bar.dart';
@@ -16,18 +17,24 @@ class CycleTrackingSettingsScreen extends StatefulWidget {
 }
 
 class _CycleTrackingSettingsScreenState extends State<CycleTrackingSettingsScreen> {
+  late TextEditingController _intervalController;
+  late bool _workoutReminders;
+  late int _workoutDaysInterval;
+
   @override
   void initState() {
     super.initState();
-    // Initialize notification states from provider
     final settings = context.read<CycleProvider>().settings;
     _workoutReminders = settings.workoutRemindersEnabled;
     _workoutDaysInterval = settings.workoutReminderInterval;
+    _intervalController = TextEditingController(text: _workoutDaysInterval.toString());
   }
 
-  // Notification States
-  late bool _workoutReminders;
-  late int _workoutDaysInterval;
+  @override
+  void dispose() {
+    _intervalController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -61,28 +68,21 @@ class _CycleTrackingSettingsScreenState extends State<CycleTrackingSettingsScree
                                 workoutReminderInterval: _workoutDaysInterval,
                               ));
                             },
-                            child: _buildSmallDropdown(
-                              value: _workoutDaysInterval,
-                              items: [2, 3, 4, 5, 7, 10, 14],
+                            child: _buildSmallTextField(
+                              controller: _intervalController,
                               suffix: "Days",
                               onChanged: (val) {
-                                if (val != null) {
-                                  setState(() => _workoutDaysInterval = val);
+                                final parsed = int.tryParse(val);
+                                if (parsed != null) {
+                                  setState(() => _workoutDaysInterval = parsed);
                                   provider.updateSettings(provider.settings.copyWith(
                                     workoutRemindersEnabled: _workoutReminders,
-                                    workoutReminderInterval: val,
+                                    workoutReminderInterval: parsed,
                                   ));
                                 }
                               },
                             ),
                           ),
-
-                          SizedBox(height: 32.h),
-
-                          _buildSectionHeader('CYCLE EVOLUTION'),
-                          SizedBox(height: 12.h),
-                          
-                          _buildProgressionCard(),
 
                           SizedBox(height: 32.h),
 
@@ -179,94 +179,41 @@ class _CycleTrackingSettingsScreenState extends State<CycleTrackingSettingsScree
     );
   }
 
-  Widget _buildSmallDropdown({required int value, required List<int> items, required String suffix, required Function(int?) onChanged}) {
+  Widget _buildSmallTextField({required TextEditingController controller, required String suffix, required Function(String) onChanged}) {
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 4.h),
+      width: 100.w,
+      padding: EdgeInsets.symmetric(horizontal: 12.w),
       decoration: BoxDecoration(
         color: AppColors.background,
         borderRadius: BorderRadius.circular(8.r),
         border: Border.all(color: AppColors.white.withValues(alpha: 0.05)),
       ),
-      child: DropdownButtonHideUnderline(
-        child: DropdownButton<int>(
-          value: value,
-          dropdownColor: AppColors.surfaceLight,
-          icon: Icon(Icons.keyboard_arrow_down, color: AppColors.crimson, size: 16.r),
-          style: AppTextStyles.labelSmall.copyWith(color: AppColors.white, fontWeight: FontWeight.bold),
-          items: items.map((int val) => DropdownMenuItem(value: val, child: Text("$val $suffix"))).toList(),
-          onChanged: onChanged,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildProgressionCard() {
-    return Container(
-      width: double.infinity,
-      padding: EdgeInsets.all(20.r),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [AppColors.crimson.withValues(alpha: 0.1), Colors.transparent],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(20.r),
-        border: Border.all(color: AppColors.white.withValues(alpha: 0.05)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Row(
-            children: [
-              Icon(Icons.layers_rounded, color: AppColors.crimson, size: 24.r),
-              SizedBox(width: 10.w),
-              Text('NEXT PHASE PROTOCOL', style: AppTextStyles.labelMedium.copyWith(color: AppColors.crimson)),
-            ],
-          ),
-          SizedBox(height: 12.h),
-          Text(
-            "Upon completion of your current cycle, the system will automatically archive your intensity data and generate a new Evolution List.",
-            style: AppTextStyles.bodySmall.copyWith(height: 1.5, color: AppColors.textSecondary),
-          ),
-          SizedBox(height: 20.h),
-          
-          // ── UPDATED STATUS / ACTION BUTTON ──
-          GestureDetector(
-            onTap: () {
-              // Action for new archive
-            },
-            child: Container(
-              padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
-              decoration: BoxDecoration(
-                color: AppColors.white.withValues(alpha: 0.03),
-                borderRadius: BorderRadius.circular(12.r),
-                border: Border.all(color: AppColors.white.withValues(alpha: 0.05)),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    "Status: Ready for next archive",
-                    style: AppTextStyles.labelSmall.copyWith(fontSize: 10.sp, color: AppColors.white),
-                  ),
-                  Row(
-                    children: [
-                      Text(
-                        "NEW ARCHIVE",
-                        style: AppTextStyles.labelSmall.copyWith(
-                          fontSize: 10.sp, 
-                          color: AppColors.crimson,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      SizedBox(width: 6.w),
-                      Icon(Icons.arrow_forward_ios_rounded, color: AppColors.crimson, size: 12.r),
-                    ],
-                  ),
-                ],
+          Expanded(
+            child: TextField(
+              controller: controller,
+              keyboardType: TextInputType.number,
+              inputFormatters: [
+                FilteringTextInputFormatter.digitsOnly,
+                LengthLimitingTextInputFormatter(2),
+              ],
+              onChanged: onChanged,
+              textAlign: TextAlign.center,
+              style: AppTextStyles.labelSmall.copyWith(color: AppColors.white, fontWeight: FontWeight.bold),
+              decoration: const InputDecoration(
+                isDense: true,
+                border: InputBorder.none,
+                contentPadding: EdgeInsets.symmetric(vertical: 8),
               ),
             ),
-          )
+          ),
+          SizedBox(width: 4.w),
+          Text(
+            suffix,
+            style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary, fontSize: 10.sp),
+          ),
         ],
       ),
     );

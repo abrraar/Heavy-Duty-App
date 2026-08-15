@@ -3,6 +3,7 @@
 import 'package:sqflite/sqflite.dart';
 import '../../../../../core/database/database_helper.dart';
 import '../model/sleep_log.dart';
+import '../model/sleep_settings.dart';
 
 class SleepLocalRepository {
   final String userId;
@@ -12,6 +13,20 @@ class SleepLocalRepository {
 
   Future<Database> _getDatabase() async {
     return await _dbHelper.getDatabaseForUser(userId);
+  }
+
+  // --- Settings ---
+
+  Future<SleepSettings?> getSettings() async {
+    final db = await _getDatabase();
+    final List<Map<String, dynamic>> maps = await db.query('sleep_settings', where: 'user_id = ?', whereArgs: [userId]);
+    if (maps.isNotEmpty) return SleepSettings.fromMap(maps.first);
+    return null;
+  }
+
+  Future<void> saveSettings(SleepSettings settings) async {
+    final db = await _getDatabase();
+    await db.insert('sleep_settings', settings.toMap(), conflictAlgorithm: ConflictAlgorithm.replace);
   }
 
   Future<void> insertLog(SleepLog log) async {

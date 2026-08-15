@@ -170,7 +170,7 @@ class _SupplementScreenState extends State<SupplementScreen>
                     Tab(text: "TRACKER"),
                     Tab(text: "STACKER"),
                     Tab(text: "LIBRARY"),
-                    Tab(text: "HISTORY"),
+                    Tab(text: "LOGS"),
                   ],
                 ),
               ],
@@ -575,7 +575,7 @@ class _SupplementScreenState extends State<SupplementScreen>
                                   Container(
                                     constraints: BoxConstraints(minHeight: constraints.maxHeight),
                                     child: Center(
-                                      child: _buildEmptyState("No records for this date."),
+                                      child: _buildEmptyState("No logs for this date."),
                                     ),
                                   ),
                                 ],
@@ -1109,7 +1109,7 @@ class _SupplementScreenState extends State<SupplementScreen>
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          _buildSectionHeader("SUPPLEMENT HISTORY"),
+          _buildSectionHeader("SUPPLEMENT LOGS"),
           IconButton(
             onPressed: () => _openFilterSheet(provider),
             icon: Icon(
@@ -1121,7 +1121,7 @@ class _SupplementScreenState extends State<SupplementScreen>
             ),
             padding: EdgeInsets.zero,
             constraints: const BoxConstraints(),
-            tooltip: "Filter History",
+            tooltip: "Filter Logs",
           ),
         ],
       ),
@@ -1254,7 +1254,7 @@ class _SupplementHistoryFilterSheetState extends State<_SupplementHistoryFilterS
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text("HISTORY FILTERS", style: AppTextStyles.h3),
+              Text("LOG FILTERS", style: AppTextStyles.h3),
               TextButton(
                 onPressed: () => setState(() => _currentFilter = _HistoryFilter()),
                 child: Text(
@@ -1285,7 +1285,7 @@ class _SupplementHistoryFilterSheetState extends State<_SupplementHistoryFilterS
             ],
           ),
           SizedBox(height: 24.h),
-          _buildSectionLabel("RECORD TYPE"),
+          _buildSectionLabel("LOG TYPE"),
           Row(
             children: [
               _buildToggleButton(

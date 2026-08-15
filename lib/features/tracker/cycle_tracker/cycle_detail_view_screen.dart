@@ -5,6 +5,10 @@ import 'package:heavy_duty/core/theme/app_text_styles.dart';
 import 'package:heavy_duty/core/widgets/elite_confirm_dialog.dart';
 import 'package:heavy_duty/features/tracker/cycle_tracker/provider/cycle_provider.dart';
 import 'package:provider/provider.dart';
+import 'package:heavy_duty/features/tracker/cycle_tracker/create_cycle_screen.dart';
+import 'package:heavy_duty/features/auth/provider/auth_provider.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:heavy_duty/core/widgets/elite_snackbar.dart';
 import 'model/workout.dart';
 
 class CycleDetailViewScreen extends StatelessWidget {
@@ -56,8 +60,17 @@ class CycleDetailViewScreen extends StatelessWidget {
                       if (isModifiable)
                         IconButton(
                           icon: const Icon(Icons.edit_note_rounded, color: AppColors.white),
-                          onPressed: () {
-                            // Navigate to CreateCycleScreen for editing
+                          onPressed: () async {
+                            final cycle = provider.cycles.firstWhere((c) => c.id == cycleId);
+                            final result = await Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => CreateCycleScreen(existingCycle: cycle),
+                              ),
+                            );
+                            if (result == true && context.mounted) {
+                              Navigator.pop(context, true);
+                            }
                           },
                         )
                       else
@@ -93,7 +106,13 @@ class CycleDetailViewScreen extends StatelessWidget {
                 padding: EdgeInsets.all(24.r),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
-                  children: [_buildActivateButton(context, provider)],
+                  children: [
+                    if (!cycle.isDefault) ...[
+                      _buildShareButton(context, provider),
+                      SizedBox(height: 16.h),
+                    ],
+                    _buildActivateButton(context, provider),
+                  ],
                 ),
               ),
             ],
@@ -123,6 +142,54 @@ class CycleDetailViewScreen extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildShareButton(BuildContext context, CycleProvider provider) {
+    return GestureDetector(
+      onTap: () async {
+        final authProvider = context.read<AuthProvider>();
+        final userName = authProvider.displayName;
+        
+        EliteSnackbar.show(context, "GENERATING SHAREABLE LINK...");
+
+        final link = await provider.generateShareableLink(cycleId, userName);
+        
+        if (link != null) {
+          await Share.share(
+            "CHECK OUT THIS HIT TRAINING CYCLE SHARED BY $userName IN HEAVY DUTY:\n\n$link",
+            subject: "TRAINING CYCLE SHARED BY $userName",
+          );
+        } else {
+          if (context.mounted) {
+            EliteSnackbar.show(context, "FAILED TO GENERATE LINK. PLEASE TRY AGAIN.", isError: true);
+          }
+        }
+      },
+      child: Container(
+        width: double.infinity,
+        padding: EdgeInsets.symmetric(vertical: 18.h),
+        decoration: BoxDecoration(
+          color: Colors.blueAccent.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(12.r),
+          border: Border.all(color: Colors.blueAccent.withOpacity(0.5)),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.ios_share_rounded, color: Colors.blueAccent, size: 20.r),
+            SizedBox(width: 12.w),
+            Text(
+              "SHARE CYCLE",
+              style: AppTextStyles.labelMedium.copyWith(
+                color: Colors.blueAccent,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 1.5,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 

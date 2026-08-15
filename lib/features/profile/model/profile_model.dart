@@ -6,7 +6,6 @@ class UserProfile {
   final String? gender;
   final double? height;
   final double? weight;
-  final String? email;
   final int isSynced;
 
   UserProfile({
@@ -17,7 +16,6 @@ class UserProfile {
     this.gender,
     this.height,
     this.weight,
-    this.email,
     this.isSynced = 1,
   });
 
@@ -30,7 +28,6 @@ class UserProfile {
       'gender': gender,
       'height': height,
       'weight': weight,
-      'email': email,
       'is_synced': isSynced,
     };
   }
@@ -44,7 +41,6 @@ class UserProfile {
       gender: map['gender'],
       height: (map['height'] as num?)?.toDouble(),
       weight: (map['weight'] as num?)?.toDouble(),
-      email: map['email'],
       isSynced: map['is_synced'] ?? 1,
     );
   }

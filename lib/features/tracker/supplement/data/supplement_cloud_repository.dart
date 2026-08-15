@@ -24,7 +24,7 @@ class SupplementCloudRepository {
 
     try {
       final List<Map<String, dynamic>> response = await _supabase
-          .from('SS_supplements')
+          .from('ss_supplements')
           .select()
           .eq('user_id', uid);
 
@@ -45,7 +45,7 @@ class SupplementCloudRepository {
       data['user_id'] = uid;
       data.remove('is_synced');
 
-      await _supabase.from('SS_supplements').upsert(data, onConflict: 'id');
+      await _supabase.from('ss_supplements').upsert(data, onConflict: 'id');
     } catch (e) {
       debugPrint("Cloud Repository Error (saveSupplement): $e");
       rethrow;
@@ -59,7 +59,7 @@ class SupplementCloudRepository {
 
     try {
       await _supabase
-          .from('SS_supplements')
+          .from('ss_supplements')
           .delete()
           .eq('id', id)
           .eq('user_id', uid);
@@ -79,7 +79,7 @@ class SupplementCloudRepository {
 
     try {
       await _supabase
-          .from('SS_supplements')
+          .from('ss_supplements')
           .update({'remaining_stock': newStockAmount})
           .eq('id', supplementId)
           .eq('user_id', uid);
@@ -100,7 +100,7 @@ class SupplementCloudRepository {
 
     try {
       final List<Map<String, dynamic>> response = await _supabase
-          .from('SS_records')
+          .from('ss_records')
           .select()
           .eq('user_id', uid)
           .order('timestamp', ascending: false);
@@ -122,7 +122,7 @@ class SupplementCloudRepository {
       data['user_id'] = uid;
       data.remove('is_synced');
 
-      await _supabase.from('SS_records').upsert(data, onConflict: 'id');
+      await _supabase.from('ss_records').upsert(data, onConflict: 'id');
     } catch (e) {
       debugPrint("Cloud Repository Error (insertSupplementItem): $e");
       rethrow;
@@ -135,7 +135,7 @@ class SupplementCloudRepository {
     if (uid == null) return;
 
     try {
-      await _supabase.from('SS_records').delete().eq('id', id).eq('user_id', uid);
+      await _supabase.from('ss_records').delete().eq('id', id).eq('user_id', uid);
     } catch (e) {
       debugPrint("Cloud Repository Error (deleteSupplementItem): $e");
       rethrow;
@@ -155,7 +155,7 @@ class SupplementCloudRepository {
 
     try {
       final List<Map<String, dynamic>> response = await _supabase
-          .from('SS_stack')
+          .from('ss_stack')
           .select()
           .eq('user_id', uid);
 
@@ -187,7 +187,7 @@ class SupplementCloudRepository {
       data['user_id'] = uid;
       data.remove('is_synced');
 
-      await _supabase.from('SS_stack').upsert(data, onConflict: 'id');
+      await _supabase.from('ss_stack').upsert(data, onConflict: 'id');
     } catch (e) {
       debugPrint("Cloud Repository Error (saveStack): $e");
       rethrow;
@@ -201,7 +201,7 @@ class SupplementCloudRepository {
 
     try {
       await _supabase
-          .from('SS_stack')
+          .from('ss_stack')
           .delete()
           .eq('id', stackId)
           .eq('user_id', uid);

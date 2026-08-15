@@ -37,7 +37,7 @@ class _BodyCompHistoryScreenState extends State<BodyCompHistoryScreen> {
                   ),
                   Expanded(
                     child: Text(
-                      'HISTORY',
+                      'LOGS',
                       textAlign: TextAlign.center,
                       style: AppTextStyles.h2.copyWith(
                         color: AppColors.white,
@@ -117,7 +117,7 @@ class _BodyCompHistoryScreenState extends State<BodyCompHistoryScreen> {
       confirmDismiss: (direction) async {
         return await EliteConfirmDialog.show(
           context,
-          title: "DELETE RECORD",
+          title: "DELETE LOG",
           message: "ARE YOU SURE YOU WANT TO PERMANENTLY REMOVE ALL METRICS FOR THIS ENTRY?",
         );
       },
@@ -191,7 +191,7 @@ class _BodyCompHistoryScreenState extends State<BodyCompHistoryScreen> {
         final confirm = await EliteConfirmDialog.show(
           context,
           title: "DELETE ENTRY",
-          message: "REMOVE THIS $label RECORD?",
+          message: "REMOVE THIS $label LOG?",
         );
         if (confirm == true) {
           await provider.deleteLog(log.id, log.type);

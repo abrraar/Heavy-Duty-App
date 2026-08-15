@@ -109,7 +109,7 @@ class _NotificationSheetState extends State<NotificationSheet> {
   void _handleSaveAndExit() {
     List<SupplementReminder> updatedIntake = [];
     
-    // Always process current intake UI state into a list, regardless of recordEnabled toggle
+    // Process intake UI state
     for (int i = 0; i < intakeReminders.length; i++) {
       final r = intakeReminders[i].copyWith(reminderMode: _selectedMode);
       if (_selectedMode == ReminderMode.schedule) {
@@ -128,12 +128,12 @@ class _NotificationSheetState extends State<NotificationSheet> {
       masterEnabled: masterActive, 
       recordEnabled: recordEnabled, 
       restockEnabled: restockEnabled,
-      intakeReminders: updatedIntake, // Data is preserved in JSON even if recordEnabled is false
-      lowStockThresholds: {
+      intakeReminders: recordEnabled ? updatedIntake : [], 
+      lowStockThresholds: restockEnabled ? {
         widget.supplement.id: restockUseServings
             ? lowStockThreshold * widget.supplement.weightPerServing
             : lowStockThreshold
-      },
+      } : {},
     );
   }
 

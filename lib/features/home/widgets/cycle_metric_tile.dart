@@ -33,7 +33,7 @@ class CycleMetricTile extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Icon(icon, color: AppColors.crimson, size: 20.r),
-          SizedBox(height: 14.r), // Increased spacing between icon and text
+          SizedBox(height: 8.r), // Standardized spacing
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -46,25 +46,31 @@ class CycleMetricTile extends StatelessWidget {
                   fontWeight: FontWeight.w900,
                 ),
               ),
-              SizedBox(height: 4.r), // Standardized spacing
+              SizedBox(height: 4.r),
               Text(
                 value,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
                 style: AppTextStyles.labelMedium.copyWith(
-                  fontSize: 16.sp,
+                  fontSize: 14.sp,
                   fontWeight: FontWeight.w900,
                   color: Colors.white,
+                  height: 1.2,
                 ),
               ),
             ],
           ),
-          const Spacer(), // Ensures the date stays at the bottom regardless of text height
+          const Spacer(),
           if (date != null)
-            Text(
-              date!,
-              style: AppTextStyles.labelSmall.copyWith(
-                fontSize: 9.sp,
-                color: AppColors.textSecondary.withOpacity(0.6),
-                fontWeight: FontWeight.w600,
+            Padding(
+              padding: EdgeInsets.only(top: 8.r),
+              child: Text(
+                date!,
+                style: AppTextStyles.labelSmall.copyWith(
+                  fontSize: 9.sp,
+                  color: AppColors.textSecondary.withOpacity(0.6),
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ),
         ],

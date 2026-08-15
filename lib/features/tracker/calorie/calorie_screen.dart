@@ -386,7 +386,7 @@ class _CalorieScreenState extends State<CalorieScreen> with SingleTickerProvider
                     Tab(text: "TRACKER"),
                     Tab(text: "TRENDS"),
                     Tab(text: "LIBRARY"),
-                    Tab(text: "HISTORY"),
+                    Tab(text: "LOGS"),
                   ],
                 ),
               ],
@@ -1269,7 +1269,7 @@ class _CalorieScreenState extends State<CalorieScreen> with SingleTickerProvider
                           constraints: BoxConstraints(minHeight: constraints.maxHeight),
                           child: Center(
                             child: Text(
-                              "No records for this date.",
+                              "No logs for this date.",
                               style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary),
                             ),
                           ),

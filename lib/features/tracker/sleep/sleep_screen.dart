@@ -313,7 +313,7 @@ class _SleepScreenState extends State<SleepScreen> with SingleTickerProviderStat
                   tabs: const [
                     Tab(text: "TRACKER"),
                     Tab(text: "TRENDS"),
-                    Tab(text: "HISTORY"),
+                    Tab(text: "LOGS"),
                   ],
                 ),
               ],
@@ -654,7 +654,7 @@ class _SleepScreenState extends State<SleepScreen> with SingleTickerProviderStat
                           constraints: BoxConstraints(minHeight: constraints.maxHeight),
                           child: Center(
                             child: Text(
-                              "No sleep data for this date.",
+                              "No logs for this date.",
                               style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary),
                             ),
                           ),
@@ -1407,8 +1407,8 @@ class SleepComparisonWidget extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text("SELECT RECORDING", style: AppTextStyles.h3.copyWith(fontSize: 18.sp)),
-                      Text("CHOOSE A DATE FROM YOUR HISTORY", style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary.withOpacity(0.5), letterSpacing: 1)),
+                      Text("SELECT LOG", style: AppTextStyles.h3.copyWith(fontSize: 18.sp)),
+                      Text("CHOOSE A DATE FROM YOUR LOGS", style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary.withOpacity(0.5), letterSpacing: 1)),
                     ],
                   ),
                 ),

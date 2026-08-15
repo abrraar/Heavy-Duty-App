@@ -15,9 +15,9 @@ class BodyCompLocalRepository {
 
   String _getTableName(BodyMetricType type) {
     switch (type) {
-      case BodyMetricType.weight: return 'BodyComp_weight_logs';
-      case BodyMetricType.fat: return 'BodyComp_fats_logs';
-      case BodyMetricType.muscle: return 'BodyComp_muscle_logs';
+      case BodyMetricType.weight: return 'body_comp_weight_logs';
+      case BodyMetricType.fat: return 'body_comp_fats_logs';
+      case BodyMetricType.muscle: return 'body_comp_muscle_logs';
     }
   }
 
@@ -25,7 +25,7 @@ class BodyCompLocalRepository {
 
   Future<BodyCompSettings> getSettings() async {
     final db = await _getDatabase();
-    final List<Map<String, dynamic>> maps = await db.query('BodyComp_settings', where: 'id = 1');
+    final List<Map<String, dynamic>> maps = await db.query('body_comp_settings', where: 'id = 1');
     if (maps.isNotEmpty) {
       return BodyCompSettings.fromMap(maps.first);
     }
@@ -38,7 +38,7 @@ class BodyCompLocalRepository {
     final db = await _getDatabase();
     final map = settings.toMap();
     map['id'] = 1;
-    await db.insert('BodyComp_settings', map, conflictAlgorithm: ConflictAlgorithm.replace);
+    await db.insert('body_comp_settings', map, conflictAlgorithm: ConflictAlgorithm.replace);
   }
 
   // --- Logs ---
@@ -82,7 +82,7 @@ class BodyCompLocalRepository {
 
   Future<List<Map<String, dynamic>>> getPendingDeletions() async {
     final db = await _getDatabase();
-    return await db.query('pending_deletions', where: "table_name IN ('BodyComp_weight_logs', 'BodyComp_fats_logs', 'BodyComp_muscle_logs')");
+    return await db.query('pending_deletions', where: "table_name IN ('body_comp_weight_logs', 'body_comp_fats_logs', 'body_comp_muscle_logs')");
   }
 
   Future<List<BodyCompLog>> getUnsyncedLogs() async {
@@ -98,7 +98,7 @@ class BodyCompLocalRepository {
 
   Future<BodyCompSettings?> getUnsyncedSettings() async {
     final db = await _getDatabase();
-    final List<Map<String, dynamic>> maps = await db.query('BodyComp_settings', where: 'is_synced = 0 AND id = 1');
+    final List<Map<String, dynamic>> maps = await db.query('body_comp_settings', where: 'is_synced = 0 AND id = 1');
     if (maps.isNotEmpty) return BodyCompSettings.fromMap(maps.first);
     return null;
   }
@@ -110,6 +110,6 @@ class BodyCompLocalRepository {
 
   Future<void> markSettingsSynced() async {
     final db = await _getDatabase();
-    await db.update('BodyComp_settings', {'is_synced': 1}, where: 'id = 1');
+    await db.update('body_comp_settings', {'is_synced': 1}, where: 'id = 1');
   }
 }

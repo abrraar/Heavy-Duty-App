@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:heavy_duty/core/widgets/elite_snackbar.dart';
+import 'package:heavy_duty/features/tracker/body_composition/widgets/body_comp_notification_sheet.dart';
 import 'package:heavy_duty/features/tracker/body_composition/provider/body_comp_provider.dart';
 import 'package:heavy_duty/features/tracker/cycle_tracker/model/cycle_settings.dart';
 import 'package:heavy_duty/features/tracker/body_composition/model/body_comp_settings.dart';
@@ -9,17 +11,70 @@ import 'package:heavy_duty/core/theme/app_text_styles.dart';
 import 'package:heavy_duty/core/widgets/elite_settings_app_bar.dart';
 import 'package:heavy_duty/core/widgets/elite_unit_toggle_card.dart';
 
-class BodyCompSettingsScreen extends StatefulWidget {
-  const BodyCompSettingsScreen({super.key});
+class BodyCompConfigScreen extends StatefulWidget {
+  const BodyCompConfigScreen({super.key});
 
   @override
-  State<BodyCompSettingsScreen> createState() => _BodyCompSettingsScreenState();
+  State<BodyCompConfigScreen> createState() => _BodyCompConfigScreenState();
 }
 
-class _BodyCompSettingsScreenState extends State<BodyCompSettingsScreen> {
-  // Reminders
-  bool _weightReminders = true;
-  int _weightDaysInterval = 7;
+class _BodyCompConfigScreenState extends State<BodyCompConfigScreen> {
+  void _showReminderSheet(String type, BodyCompProvider provider) {
+    String title = "";
+    List<BodyCompReminder> initialReminders = [];
+    bool initialEnabled = false;
+
+    if (type == "weight") {
+      title = "Weight";
+      initialReminders = provider.settings.weightReminders;
+      initialEnabled = provider.settings.weightRemindersEnabled;
+    } else if (type == "fat") {
+      title = "Body Fat";
+      initialReminders = provider.settings.fatReminders;
+      initialEnabled = provider.settings.fatRemindersEnabled;
+    } else if (type == "muscle") {
+      title = "Muscle Mass";
+      initialReminders = provider.settings.muscleReminders;
+      initialEnabled = provider.settings.muscleRemindersEnabled;
+    }
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => BodyCompNotificationSheet(
+        title: title,
+        initialReminders: initialReminders,
+        initialEnabled: initialEnabled,
+        onSave: (enabled, reminders) {
+          BodyCompSettings updatedSettings = provider.settings;
+          if (type == "weight") {
+            updatedSettings = provider.settings.copyWith(
+              weightRemindersEnabled: enabled,
+              weightReminders: reminders,
+            );
+          } else if (type == "fat") {
+            updatedSettings = provider.settings.copyWith(
+              fatRemindersEnabled: enabled,
+              fatReminders: reminders,
+            );
+          } else if (type == "muscle") {
+            updatedSettings = provider.settings.copyWith(
+              muscleRemindersEnabled: enabled,
+              muscleReminders: reminders,
+            );
+          }
+          
+          provider.updateSettings(updatedSettings);
+
+          // If it was turned ON, show confirmation
+          if (enabled && !initialEnabled && mounted) {
+            EliteSnackbar.show(context, "${title.toUpperCase()} REMINDER ACTIVATED");
+          }
+        },
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -68,19 +123,22 @@ class _BodyCompSettingsScreenState extends State<BodyCompSettingsScreen> {
 
                         SizedBox(height: 32.h),
                         _buildSectionHeader("TRACKING REMINDERS"),
-                        _buildReminderTile(),
-                        
-                        SizedBox(height: 32.h),
-                        _buildSectionHeader("DATA VISUALIZATION"),
-                        _buildSimpleTile(
-                          icon: Icons.show_chart_rounded,
-                          title: "SHOW GOAL TRENDLINE",
-                          subtitle: "VISUALIZE PROGRESS TOWARDS TARGET WEIGHT",
-                          trailing: Switch(
-                            value: true, 
-                            activeColor: AppColors.crimson, 
-                            onChanged: (val) {}
-                          ),
+                        _buildReminderCard(
+                          title: "Weight Reminders",
+                          isEnabled: provider.settings.weightRemindersEnabled,
+                          onTap: () => _showReminderSheet("weight", provider),
+                        ),
+                        SizedBox(height: 12.h),
+                        _buildReminderCard(
+                          title: "Body Fat Reminders",
+                          isEnabled: provider.settings.fatRemindersEnabled,
+                          onTap: () => _showReminderSheet("fat", provider),
+                        ),
+                        SizedBox(height: 12.h),
+                        _buildReminderCard(
+                          title: "Muscle Mass Reminders",
+                          isEnabled: provider.settings.muscleRemindersEnabled,
+                          onTap: () => _showReminderSheet("muscle", provider),
                         ),
                         
                         SizedBox(height: 40.h),
@@ -112,90 +170,39 @@ class _BodyCompSettingsScreenState extends State<BodyCompSettingsScreen> {
     );
   }
 
-  Widget _buildReminderTile() {
-    return Container(
-      padding: EdgeInsets.all(16.r),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(12.r),
-        border: Border.all(color: AppColors.white.withValues(alpha: 0.05)),
-      ),
-      child: Column(
-        children: [
-          Row(
-            children: [
-              Icon(Icons.calendar_today_rounded, color: AppColors.white, size: 22.r),
-              SizedBox(width: 16.w),
-              Expanded(
-                child: Text("WEIGH-IN REMINDERS", style: AppTextStyles.labelSmall.copyWith(color: AppColors.white, fontWeight: FontWeight.bold)),
+  Widget _buildReminderCard({required String title, required bool isEnabled, required VoidCallback onTap}) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: EdgeInsets.all(16.r),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(12.r),
+          border: Border.all(color: AppColors.white.withValues(alpha: 0.05)),
+        ),
+        child: Row(
+          children: [
+            Icon(Icons.calendar_today_rounded, color: isEnabled ? AppColors.crimson : AppColors.white, size: 22.r),
+            SizedBox(width: 16.w),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title.toUpperCase(), style: AppTextStyles.labelSmall.copyWith(color: AppColors.white, fontWeight: FontWeight.bold)),
+                  Text(
+                    isEnabled ? "ACTIVE" : "DISABLED",
+                    style: AppTextStyles.labelSmall.copyWith(
+                      color: isEnabled ? AppColors.crimson : AppColors.textSecondary,
+                      fontSize: 10.sp,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
               ),
-              Switch(
-                value: _weightReminders,
-                activeColor: AppColors.crimson,
-                onChanged: (val) => setState(() => _weightReminders = val),
-              ),
-            ],
-          ),
-          if (_weightReminders) ...[
-            const Divider(color: Colors.white10),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text("REMIND ME EVERY", style: AppTextStyles.labelSmall.copyWith(fontSize: 10.sp, color: AppColors.textSecondary)),
-                _buildSmallDropdown(
-                  value: _weightDaysInterval,
-                  items: [1, 3, 7, 14, 30],
-                  suffix: "DAYS",
-                  onChanged: (val) => setState(() => _weightDaysInterval = val!),
-                ),
-              ],
             ),
-          ]
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSimpleTile({required IconData icon, required String title, required String subtitle, required Widget trailing}) {
-    return Container(
-      padding: EdgeInsets.all(16.r),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(12.r),
-        border: Border.all(color: AppColors.white.withValues(alpha: 0.05)),
-      ),
-      child: Row(
-        children: [
-          Icon(icon, color: AppColors.white, size: 22.r),
-          SizedBox(width: 16.w),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(title, style: AppTextStyles.labelSmall.copyWith(color: AppColors.white, fontWeight: FontWeight.bold)),
-                Text(subtitle, style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary, fontSize: 10.sp)),
-              ],
-            ),
-          ),
-          trailing,
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSmallDropdown({required int value, required List<int> items, required String suffix, required Function(int?) onChanged}) {
-    return Container(
-      padding: EdgeInsets.symmetric(horizontal: 8.w),
-      decoration: BoxDecoration(color: AppColors.background, borderRadius: BorderRadius.circular(8.r)),
-      child: DropdownButton<int>(
-        value: value,
-        underline: const SizedBox(),
-        dropdownColor: AppColors.surface,
-        items: items.map((val) => DropdownMenuItem(
-          value: val,
-          child: Text("$val $suffix", style: AppTextStyles.labelSmall.copyWith(fontSize: 10.sp, color: AppColors.white)),
-        )).toList(),
-        onChanged: onChanged,
+            Icon(Icons.arrow_forward_ios_rounded, color: AppColors.textSecondary, size: 14.r),
+          ],
+        ),
       ),
     );
   }

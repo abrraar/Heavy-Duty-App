@@ -313,7 +313,7 @@ final appRouter = GoRouter(
         ),
         GoRoute(
           path: 'body-comp',
-          builder: (context, state) => const BodyCompSettingsScreen(),
+          builder: (context, state) => const BodyCompConfigScreen(),
         ),
         GoRoute(
           path: 'manage-email',

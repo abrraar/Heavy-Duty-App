@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:heavy_duty/core/services/connectivity_service.dart';
+import 'package:heavy_duty/core/services/notification_service.dart';
 import 'package:heavy_duty/features/tracker/cycle_tracker/model/cycle_settings.dart'; // For WeightUnit
 import '../model/body_comp_log.dart';
 import '../model/body_comp_settings.dart';
@@ -10,6 +11,7 @@ import '../data/body_comp_cloud_repository.dart';
 class BodyCompProvider with ChangeNotifier {
   BodyCompLocalRepository? _localRepo;
   final BodyCompCloudRepository _cloudRepo = BodyCompCloudRepository();
+  final NotificationService _notificationService = NotificationService();
   final SupabaseClient _supabase = Supabase.instance.client;
   RealtimeChannel? _realtimeChannel;
 
@@ -40,7 +42,7 @@ class BodyCompProvider with ChangeNotifier {
     _realtimeChannel?.unsubscribe();
     _realtimeChannel = _supabase.channel('public:body_comp_sync:$userId');
 
-    final tables = ['BodyComp_weight_logs', 'BodyComp_fats_logs', 'BodyComp_muscle_logs'];
+    final tables = ['body_comp_weight_logs', 'body_comp_fats_logs', 'body_comp_muscle_logs'];
 
     for (var table in tables) {
       _realtimeChannel!.onPostgresChanges(
@@ -95,15 +97,15 @@ class BodyCompProvider with ChangeNotifier {
   }
 
   BodyMetricType _getTypeFromTable(String table) {
-    if (table == 'BodyComp_weight_logs') return BodyMetricType.weight;
-    if (table == 'BodyComp_fats_logs') return BodyMetricType.fat;
+    if (table == 'body_comp_weight_logs') return BodyMetricType.weight;
+    if (table == 'body_comp_fats_logs') return BodyMetricType.fat;
     return BodyMetricType.muscle;
   }
 
   String _getTableFromType(BodyMetricType type) {
-    if (type == BodyMetricType.weight) return 'BodyComp_weight_logs';
-    if (type == BodyMetricType.fat) return 'BodyComp_fats_logs';
-    return 'BodyComp_muscle_logs';
+    if (type == BodyMetricType.weight) return 'body_comp_weight_logs';
+    if (type == BodyMetricType.fat) return 'body_comp_fats_logs';
+    return 'body_comp_muscle_logs';
   }
 
   // --- Conversion Helpers ---
@@ -193,6 +195,10 @@ class BodyCompProvider with ChangeNotifier {
     try {
       _settings = await _localRepo!.getSettings();
       _logs = await _localRepo!.getAllLogs();
+      
+      // Schedule reminders after local load
+      _notificationService.scheduleBodyCompReminders(_settings);
+      
       notifyListeners();
 
       final cloudSettings = await _cloudRepo.getSettings();
@@ -200,6 +206,7 @@ class BodyCompProvider with ChangeNotifier {
         if (_settings.isSynced == 1) {
           _settings = cloudSettings;
           await _localRepo!.saveSettings(_settings);
+          _notificationService.scheduleBodyCompReminders(_settings);
         }
       } else {
         // If settings don't exist in cloud, push our local ones
@@ -317,6 +324,10 @@ class BodyCompProvider with ChangeNotifier {
     if (_localRepo == null) return;
     final localSettings = settings.copyWith(isSynced: 0);
     _settings = localSettings;
+    
+    // Trigger notification scheduling
+    _notificationService.scheduleBodyCompReminders(_settings);
+    
     notifyListeners();
     try {
       await _localRepo!.saveSettings(localSettings);

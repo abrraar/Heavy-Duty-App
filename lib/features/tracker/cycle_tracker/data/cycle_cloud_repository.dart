@@ -19,12 +19,12 @@ class CycleCloudRepository {
     try {
       // Standard Relational Fetch
       final List<Map<String, dynamic>> response = await _supabase
-          .from('HIT_cycles')
+          .from('hit_cycles')
           .select('''
             *,
-            workouts:HIT_workouts (
+            workouts:hit_workouts (
               *,
-              exercises:HIT_exercises (*)
+              exercises:hit_exercises (*)
             )
           ''')
           .eq('user_id', uid);
@@ -55,7 +55,7 @@ class CycleCloudRepository {
       final data = cycle.toMap();
       data['user_id'] = uid;
       data.remove('is_synced');
-      await _supabase.from('HIT_cycles').upsert(data, onConflict: 'id');
+      await _supabase.from('hit_cycles').upsert(data, onConflict: 'id');
     } catch (e) {
       debugPrint("Cloud Cycle Error (insertCycle): $e");
     }
@@ -69,7 +69,7 @@ class CycleCloudRepository {
       final data = workout.toMap();
       data['user_id'] = uid;
       data.remove('is_synced');
-      await _supabase.from('HIT_workouts').upsert(data, onConflict: 'id');
+      await _supabase.from('hit_workouts').upsert(data, onConflict: 'id');
     } catch (e) {
       debugPrint("Cloud Cycle Error (insertWorkout): $e");
     }
@@ -83,7 +83,7 @@ class CycleCloudRepository {
       final data = exercise.toMap();
       data['user_id'] = uid;
       data.remove('is_synced');
-      await _supabase.from('HIT_exercises').upsert(data, onConflict: 'id');
+      await _supabase.from('hit_exercises').upsert(data, onConflict: 'id');
     } catch (e) {
       debugPrint("Cloud Cycle Error (insertExercise): $e");
     }
@@ -94,7 +94,7 @@ class CycleCloudRepository {
     if (uid == null) return;
 
     try {
-      await _supabase.from('HIT_workouts').delete().eq('id', id).eq('user_id', uid);
+      await _supabase.from('hit_workouts').delete().eq('id', id).eq('user_id', uid);
     } catch (e) {
       debugPrint("Cloud Cycle Error (deleteWorkout): $e");
     }
@@ -105,7 +105,7 @@ class CycleCloudRepository {
     if (uid == null) return;
 
     try {
-      await _supabase.from('HIT_exercises').delete().eq('id', id).eq('user_id', uid);
+      await _supabase.from('hit_exercises').delete().eq('id', id).eq('user_id', uid);
     } catch (e) {
       debugPrint("Cloud Cycle Error (deleteExercise): $e");
     }
@@ -116,7 +116,7 @@ class CycleCloudRepository {
     if (uid == null) return;
 
     try {
-      await _supabase.from('HIT_cycles').delete().eq('id', id).eq('user_id', uid);
+      await _supabase.from('hit_cycles').delete().eq('id', id).eq('user_id', uid);
     } catch (e) {
       debugPrint("Cloud Cycle Error (deleteCycle): $e");
     }
@@ -185,7 +185,7 @@ class CycleCloudRepository {
 
     try {
       final response = await _supabase
-          .from('HIT_settings')
+          .from('hit_settings')
           .select()
           .eq('user_id', uid)
           .maybeSingle();
@@ -209,7 +209,7 @@ class CycleCloudRepository {
       data.remove('is_synced');
       
       // Upsert using user_id as the unique constraint to ensure we update existing record
-      await _supabase.from('HIT_settings').upsert(
+      await _supabase.from('hit_settings').upsert(
         data, 
         onConflict: 'user_id'
       );
