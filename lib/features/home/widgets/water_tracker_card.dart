@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:heavy_duty/core/theme/app_colors.dart';
 import 'package:heavy_duty/core/theme/app_text_styles.dart';
+import 'package:heavy_duty/features/tracker/hydration/widgets/water_glass_widget.dart';
 
 class WaterTrackerCard extends StatelessWidget {
   final int currentMl;
@@ -31,7 +32,6 @@ class WaterTrackerCard extends StatelessWidget {
 
     return Container(
       width: double.infinity,
-      height: 130.h,
       padding: EdgeInsets.all(20.r),
       decoration: BoxDecoration(
         color: AppColors.surfaceLight.withOpacity(0.6),
@@ -47,39 +47,61 @@ class WaterTrackerCard extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Row(
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(Icons.water_drop_rounded, color: Colors.blueAccent, size: 20.r),
+                        SizedBox(width: 8.w),
+                        Text(
+                          'HYDRATION',
+                          style: AppTextStyles.labelSmall.copyWith(
+                            fontSize: 12.sp,
+                            letterSpacing: 1.5,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                      ],
+                    ),
+                    SizedBox(height: 8.h),
+                    Text(
+                      '$displayCurrent / $displayTarget $unit',
+                      style: AppTextStyles.labelSmall.copyWith(
+                        color: Colors.white,
+                        fontSize: 14.sp,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    Text(
+                      progress >= 1.0 ? "GOAL REACHED" : "REMAINING: ${useMetric ? (targetMl - currentMl) : ((targetMl - currentMl) * mlToOzFactor).toStringAsFixed(1)} $unit",
+                      style: AppTextStyles.labelSmall.copyWith(
+                        color: progress >= 1.0 ? Colors.greenAccent : Colors.blueAccent,
+                        fontSize: 10.sp,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Column(
                 children: [
-                  Icon(Icons.water_drop_rounded, color: Colors.blueAccent, size: 20.r),
-                  SizedBox(width: 8.w),
+                  WaterGlassWidget(progress: progress, size: 45),
+                  SizedBox(height: 4.h),
                   Text(
-                    'HYDRATION',
+                    "${(progress * 100).toInt()}%",
                     style: AppTextStyles.labelSmall.copyWith(
-                      fontSize: 12.sp,
-                      letterSpacing: 1.5,
+                      color: progress >= 1.0 ? Colors.greenAccent : Colors.blueAccent,
                       fontWeight: FontWeight.w900,
+                      fontSize: 10.sp,
                     ),
                   ),
                 ],
               ),
-              Text(
-                '$displayCurrent / $displayTarget $unit',
-                style: AppTextStyles.labelSmall.copyWith(
-                  color: AppColors.textSecondary,
-                  fontSize: 12.sp,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
             ],
           ),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(10.r),
-            child: LinearProgressIndicator(
-              value: progress,
-              minHeight: 10.h,
-              backgroundColor: AppColors.background.withOpacity(0.5),
-              color: Colors.blueAccent,
-            ),
-          ),
+          SizedBox(height: 12.h),
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [

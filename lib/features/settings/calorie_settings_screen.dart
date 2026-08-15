@@ -4,6 +4,8 @@ import 'package:heavy_duty/core/theme/app_colors.dart';
 import 'package:heavy_duty/core/theme/app_text_styles.dart';
 import 'package:heavy_duty/core/widgets/elite_settings_app_bar.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter/services.dart';
+import 'package:heavy_duty/core/widgets/elite_snackbar.dart';
 import '../tracker/calorie/provider/calorie_provider.dart';
 
 class CalorieSettingsScreen extends StatefulWidget {
@@ -14,6 +16,61 @@ class CalorieSettingsScreen extends StatefulWidget {
 }
 
 class _CalorieSettingsScreenState extends State<CalorieSettingsScreen> {
+  late TextEditingController _goalController;
+  late TextEditingController _proteinController;
+  late TextEditingController _carbController;
+  late TextEditingController _fatController;
+
+  @override
+  void initState() {
+    super.initState();
+    final provider = context.read<CalorieProvider>();
+    _goalController = TextEditingController(text: provider.settings.dailyCalorieGoal.toString());
+    _proteinController = TextEditingController(text: provider.settings.proteinPercent.toString());
+    _carbController = TextEditingController(text: provider.settings.carbPercent.toString());
+    _fatController = TextEditingController(text: provider.settings.fatPercent.toString());
+  }
+
+  @override
+  void dispose() {
+    _goalController.dispose();
+    _proteinController.dispose();
+    _carbController.dispose();
+    _fatController.dispose();
+    super.dispose();
+  }
+
+  void _validateAndSaveRatios(String type, String value) {
+    if (value.isEmpty) return;
+    
+    final provider = context.read<CalorieProvider>();
+    final currentSettings = provider.settings;
+    int? newVal = int.tryParse(value);
+    if (newVal == null) return;
+
+    int p = type == 'p' ? newVal : currentSettings.proteinPercent;
+    int c = type == 'c' ? newVal : currentSettings.carbPercent;
+    int f = type == 'f' ? newVal : currentSettings.fatPercent;
+
+    if (p + c + f > 100) {
+      EliteSnackbar.show(context, "TOTAL RATIO CANNOT EXCEED 100%", isError: true);
+      
+      // Revert the text in the controller immediately
+      setState(() {
+        if (type == 'p') _proteinController.text = currentSettings.proteinPercent.toString();
+        if (type == 'c') _carbController.text = currentSettings.carbPercent.toString();
+        if (type == 'f') _fatController.text = currentSettings.fatPercent.toString();
+      });
+      return;
+    }
+
+    provider.updateSettings(currentSettings.copyWith(
+      proteinPercent: p,
+      carbPercent: c,
+      fatPercent: f,
+    ));
+  }
+
   @override
   Widget build(BuildContext context) {
     return Consumer<CalorieProvider>(
@@ -27,7 +84,6 @@ class _CalorieSettingsScreenState extends State<CalorieSettingsScreen> {
               children: [
                 const EliteSettingsAppBar(title: "CALORIE SETTINGS"),
 
-                // Content
                 Expanded(
                   child: SingleChildScrollView(
                     padding: EdgeInsets.symmetric(horizontal: 24.w),
@@ -39,16 +95,18 @@ class _CalorieSettingsScreenState extends State<CalorieSettingsScreen> {
                         
                         _buildSectionHeader("NUTRITIONAL TARGETS"),
                         
-                        // Daily Calorie Goal
                         _buildSettingCard(
                           title: "DAILY CALORIE GOAL",
                           subtitle: "TOTAL ENERGY INTAKE TARGET",
-                          trailing: _buildSmallDropdown<int>(
-                            value: settings.dailyCalorieGoal,
-                            items: [2000, 2200, 2500, 2800, 3000, 3500],
+                          trailing: _buildSmallTextField(
+                            controller: _goalController,
                             suffix: "KCAL",
+                            maxLength: 5,
                             onChanged: (val) {
-                              provider.updateSettings(settings.copyWith(dailyCalorieGoal: val));
+                              int? goal = int.tryParse(val);
+                              if (goal != null) {
+                                provider.updateSettings(settings.copyWith(dailyCalorieGoal: goal));
+                              }
                             },
                           ),
                         ),
@@ -56,45 +114,49 @@ class _CalorieSettingsScreenState extends State<CalorieSettingsScreen> {
                         SizedBox(height: 32.h),
                         _buildSectionHeader("MACRO RATIOS (%)"),
 
-                        // Protein Ratio
                         _buildSettingCard(
                           title: "PROTEIN TARGET",
                           subtitle: "PERCENTAGE OF TOTAL CALORIES",
-                          trailing: _buildSmallDropdown<int>(
-                            value: settings.proteinPercent,
-                            items: [20, 25, 30, 35, 40],
+                          trailing: _buildSmallTextField(
+                            controller: _proteinController,
                             suffix: "%",
-                            onChanged: (val) {
-                               provider.updateSettings(settings.copyWith(proteinPercent: val));
-                            },
+                            maxLength: 3,
+                            onChanged: (val) => _validateAndSaveRatios('p', val),
                           ),
                         ),
 
-                        // Carb Ratio
                         _buildSettingCard(
                           title: "CARBOHYDRATE TARGET",
                           subtitle: "PERCENTAGE OF TOTAL CALORIES",
-                          trailing: _buildSmallDropdown<int>(
-                            value: settings.carbPercent,
-                            items: [30, 40, 50, 60],
+                          trailing: _buildSmallTextField(
+                            controller: _carbController,
                             suffix: "%",
-                            onChanged: (val) {
-                              provider.updateSettings(settings.copyWith(carbPercent: val));
-                            },
+                            maxLength: 3,
+                            onChanged: (val) => _validateAndSaveRatios('c', val),
                           ),
                         ),
 
-                        // Fat Ratio
                         _buildSettingCard(
                           title: "FAT TARGET",
                           subtitle: "PERCENTAGE OF TOTAL CALORIES",
-                          trailing: _buildSmallDropdown<int>(
-                            value: settings.fatPercent,
-                            items: [10, 15, 20, 25, 30],
+                          trailing: _buildSmallTextField(
+                            controller: _fatController,
                             suffix: "%",
-                            onChanged: (val) {
-                              provider.updateSettings(settings.copyWith(fatPercent: val));
-                            },
+                            maxLength: 3,
+                            onChanged: (val) => _validateAndSaveRatios('f', val),
+                          ),
+                        ),
+
+                        SizedBox(height: 12.h),
+                        Center(
+                          child: Text(
+                            "TOTAL: ${settings.proteinPercent + settings.carbPercent + settings.fatPercent}% / 100%",
+                            style: AppTextStyles.labelSmall.copyWith(
+                              color: (settings.proteinPercent + settings.carbPercent + settings.fatPercent) == 100 
+                                  ? Colors.greenAccent 
+                                  : AppColors.crimson,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                         ),
 
@@ -129,6 +191,36 @@ class _CalorieSettingsScreenState extends State<CalorieSettingsScreen> {
           ),
         );
       },
+    );
+  }
+
+  Widget _buildSmallTextField({
+    required TextEditingController controller,
+    required String suffix,
+    required int maxLength,
+    required ValueChanged<String> onChanged,
+  }) {
+    return Container(
+      width: 100.w,
+      padding: EdgeInsets.symmetric(horizontal: 12.w),
+      decoration: BoxDecoration(
+        color: AppColors.background,
+        borderRadius: BorderRadius.circular(8.r),
+      ),
+      child: TextField(
+        controller: controller,
+        keyboardType: TextInputType.number,
+        maxLength: maxLength,
+        style: AppTextStyles.labelSmall.copyWith(fontSize: 12.sp, color: AppColors.white, fontWeight: FontWeight.bold),
+        inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+        decoration: InputDecoration(
+          counterText: "",
+          border: InputBorder.none,
+          suffixText: suffix,
+          suffixStyle: AppTextStyles.labelSmall.copyWith(fontSize: 10.sp, color: AppColors.textSecondary),
+        ),
+        onChanged: onChanged,
+      ),
     );
   }
 

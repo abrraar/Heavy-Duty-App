@@ -180,12 +180,12 @@ class DatabaseHelper {
     await db.execute('''
       CREATE TABLE calorie_settings (
         id INTEGER PRIMARY KEY CHECK (id = 1),
-        daily_calorie_goal INTEGER DEFAULT 2800,
-        protein_percent INTEGER DEFAULT 30,
-        carb_percent INTEGER DEFAULT 50,
-        fat_percent INTEGER DEFAULT 20,
-        track_macros INTEGER DEFAULT 1,
-        show_remaining INTEGER DEFAULT 1,
+        daily_calorie_goal INTEGER DEFAULT 2500,
+        protein_percent INTEGER DEFAULT 25,
+        carb_percent INTEGER DEFAULT 60,
+        fat_percent INTEGER DEFAULT 15,
+        track_macros BOOLEAN DEFAULT TRUE,
+        show_remaining BOOLEAN DEFAULT TRUE,
         is_synced INTEGER DEFAULT 1,
         created_at TEXT DEFAULT CURRENT_TIMESTAMP
       )

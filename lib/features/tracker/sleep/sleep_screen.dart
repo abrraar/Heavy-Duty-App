@@ -375,6 +375,7 @@ class _SleepScreenState extends State<SleepScreen> with SingleTickerProviderStat
               selectedDate: _selectedDate,
               quality: _selectedQuality,
               note: _entryNote,
+              use24HourClock: provider.settings.use24HourClock,
               onPickDate: _pickDate,
               onTimeChanged: (bedtime, wakeTime) {
                 _entryBedTime = bedtime;
@@ -521,6 +522,7 @@ class _SleepScreenState extends State<SleepScreen> with SingleTickerProviderStat
                 idx2: _comparePointB,
                 dates: dates,
                 data: data,
+                use24HourClock: provider.settings.use24HourClock,
                 onPointAChanged: (idx) => setState(() => _comparePointA = idx),
                 onPointBChanged: (idx) => setState(() => _comparePointB = idx),
               ),
@@ -918,7 +920,10 @@ class _SleepScreenState extends State<SleepScreen> with SingleTickerProviderStat
     final hours = log.duration.inHours;
     final minutes = log.duration.inMinutes % 60;
     final dateStr = DateFormat('MMM dd, yyyy').format(log.wakeUpTime);
-    final timeStr = "${DateFormat('hh:mm a').format(log.bedtime)} - ${DateFormat('hh:mm a').format(log.wakeUpTime)}";
+    
+    final String bedTimeStr = _formatTime(TimeOfDay.fromDateTime(log.bedtime), provider.settings.use24HourClock);
+    final String wakeTimeStr = _formatTime(TimeOfDay.fromDateTime(log.wakeUpTime), provider.settings.use24HourClock);
+    final timeStr = "$bedTimeStr - $wakeTimeStr";
 
     return Container(
       padding: EdgeInsets.all(16.r),
@@ -1035,6 +1040,7 @@ class _SleepScreenState extends State<SleepScreen> with SingleTickerProviderStat
           time: TimeOfDay(hour: settings.bedtimeHour, minute: settings.bedtimeMinute),
           isEnabled: settings.bedtimeEnabled,
           audioName: settings.bedtimeAudioPath != null ? settings.bedtimeAudioPath!.split('/').last : 'Standard',
+          use24HourClock: context.read<SleepProvider>().settings.use24HourClock,
           onToggle: (val) async {
              if (val) {
                 final ok = await alarmProvider.checkAndRequestPermissions(context);
@@ -1048,6 +1054,12 @@ class _SleepScreenState extends State<SleepScreen> with SingleTickerProviderStat
             final picked = await showTimePicker(
               context: context, 
               initialTime: TimeOfDay(hour: settings.bedtimeHour, minute: settings.bedtimeMinute),
+              builder: (context, child) {
+                return MediaQuery(
+                  data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: context.read<SleepProvider>().settings.use24HourClock),
+                  child: child!,
+                );
+              },
             );
             if (picked != null) {
               await alarmProvider.updateSettings(bedtimeHour: picked.hour, bedtimeMinute: picked.minute);
@@ -1064,6 +1076,7 @@ class _SleepScreenState extends State<SleepScreen> with SingleTickerProviderStat
           time: TimeOfDay(hour: settings.wakeUpHour, minute: settings.wakeUpMinute),
           isEnabled: settings.wakeUpEnabled,
           audioName: settings.wakeUpAudioPath != null ? settings.wakeUpAudioPath!.split('/').last : 'Standard',
+          use24HourClock: context.read<SleepProvider>().settings.use24HourClock,
           onToggle: (val) async {
              if (val) {
                 final ok = await alarmProvider.checkAndRequestPermissions(context);
@@ -1077,6 +1090,12 @@ class _SleepScreenState extends State<SleepScreen> with SingleTickerProviderStat
             final picked = await showTimePicker(
               context: context, 
               initialTime: TimeOfDay(hour: settings.wakeUpHour, minute: settings.wakeUpMinute),
+              builder: (context, child) {
+                return MediaQuery(
+                  data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: context.read<SleepProvider>().settings.use24HourClock),
+                  child: child!,
+                );
+              },
             );
             if (picked != null) {
               await alarmProvider.updateSettings(wakeUpHour: picked.hour, wakeUpMinute: picked.minute);
@@ -1099,6 +1118,7 @@ class _SleepScreenState extends State<SleepScreen> with SingleTickerProviderStat
     required Function(bool) onToggle,
     required VoidCallback onTimeTap,
     required VoidCallback onAudioTap,
+    required bool use24HourClock,
   }) {
     return Container(
       decoration: BoxDecoration(
@@ -1152,7 +1172,13 @@ class _SleepScreenState extends State<SleepScreen> with SingleTickerProviderStat
                         children: [
                           Text("SCHEDULED", style: AppTextStyles.labelSmall.copyWith(fontSize: 8.sp, color: AppColors.textSecondary, letterSpacing: 1)),
                           SizedBox(height: 4.h),
-                          Text(time.format(context), style: AppTextStyles.h2.copyWith(fontSize: 22.sp, color: isEnabled ? AppColors.white : AppColors.textSecondary.withValues(alpha: 0.5))),
+                          Text(
+                            _formatTime(time, use24HourClock), 
+                            style: AppTextStyles.h2.copyWith(
+                              fontSize: 22.sp, 
+                              color: isEnabled ? AppColors.white : AppColors.textSecondary.withValues(alpha: 0.5)
+                            )
+                          ),
                         ],
                       ),
                     ),
@@ -1194,6 +1220,19 @@ class _SleepScreenState extends State<SleepScreen> with SingleTickerProviderStat
         ],
       ),
     );
+  }
+
+  String _formatTime(TimeOfDay time, bool use24HourClock) {
+    if (use24HourClock) {
+      final String hour = time.hour.toString().padLeft(2, '0');
+      final String minute = time.minute.toString().padLeft(2, '0');
+      return "$hour:$minute";
+    } else {
+      final int hour = time.hourOfPeriod == 0 ? 12 : time.hourOfPeriod;
+      final String minute = time.minute.toString().padLeft(2, '0');
+      final String period = time.period == DayPeriod.am ? "AM" : "PM";
+      return "$hour:$minute $period";
+    }
   }
 
 
@@ -1262,6 +1301,7 @@ class SleepComparisonWidget extends StatelessWidget {
   final Map<String, List<double?>> data;
   final Function(int?) onPointAChanged;
   final Function(int?) onPointBChanged;
+  final bool use24HourClock;
 
   const SleepComparisonWidget({
     super.key,
@@ -1271,6 +1311,7 @@ class SleepComparisonWidget extends StatelessWidget {
     required this.data,
     required this.onPointAChanged,
     required this.onPointBChanged,
+    required this.use24HourClock,
   });
 
   @override
@@ -1311,7 +1352,13 @@ class SleepComparisonWidget extends StatelessWidget {
   }
 
   Widget _buildPointPicker(String title, int? selectedIdx, int? otherIdx, List<DateTime> dates, Function(int?) onChanged, BuildContext context, {bool isEnd = false}) {
-    final labels = dates.map((d) => DateFormat('MMM dd, HH:mm').format(d).toUpperCase()).toList();
+    final labels = dates.map((d) {
+      if (use24HourClock) {
+        return DateFormat('MMM dd, HH:mm').format(d).toUpperCase();
+      } else {
+        return DateFormat('MMM dd, hh:mm a').format(d).toUpperCase();
+      }
+    }).toList();
     return Expanded(
       child: Column(
         crossAxisAlignment: isEnd ? CrossAxisAlignment.end : CrossAxisAlignment.start,
@@ -1456,7 +1503,9 @@ class SleepComparisonWidget extends StatelessWidget {
                                       color: isCurrent ? AppColors.crimson : (isOther ? AppColors.textSecondary.withOpacity(0.5) : AppColors.textSecondary.withOpacity(0.2)),
                                     ),
                                     title: Text(
-                                      DateFormat('hh:mm a').format(dates[idx]),
+                                      use24HourClock 
+                                          ? DateFormat('HH:mm').format(dates[idx])
+                                          : DateFormat('hh:mm a').format(dates[idx]),
                                       style: AppTextStyles.labelSmall.copyWith(color: isCurrent ? Colors.white : (isOther ? AppColors.textSecondary.withOpacity(0.5) : AppColors.textSecondary)),
                                     ),
                                     onTap: () => Navigator.pop(ctx, idx),

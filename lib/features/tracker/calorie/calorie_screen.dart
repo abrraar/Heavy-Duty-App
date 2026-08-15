@@ -1505,140 +1505,173 @@ class _CalorieScreenState extends State<CalorieScreen> with SingleTickerProvider
   }
 
   Widget _buildEnergySummary(int consumed, int goal, double? protein, double? carbs, double? fats) {
-    final int remaining = goal - consumed;
-    final bool isOver = remaining < 0;
+    return Consumer<CalorieProvider>(
+      builder: (context, provider, _) {
+        final settings = provider.settings;
+        final int remaining = goal - consumed;
+        final bool isOver = remaining < 0;
 
-    final double totalMacros = (protein ?? 0) + (carbs ?? 0) + (fats ?? 0);
-    final bool hasMacros = totalMacros > 0;
+        final double totalMacros = (protein ?? 0) + (carbs ?? 0) + (fats ?? 0);
+        final bool hasMacros = totalMacros > 0;
 
-    return Container(
-      margin: EdgeInsets.symmetric(horizontal: 20.w),
-      padding: EdgeInsets.all(24.r),
-      decoration: BoxDecoration(
-        color: AppColors.surfaceLight.withValues(alpha: 0.3),
-        borderRadius: BorderRadius.circular(24.r),
-        border: Border.all(color: AppColors.white.withValues(alpha: 0.05)),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                "CONSUMED",
-                style: AppTextStyles.labelSmall.copyWith(
-                  color: AppColors.textSecondary,
-                ),
-              ),
-              Text(
-                "$consumed",
-                style: AppTextStyles.h1.copyWith(
-                  fontSize: 32.sp,
-                  color: AppColors.white,
-                ),
-              ),
-              Text(
-                "/ $goal kcal",
-                style: AppTextStyles.labelSmall.copyWith(
-                  color: AppColors.white.withValues(alpha: 0.5),
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              SizedBox(height: 8.h),
-              Text(
-                isOver ? "OVER: ${remaining.abs()} kcal" : "REMAINING: $remaining kcal",
-                style: AppTextStyles.labelSmall.copyWith(
-                  color: isOver ? AppColors.crimson : Colors.greenAccent,
-                  fontSize: 10.sp,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ],
+        return Container(
+          margin: EdgeInsets.symmetric(horizontal: 20.w),
+          padding: EdgeInsets.all(24.r),
+          decoration: BoxDecoration(
+            color: AppColors.surfaceLight.withValues(alpha: 0.3),
+            borderRadius: BorderRadius.circular(24.r),
+            border: Border.all(color: AppColors.white.withValues(alpha: 0.05)),
           ),
-          SizedBox(
-            height: 90.r,
-            width: 90.r,
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                PieChart(
-                  PieChartData(
-                    sectionsSpace: 0,
-                    centerSpaceRadius: 32.r,
-                    startDegreeOffset: -90,
-                    sections: [
-                      PieChartSectionData(
-                        color: AppColors.crimson,
-                        value: consumed.toDouble(),
-                        radius: 6.r,
-                        showTitle: false,
-                      ),
-                      PieChartSectionData(
-                        color: AppColors.white.withValues(alpha: 0.05),
-                        value: remaining < 0 ? 0 : remaining.toDouble(),
-                        radius: 6.r,
-                        showTitle: false,
-                      ),
-                    ],
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    "CONSUMED",
+                    style: AppTextStyles.labelSmall.copyWith(
+                      color: AppColors.textSecondary,
+                    ),
                   ),
-                ),
-                if (hasMacros)
-                  SizedBox(
-                    height: 56.r,
-                    width: 56.r,
-                    child: PieChart(
+                  Text(
+                    "$consumed",
+                    style: AppTextStyles.h1.copyWith(
+                      fontSize: 32.sp,
+                      color: AppColors.white,
+                    ),
+                  ),
+                  Text(
+                    "/ $goal kcal",
+                    style: AppTextStyles.labelSmall.copyWith(
+                      color: AppColors.white.withValues(alpha: 0.5),
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  if (settings.showRemaining) ...[
+                    SizedBox(height: 8.h),
+                    Text(
+                      isOver ? "OVER: ${remaining.abs()} kcal" : "REMAINING: $remaining kcal",
+                      style: AppTextStyles.labelSmall.copyWith(
+                        color: isOver ? AppColors.crimson : Colors.greenAccent,
+                        fontSize: 10.sp,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+              SizedBox(
+                height: 90.r,
+                width: 90.r,
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    PieChart(
                       PieChartData(
-                        sectionsSpace: 2,
-                        centerSpaceRadius: 20.r,
+                        sectionsSpace: 0,
+                        centerSpaceRadius: 32.r,
                         startDegreeOffset: -90,
                         sections: [
                           PieChartSectionData(
-                            color: Colors.blueAccent,
-                            value: protein ?? 0,
+                            color: AppColors.crimson,
+                            value: consumed.toDouble(),
                             radius: 6.r,
                             showTitle: false,
                           ),
                           PieChartSectionData(
-                            color: Colors.greenAccent,
-                            value: carbs ?? 0,
-                            radius: 6.r,
-                            showTitle: false,
-                          ),
-                          PieChartSectionData(
-                            color: Colors.orangeAccent,
-                            value: fats ?? 0,
+                            color: AppColors.white.withValues(alpha: 0.05),
+                            value: remaining < 0 ? 0 : remaining.toDouble(),
                             radius: 6.r,
                             showTitle: false,
                           ),
                         ],
                       ),
                     ),
-                  ),
-              ],
-            ),
+                    if (hasMacros)
+                      SizedBox(
+                        height: 56.r,
+                        width: 56.r,
+                        child: PieChart(
+                          PieChartData(
+                            sectionsSpace: 2,
+                            centerSpaceRadius: 20.r,
+                            startDegreeOffset: -90,
+                            sections: [
+                              PieChartSectionData(
+                                color: Colors.blueAccent,
+                                value: protein ?? 0,
+                                radius: 6.r,
+                                showTitle: false,
+                              ),
+                              PieChartSectionData(
+                                color: Colors.greenAccent,
+                                value: carbs ?? 0,
+                                radius: 6.r,
+                                showTitle: false,
+                              ),
+                              PieChartSectionData(
+                                color: Colors.orangeAccent,
+                                value: fats ?? 0,
+                                radius: 6.r,
+                                showTitle: false,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 
   Widget _buildMacroSection(double? protein, double? carbs, double? fats) {
-    return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 20.w),
-      child: Row(
-        children: [
-          _buildMacroTile("Protein", protein != null ? "${protein.toInt()}g" : "-", Colors.blueAccent),
-          SizedBox(width: 10.w),
-          _buildMacroTile("Carbs", carbs != null ? "${carbs.toInt()}g" : "-", Colors.greenAccent),
-          SizedBox(width: 10.w),
-          _buildMacroTile("Fats", fats != null ? "${fats.toInt()}g" : "-", Colors.orangeAccent),
-        ],
-      ),
+    return Consumer<CalorieProvider>(
+      builder: (context, provider, _) {
+        final settings = provider.settings;
+        final goal = settings.dailyCalorieGoal;
+        
+        final targetPro = (goal * (settings.proteinPercent / 100)) / 4;
+        final targetCho = (goal * (settings.carbPercent / 100)) / 4;
+        final targetFat = (goal * (settings.fatPercent / 100)) / 9;
+
+        return Padding(
+          padding: EdgeInsets.symmetric(horizontal: 20.w),
+          child: Row(
+            children: [
+              _buildMacroTile(
+                "Protein", 
+                protein != null ? "${protein.toInt()}g" : "-", 
+                "${targetPro.toInt()}g",
+                Colors.blueAccent
+              ),
+              SizedBox(width: 10.w),
+              _buildMacroTile(
+                "Carbs", 
+                carbs != null ? "${carbs.toInt()}g" : "-", 
+                "${targetCho.toInt()}g",
+                Colors.greenAccent
+              ),
+              SizedBox(width: 10.w),
+              _buildMacroTile(
+                "Fats", 
+                fats != null ? "${fats.toInt()}g" : "-", 
+                "${targetFat.toInt()}g",
+                Colors.orangeAccent
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 
-  Widget _buildMacroTile(String label, String value, Color color) {
+  Widget _buildMacroTile(String label, String value, String target, Color color) {
     return Expanded(
       child: Container(
         padding: EdgeInsets.symmetric(vertical: 16.h),
@@ -1650,14 +1683,20 @@ class _CalorieScreenState extends State<CalorieScreen> with SingleTickerProvider
           children: [
             Text(
               value,
-              style: AppTextStyles.labelMedium.copyWith(color: AppColors.white),
+              style: AppTextStyles.labelMedium.copyWith(color: AppColors.white, fontWeight: FontWeight.w900),
+            ),
+            Text(
+              "/ $target",
+              style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary, fontSize: 10.sp, fontWeight: FontWeight.bold),
             ),
             SizedBox(height: 4.h),
             Text(
-              label,
+              label.toUpperCase(),
               style: AppTextStyles.labelSmall.copyWith(
-                fontSize: 10.sp,
+                fontSize: 9.sp,
                 color: color,
+                fontWeight: FontWeight.w900,
+                letterSpacing: 1,
               ),
             ),
           ],

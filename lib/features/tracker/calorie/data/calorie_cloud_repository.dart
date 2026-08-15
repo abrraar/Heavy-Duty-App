@@ -107,18 +107,28 @@ class CalorieCloudRepository {
 
   Future<void> saveSettings(CalorieSettings settings) async {
     final uid = _currentUserId;
-    if (uid == null) return;
+    if (uid == null) {
+      debugPrint("CalorieCloudRepo: No current user ID. Cannot save settings.");
+      return;
+    }
 
     try {
       final data = settings.toMap();
       data['user_id'] = uid;
       
-      // Convert booleans to true/false for Supabase
+      // Convert booleans to true/false for Supabase bool columns
       data['track_macros'] = settings.trackMacros;
       data['show_remaining'] = settings.showRemaining;
       
-      data.remove('is_synced');
+      data['is_synced'] = 1; // Mark as synced in Supabase too
+      data.remove('id'); // Remove local SQLite ID
+      
+      debugPrint("CalorieCloudRepo: Attempting upsert for calorie_settings for user: $uid");
+      debugPrint("CalorieCloudRepo: Data payload: $data");
+      
       await _supabase.from('calorie_settings').upsert(data, onConflict: 'user_id');
+      
+      debugPrint("CalorieCloudRepo: Successfully saved settings to cloud.");
     } catch (e) {
       debugPrint("Cloud Calorie Error (saveSettings): $e");
       rethrow;

@@ -1,6 +1,5 @@
 // lib/features/tracker/hydration/hydration_screen.dart
 
-import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -15,6 +14,7 @@ import 'package:heavy_duty/core/widgets/elite_confirm_dialog.dart';
 import 'package:heavy_duty/core/widgets/elite_snackbar.dart';
 import 'package:heavy_duty/features/main_wrapper.dart';
 import 'widgets/sheets/hydration_notification_sheet.dart';
+import 'widgets/water_glass_widget.dart';
 
 class _HydrationFilter {
   bool isDescending;
@@ -131,169 +131,6 @@ class _HydrationScreenState extends State<HydrationScreen>
     if (picked != null) {
       setState(() => _manualTime = picked);
     }
-  }
-
-  void _openNotifications() {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => const HydrationNotificationSheet(),
-    );
-  }
-
-  void _showQuickAddEditDialog(HydrationProvider provider) {
-    final settings = provider.settings;
-    final bool useMetric = settings.useMetric;
-    final String unit = useMetric ? "ML" : "OZ";
-    
-    double initialAddVal = useMetric 
-        ? settings.addValue.toDouble() 
-        : provider.mlToOz(settings.addValue);
-        
-    double initialRemoveVal = useMetric 
-        ? settings.minusValue.toDouble() 
-        : provider.mlToOz(settings.minusValue);
-        
-    final TextEditingController addController = TextEditingController(
-      text: initialAddVal % 1 == 0 ? initialAddVal.toInt().toString() : initialAddVal.toStringAsFixed(3)
-    );
-    final TextEditingController removeController = TextEditingController(
-      text: initialRemoveVal % 1 == 0 ? initialRemoveVal.toInt().toString() : initialRemoveVal.toStringAsFixed(3)
-    );
-
-    final inputFormatters = [
-      TextInputFormatter.withFunction((oldValue, newValue) {
-        final text = newValue.text;
-        if (text.isEmpty) return newValue;
-        if (RegExp(r'^\d{0,4}(\.\d{0,3})?$').hasMatch(text)) {
-          return newValue;
-        }
-        return oldValue;
-      }),
-    ];
-
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: AppColors.surface,
-        surfaceTintColor: Colors.transparent,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28.r)),
-        title: Column(
-          children: [
-            Container(
-              padding: EdgeInsets.all(12.r),
-              decoration: BoxDecoration(
-                color: Colors.blueAccent.withValues(alpha: 0.1),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(Icons.edit_rounded, color: Colors.blueAccent, size: 28),
-            ),
-            SizedBox(height: 16.h),
-            Text(
-              "QUICK CONTROLS",
-              style: AppTextStyles.h3.copyWith(fontSize: 16.sp, letterSpacing: 1.2),
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              "SET CUSTOM VALUES FOR +/- BUTTONS",
-              textAlign: TextAlign.center,
-              style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary),
-            ),
-            SizedBox(height: 24.h),
-            _buildDialogInputField("POSITIVE (+) VALUE", addController, unit, Colors.blueAccent, inputFormatters),
-            SizedBox(height: 16.h),
-            _buildDialogInputField("NEGATIVE (-) VALUE", removeController, unit, AppColors.error, inputFormatters),
-          ],
-        ),
-        actions: [
-          Padding(
-            padding: EdgeInsets.fromLTRB(12.w, 0, 12.w, 16.h),
-            child: Row(
-              children: [
-                Expanded(
-                  child: GestureDetector(
-                    onTap: () => Navigator.pop(context),
-                    child: Container(
-                      padding: EdgeInsets.symmetric(vertical: 12.h),
-                      decoration: BoxDecoration(
-                        color: Colors.transparent,
-                        borderRadius: BorderRadius.circular(12.r),
-                        border: Border.all(color: AppColors.white.withValues(alpha: 0.1)),
-                      ),
-                      alignment: Alignment.center,
-                      child: Text(
-                        "CANCEL",
-                        style: AppTextStyles.labelMedium.copyWith(color: AppColors.textSecondary),
-                      ),
-                    ),
-                  ),
-                ),
-                SizedBox(width: 12.w),
-                Expanded(
-                  child: GestureDetector(
-                    onTap: () {
-                      final addVal = double.tryParse(addController.text) ?? 0;
-                      final removeVal = double.tryParse(removeController.text) ?? 0;
-                      
-                      if (addVal > 0 || removeVal > 0) {
-                        int addMl = useMetric ? addVal.round() : provider.ozToMl(addVal);
-                        int removeMl = useMetric ? removeVal.round() : provider.ozToMl(removeVal);
-                        provider.updateSettings(settings.copyWith(
-                          addValue: addMl,
-                          minusValue: removeMl,
-                        ));
-                        Navigator.pop(context);
-                      }
-                    },
-                    child: Container(
-                      padding: EdgeInsets.symmetric(vertical: 12.h),
-                      decoration: BoxDecoration(
-                        color: Colors.blueAccent.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(12.r),
-                        border: Border.all(color: Colors.blueAccent.withValues(alpha: 0.5)),
-                      ),
-                      alignment: Alignment.center,
-                      child: Text(
-                        "SAVE",
-                        style: AppTextStyles.labelMedium.copyWith(color: Colors.blueAccent, fontWeight: FontWeight.bold),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildDialogInputField(String label, TextEditingController controller, String unit, Color color, List<TextInputFormatter> formatters) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(label, style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary, fontSize: 8.sp, fontWeight: FontWeight.bold)),
-        TextField(
-          controller: controller,
-          keyboardType: const TextInputType.numberWithOptions(decimal: true),
-          textAlign: TextAlign.center,
-          inputFormatters: formatters,
-          style: AppTextStyles.h2.copyWith(color: color, fontSize: 24.sp),
-          decoration: InputDecoration(
-            suffixText: unit,
-            suffixStyle: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary, fontSize: 10.sp),
-            enabledBorder: const UnderlineInputBorder(borderSide: BorderSide(color: Colors.white24)),
-            focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: color)),
-          ),
-        ),
-      ],
-    );
   }
 
   Future<bool?> _showDeleteLogConfirmation(String amount) async {
@@ -736,33 +573,6 @@ class _HydrationScreenState extends State<HydrationScreen>
                   fontWeight: FontWeight.bold,
                 ),
               ),
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  _buildQuickActionButton(
-                    icon: Icons.edit_rounded,
-                    isActive: false,
-                    onTap: () => _showQuickAddEditDialog(provider),
-                    color: Colors.blueAccent,
-                  ),
-                  SizedBox(width: 8.w),
-                  _buildQuickActionButton(
-                    icon: isPinned ? Icons.push_pin_rounded : Icons.push_pin_outlined,
-                    isActive: isPinned,
-                    onTap: () {
-                      provider.updateSettings(settings.copyWith(isPinnedToHome: !isPinned));
-                    },
-                    color: Colors.blueAccent,
-                  ),
-                  SizedBox(width: 8.w),
-                  _buildQuickActionButton(
-                    icon: settings.remindersEnabled ? Icons.notifications_active_rounded : Icons.notifications_outlined,
-                    isActive: settings.remindersEnabled,
-                    onTap: _openNotifications,
-                    color: Colors.blueAccent,
-                  ),
-                ],
-              ),
             ],
           ),
           SizedBox(height: 24.h),
@@ -798,32 +608,16 @@ class _HydrationScreenState extends State<HydrationScreen>
                 ],
               ),
               SizedBox(
-                height: 90.r,
+                height: 100.r,
                 width: 90.r,
-                child: Stack(
-                  alignment: Alignment.center,
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    PieChart(
-                      PieChartData(
-                        sectionsSpace: 0,
-                        centerSpaceRadius: 32.r,
-                        startDegreeOffset: -90,
-                        sections: [
-                          PieChartSectionData(
-                            color: Colors.blueAccent,
-                            value: currentIntakeMl.toDouble(),
-                            radius: 6.r,
-                            showTitle: false,
-                          ),
-                          PieChartSectionData(
-                            color: AppColors.white.withValues(alpha: 0.05),
-                            value: remainingMl < 0 ? 0 : remainingMl.toDouble(),
-                            radius: 6.r,
-                            showTitle: false,
-                          ),
-                        ],
-                      ),
+                    WaterGlassWidget(
+                      progress: progress,
+                      size: 60,
                     ),
+                    SizedBox(height: 8.h),
                     Text(
                       "${(progress * 100).toInt()}%",
                       style: AppTextStyles.labelSmall.copyWith(

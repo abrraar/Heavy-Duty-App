@@ -7,6 +7,7 @@ import 'package:heavy_duty/core/services/connectivity_service.dart';
 import '../data/sleep_local_repository.dart';
 import '../data/sleep_cloud_repository.dart';
 import '../model/sleep_log.dart';
+import '../model/sleep_settings.dart';
 
 class SleepProvider with ChangeNotifier {
   SleepLocalRepository? _localRepo;
@@ -15,9 +16,11 @@ class SleepProvider with ChangeNotifier {
   RealtimeChannel? _realtimeChannel;
 
   List<SleepLog> _logs = [];
+  SleepSettings _settings = SleepSettings(userId: '');
   bool _isLoading = false;
 
   List<SleepLog> get logs => _logs;
+  SleepSettings get settings => _settings;
   bool get isLoading => _isLoading;
 
   void initializeForUser(String userId) {
@@ -70,6 +73,28 @@ class SleepProvider with ChangeNotifier {
       },
     );
 
+    // 2. Listen for Sleep Settings
+    _realtimeChannel!.onPostgresChanges(
+      event: PostgresChangeEvent.all,
+      schema: 'public',
+      table: 'sleep_settings',
+      callback: (payload) async {
+        debugPrint("Realtime Sleep Settings Update: ${payload.eventType}");
+        
+        final String? recordUserId = payload.newRecord['user_id'] ?? payload.oldRecord['user_id'];
+        if (recordUserId != userId) return;
+
+        if (payload.newRecord.isNotEmpty) {
+          final newSettings = SleepSettings.fromMap(payload.newRecord);
+          if (_settings.isSynced == 1) {
+            _settings = newSettings;
+            await _localRepo!.saveSettings(newSettings);
+            notifyListeners();
+          }
+        }
+      },
+    );
+
     _realtimeChannel!.subscribe((status, [error]) async {
       if (status == RealtimeSubscribeStatus.subscribed) {
         debugPrint("SleepProvider: Realtime Subscribed/Reconnected. Syncing...");
@@ -100,6 +125,15 @@ class SleepProvider with ChangeNotifier {
         await _localRepo!.markLogSynced(log.id);
       } catch (_) {}
     }
+
+    // 3. Push Unsynced Settings
+    final currentSettings = await _localRepo!.getSettings();
+    if (currentSettings != null && currentSettings.isSynced == 0) {
+      try {
+        await _cloudRepo.saveSettings(currentSettings);
+        await _localRepo!.saveSettings(currentSettings.copyWith(isSynced: 1));
+      } catch (_) {}
+    }
   }
 
   Future<void> _loadData({bool silent = false}) async {
@@ -111,8 +145,23 @@ class SleepProvider with ChangeNotifier {
 
     try {
       _logs = await _localRepo!.getAllLogs();
+      _settings = await _localRepo!.getSettings() ?? SleepSettings(userId: _localRepo!.userId);
       notifyListeners();
 
+      // 2. Fetch remote settings
+      try {
+        final cloudSettings = await _cloudRepo.getSettings();
+        if (cloudSettings != null) {
+          if (_settings.isSynced == 1) {
+            _settings = cloudSettings;
+            await _localRepo!.saveSettings(cloudSettings);
+          }
+        }
+      } catch (e) {
+        debugPrint("SleepProvider: Settings sync failed: $e");
+      }
+
+      // 3. Fetch and Reconcile Logs
       final cloudLogs = await _cloudRepo.getAllLogs();
       if (cloudLogs != null) {
         final localLogs = await _localRepo!.getAllLogs();
@@ -200,6 +249,23 @@ class SleepProvider with ChangeNotifier {
       await _localRepo!.removeFromDeletionQueue(id);
     } catch (e) {
       debugPrint("Error deleting sleep log: $e");
+    }
+  }
+
+  Future<void> updateSettings(SleepSettings settings) async {
+    if (_localRepo == null) return;
+    final localSettings = settings.copyWith(isSynced: 0);
+    _settings = localSettings;
+    notifyListeners();
+
+    try {
+      await _localRepo!.saveSettings(localSettings);
+      await _cloudRepo.saveSettings(localSettings);
+      await _localRepo!.saveSettings(localSettings.copyWith(isSynced: 1));
+      _settings = _settings.copyWith(isSynced: 1);
+      notifyListeners();
+    } catch (e) {
+      debugPrint("Error saving sleep settings: $e");
     }
   }
 

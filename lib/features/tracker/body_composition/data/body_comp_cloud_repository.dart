@@ -45,8 +45,8 @@ class BodyCompCloudRepository {
     try {
       final data = settings.toMap();
       data['user_id'] = uid;
+      data['is_synced'] = 1;
       data.remove('id'); 
-      data.remove('is_synced');
       await _supabase.from('body_comp_settings').upsert(data, onConflict: 'user_id');
     } catch (e) {
       debugPrint("Cloud Body Comp Error (saveSettings): $e");

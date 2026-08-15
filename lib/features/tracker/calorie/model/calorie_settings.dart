@@ -8,10 +8,10 @@ class CalorieSettings {
   final int isSynced;
 
   CalorieSettings({
-    this.dailyCalorieGoal = 2800,
-    this.proteinPercent = 30,
-    this.carbPercent = 50,
-    this.fatPercent = 20,
+    this.dailyCalorieGoal = 2500,
+    this.proteinPercent = 25,
+    this.carbPercent = 60,
+    this.fatPercent = 15,
     this.trackMacros = true,
     this.showRemaining = true,
     this.isSynced = 1,
@@ -24,8 +24,8 @@ class CalorieSettings {
       'protein_percent': proteinPercent,
       'carb_percent': carbPercent,
       'fat_percent': fatPercent,
-      'track_macros': trackMacros ? 1 : 0,
-      'show_remaining': showRemaining ? 1 : 0,
+      'track_macros': trackMacros,
+      'show_remaining': showRemaining,
       'is_synced': isSynced,
     };
   }
@@ -38,10 +38,10 @@ class CalorieSettings {
     }
 
     return CalorieSettings(
-      dailyCalorieGoal: (map['daily_calorie_goal'] as num?)?.toInt() ?? 2800,
-      proteinPercent: (map['protein_percent'] as num?)?.toInt() ?? 30,
-      carbPercent: (map['carb_percent'] as num?)?.toInt() ?? 50,
-      fatPercent: (map['fat_percent'] as num?)?.toInt() ?? 20,
+      dailyCalorieGoal: (map['daily_calorie_goal'] as num?)?.toInt() ?? 2500,
+      proteinPercent: (map['protein_percent'] as num?)?.toInt() ?? 25,
+      carbPercent: (map['carb_percent'] as num?)?.toInt() ?? 60,
+      fatPercent: (map['fat_percent'] as num?)?.toInt() ?? 15,
       trackMacros: parseBool(map['track_macros']),
       showRemaining: parseBool(map['show_remaining']),
       isSynced: (map['is_synced'] as num?)?.toInt() ?? 1,

@@ -18,7 +18,7 @@ class SleepSettings {
       'user_id': userId,
       'use_24h_clock': use24HourClock ? 1 : 0,
       'is_synced': isSynced,
-      'created_at': createdAt?.toIso8601String(),
+      if (createdAt != null) 'created_at': createdAt!.toIso8601String(),
     };
   }
 

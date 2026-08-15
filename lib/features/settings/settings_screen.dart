@@ -14,6 +14,7 @@ import 'package:heavy_duty/features/tracker/hydration/provider/hydration_provide
 import 'package:heavy_duty/features/tracker/body_composition/provider/body_comp_provider.dart';
 import 'package:heavy_duty/features/tracker/cycle_tracker/model/cycle_settings.dart';
 import 'package:heavy_duty/features/tracker/body_composition/model/body_comp_settings.dart';
+import 'package:heavy_duty/features/tracker/sleep/provider/sleep_provider.dart';
 
 import '../tracker/hydration/model/hydration_settings.dart';
 
@@ -27,8 +28,8 @@ class SettingsScreen extends StatefulWidget {
 class _SettingsScreenState extends State<SettingsScreen> {
   @override
   Widget build(BuildContext context) {
-    return Consumer3<CycleProvider, HydrationProvider, BodyCompProvider>(
-      builder: (context, cycleProv, hydProv, bodyProv, _) {
+    return Consumer4<CycleProvider, HydrationProvider, BodyCompProvider, SleepProvider>(
+      builder: (context, cycleProv, hydProv, bodyProv, sleepProv, _) {
         final bool useMetricWeight = cycleProv.settings.weightUnit == WeightUnit.kgs;
         final bool useMetricVolume = hydProv.settings.unit == HydrationUnit.ml;
         final bool bodyUseMetricWeight = bodyProv.settings.weightUnit == WeightUnit.kgs;
@@ -161,6 +162,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           onSelected: (v) {
                             hydProv.updateSettings(hydProv.settings.copyWith(
                               unit: v == 1 ? HydrationUnit.ml : HydrationUnit.oz,
+                            ));
+                          },
+                        ),
+                        SizedBox(height: 12.h),
+                        EliteUnitToggleCard(
+                          title: "Time Format",
+                          subtitle: "Switch between 12H and 24H clock",
+                          options: const ["12H", "24H"],
+                          selectedIndex: sleepProv.settings.use24HourClock ? 1 : 0,
+                          selectedColor: AppColors.crimson,
+                          onSelected: (v) {
+                            sleepProv.updateSettings(sleepProv.settings.copyWith(
+                              use24HourClock: v == 1,
                             ));
                           },
                         ),

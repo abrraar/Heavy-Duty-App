@@ -84,9 +84,8 @@ class HydrationCloudRepository {
     try {
       final data = settings.toMap();
       data['user_id'] = uid;
-      // We don't need 'id' in the map for cloud settings if user_id is PK
+      data['is_synced'] = 1;
       data.remove('id'); 
-      data.remove('is_synced');
       await _supabase.from('hydration_settings').upsert(data, onConflict: 'user_id');
     } catch (e) {
       debugPrint("Cloud Hydration Error (saveSettings): $e");

@@ -19,6 +19,7 @@ class CircularSleepPicker extends StatefulWidget {
   final Function(int) onQualityChanged;
   final Function(String) onNoteChanged;
   final VoidCallback onSave;
+  final bool use24HourClock;
 
   const CircularSleepPicker({
     super.key,
@@ -34,6 +35,7 @@ class CircularSleepPicker extends StatefulWidget {
     required this.onQualityChanged,
     required this.onNoteChanged,
     required this.onSave,
+    required this.use24HourClock,
   });
 
   @override
@@ -80,9 +82,14 @@ class _CircularSleepPickerState extends State<CircularSleepPicker> {
 
   String _formatTime(double angle) {
     final time = _angleToTime(angle);
-    final now = DateTime.now();
-    final dt = DateTime(now.year, now.month, now.day, time.hour, time.minute);
-    return DateFormat('hh:mm a').format(dt).toLowerCase();
+    if (widget.use24HourClock) {
+      return "${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}";
+    } else {
+      final int hour = time.hourOfPeriod == 0 ? 12 : time.hourOfPeriod;
+      final String minute = time.minute.toString().padLeft(2, '0');
+      final String period = time.period == DayPeriod.am ? "am" : "pm";
+      return "$hour:$minute $period";
+    }
   }
 
   Future<void> _pickTime(bool isBedtime) async {
@@ -100,7 +107,10 @@ class _CircularSleepPickerState extends State<CircularSleepPicker> {
               onSurface: Colors.white,
             ),
           ),
-          child: child!,
+          child: MediaQuery(
+            data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: widget.use24HourClock),
+            child: child!,
+          ),
         );
       },
     );
