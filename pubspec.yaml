@@ -35,6 +35,7 @@ dependencies:
   android_intent_plus: ^5.0.0
   share_plus: ^10.1.4
   app_links: ^6.3.2
+  shared_preferences: ^2.5.2
 
 dev_dependencies:
   flutter_test:

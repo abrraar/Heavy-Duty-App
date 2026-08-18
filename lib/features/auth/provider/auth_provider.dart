@@ -165,9 +165,9 @@ class AuthProvider with ChangeNotifier {
   Future<void> addEmail(String email) async {
     if (_profileRepo == null) return;
     
-    // ENFORCE LIMIT: Max 5 emails
-    if (_userEmails.length >= 5) {
-      throw "MAXIMUM EMAIL LIMIT REACHED (5)";
+    // ENFORCE LIMIT: Max 3 emails
+    if (_userEmails.length >= 3) {
+      throw "MAXIMUM EMAIL LIMIT REACHED (3)";
     }
 
     final normalizedEmail = email.trim().toLowerCase();

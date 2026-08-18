@@ -1,5 +1,4 @@
 import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
@@ -10,6 +9,7 @@ import 'package:heavy_duty/core/widgets/elite_snackbar.dart';
 import 'package:heavy_duty/features/auth/provider/auth_provider.dart';
 import 'package:heavy_duty/core/widgets/elite_settings_app_bar.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../core/navigation/app_routes.dart';
 
@@ -33,6 +33,7 @@ class _ManageEmailScreenState extends State<ManageEmailScreen> {
   @override
   void initState() {
     super.initState();
+    _loadCooldown();
     // Auto-refresh when entering the screen to catch any verification updates from deep links
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       final authProv = context.read<AuthProvider>();
@@ -70,8 +71,18 @@ class _ManageEmailScreenState extends State<ManageEmailScreen> {
     super.dispose();
   }
 
-  void _startCooldown() {
-    setState(() => _secondsRemaining = 120); // 2 minutes
+  Future<void> _loadCooldown() async {
+    final prefs = await SharedPreferences.getInstance();
+    final expiryTime = prefs.getInt('email_cooldown_expiry') ?? 0;
+    final now = DateTime.now().millisecondsSinceEpoch;
+    
+    if (expiryTime > now) {
+      setState(() => _secondsRemaining = (expiryTime - now) ~/ 1000);
+      _resumeCooldown();
+    }
+  }
+
+  void _resumeCooldown() {
     _cooldownTimer?.cancel();
     _cooldownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (_secondsRemaining == 0) {
@@ -80,6 +91,15 @@ class _ManageEmailScreenState extends State<ManageEmailScreen> {
         setState(() => _secondsRemaining--);
       }
     });
+  }
+
+  void _startCooldown() async {
+    final expiryTime = DateTime.now().add(const Duration(minutes: 2)).millisecondsSinceEpoch;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt('email_cooldown_expiry', expiryTime);
+    
+    setState(() => _secondsRemaining = 120); // 2 minutes
+    _resumeCooldown();
   }
 
   void _showAddEmailSheet() {
@@ -276,7 +296,7 @@ class _ManageEmailScreenState extends State<ManageEmailScreen> {
     final authProv = context.watch<AuthProvider>();
     final emails = authProv.userEmails;
     final canDelete = emails.length > 1;
-    final bool limitReached = emails.length >= 5;
+    final bool limitReached = emails.length >= 3;
 
     return PopScope(
       canPop: Navigator.of(context).canPop(),
