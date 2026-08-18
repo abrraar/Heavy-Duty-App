@@ -46,9 +46,15 @@ class _ManageEmailScreenState extends State<ManageEmailScreen> {
       if (wasVerified) {
         await authProv.refreshEmails();
         if (mounted) {
-          final message = state.uri.queryParameters['message'];
-          if (message != null && message.isNotEmpty) {
-            EliteSnackbar.show(context, message.toUpperCase());
+          final rawMessage = state.uri.queryParameters['message'];
+          if (rawMessage != null && rawMessage.isNotEmpty) {
+            // ELITE REFINEMENT: If the message mentions the "other email" but 
+            // the user has disabled secure change, we show a success message instead.
+            if (rawMessage.toLowerCase().contains('other email')) {
+              EliteSnackbar.show(context, "IDENTITY UPDATED SUCCESSFULLY");
+            } else {
+              EliteSnackbar.show(context, rawMessage.toUpperCase());
+            }
           } else if (verifiedEmail != null) {
             EliteSnackbar.show(context, 'EMAIL "$verifiedEmail" VERIFIED');
           } else {
@@ -291,6 +297,31 @@ class _ManageEmailScreenState extends State<ManageEmailScreen> {
     return false;
   }
 
+  Future<void> _confirmPromotion(String email) async {
+    if (_secondsRemaining > 0) return;
+
+    final confirmed = await EliteConfirmDialog.show(
+      context,
+      title: "PROMOTE TO PRIMARY",
+      message: "MAKE $email YOUR MAIN IDENTITY? A VERIFICATION LINK WILL BE SENT TO THE NEW ADDRESS.",
+      confirmText: "PROMOTE",
+    );
+
+    if (confirmed == true && mounted) {
+      try {
+        await context.read<AuthProvider>().promoteToPrimaryEmail(email);
+        _startCooldown();
+        if (mounted) {
+          EliteSnackbar.show(context, "PROMOTION INITIATED. CHECK YOUR NEW INBOX.");
+        }
+      } catch (e) {
+        if (mounted) {
+          EliteSnackbar.show(context, "PROMOTION FAILED: ${e.toString().toUpperCase()}", isError: true);
+        }
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final authProv = context.watch<AuthProvider>();
@@ -363,95 +394,110 @@ class _ManageEmailScreenState extends State<ManageEmailScreen> {
                         padding: EdgeInsets.only(right: 24.w),
                         child: Icon(Icons.delete_outline_rounded, color: AppColors.crimson, size: 28.r),
                       ),
-                      child: Container(
-                        margin: EdgeInsets.only(bottom: 16.h),
-                        padding: EdgeInsets.all(16.r),
-                        decoration: BoxDecoration(
-                          color: AppColors.surfaceLight.withOpacity(0.2),
-                          borderRadius: BorderRadius.circular(16.r),
-                          border: Border.all(
-                            color: isPrimary ? AppColors.crimson.withOpacity(0.3) : Colors.white.withOpacity(0.05),
-                          ),
-                        ),
-                        child: Row(
-                          children: [
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Row(
-                                    children: [
-                                      Expanded(child: Text(email.email, style: AppTextStyles.labelMedium.copyWith(color: Colors.white), overflow: TextOverflow.ellipsis)),
-                                      if (isPrimary) ...[
-                                        SizedBox(width: 8.w),
-                                        Container(
-                                          padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 2.h),
-                                          decoration: BoxDecoration(
-                                            color: AppColors.crimson.withOpacity(0.15),
-                                            borderRadius: BorderRadius.circular(4.r),
-                                            border: Border.all(color: AppColors.crimson.withOpacity(0.3)),
-                                          ),
-                                          child: Text(
-                                            "PRIMARY",
-                                            style: AppTextStyles.labelSmall.copyWith(
-                                              color: AppColors.crimson,
-                                              fontSize: 8.sp,
-                                              fontWeight: FontWeight.w900,
-                                              letterSpacing: 0.5,
-                                            ),
-                                          ),
-                                        ),
-                                      ] else ...[
-                                        SizedBox(width: 8.w),
-                                        Container(
-                                          padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 2.h),
-                                          decoration: BoxDecoration(
-                                            color: Colors.white.withOpacity(0.05),
-                                            borderRadius: BorderRadius.circular(4.r),
-                                          ),
-                                          child: Text(
-                                            "SECONDARY",
-                                            style: AppTextStyles.labelSmall.copyWith(
-                                              color: Colors.white38,
-                                              fontSize: 8.sp,
-                                              fontWeight: FontWeight.w900,
-                                              letterSpacing: 0.5,
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ],
-                                  ),
-                                  SizedBox(height: 6.h),
-                                  Row(
-                                    children: [
-                                      Icon(
-                                        email.isVerified ? Icons.verified_rounded : Icons.pending_actions_rounded,
-                                        size: 14.r,
-                                        color: email.isVerified ? Colors.greenAccent : Colors.orangeAccent,
-                                      ),
-                                      SizedBox(width: 6.w),
-                                      Text(
-                                        email.isVerified ? "VERIFIED" : "NOT VERIFIED",
-                                        style: AppTextStyles.labelSmall.copyWith(
-                                          color: email.isVerified ? Colors.greenAccent : Colors.orangeAccent,
-                                          fontSize: 10.sp,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                      if (!email.isVerified) ...[
-                                        const Spacer(),
-                                        Text(
-                                          "SLIDE RIGHT TO VERIFY",
-                                          style: AppTextStyles.labelSmall.copyWith(color: Colors.white24, fontSize: 8.sp, fontWeight: FontWeight.w900),
-                                        ),
-                                      ],
-                                    ],
-                                  ),
-                                ],
-                              ),
+                      child: GestureDetector(
+                        onTap: (email.isVerified && !isPrimary && _secondsRemaining == 0) ? () => _confirmPromotion(email.email) : null,
+                        child: Container(
+                          margin: EdgeInsets.only(bottom: 16.h),
+                          padding: EdgeInsets.all(16.r),
+                          decoration: BoxDecoration(
+                            color: AppColors.surfaceLight.withOpacity(0.2),
+                            borderRadius: BorderRadius.circular(16.r),
+                            border: Border.all(
+                              color: isPrimary ? AppColors.crimson.withOpacity(0.3) : Colors.white.withOpacity(0.05),
                             ),
-                          ],
+                          ),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        Expanded(child: Text(email.email, style: AppTextStyles.labelMedium.copyWith(color: Colors.white), overflow: TextOverflow.ellipsis)),
+                                        if (isPrimary) ...[
+                                          SizedBox(width: 8.w),
+                                          Container(
+                                            padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 2.h),
+                                            decoration: BoxDecoration(
+                                              color: AppColors.crimson.withOpacity(0.15),
+                                              borderRadius: BorderRadius.circular(4.r),
+                                              border: Border.all(color: AppColors.crimson.withOpacity(0.3)),
+                                            ),
+                                            child: Text(
+                                              "PRIMARY",
+                                              style: AppTextStyles.labelSmall.copyWith(
+                                                color: AppColors.crimson,
+                                                fontSize: 8.sp,
+                                                fontWeight: FontWeight.w900,
+                                                letterSpacing: 0.5,
+                                              ),
+                                            ),
+                                          ),
+                                        ] else ...[
+                                          SizedBox(width: 8.w),
+                                          Container(
+                                            padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 2.h),
+                                            decoration: BoxDecoration(
+                                              color: Colors.white.withOpacity(0.05),
+                                              borderRadius: BorderRadius.circular(4.r),
+                                            ),
+                                            child: Text(
+                                              "SECONDARY",
+                                              style: AppTextStyles.labelSmall.copyWith(
+                                                color: Colors.white38,
+                                                fontSize: 8.sp,
+                                                fontWeight: FontWeight.w900,
+                                                letterSpacing: 0.5,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ],
+                                    ),
+                                    SizedBox(height: 6.h),
+                                    Row(
+                                      children: [
+                                        Icon(
+                                          email.isVerified ? Icons.verified_rounded : Icons.pending_actions_rounded,
+                                          size: 14.r,
+                                          color: email.isVerified ? Colors.greenAccent : Colors.orangeAccent,
+                                        ),
+                                        SizedBox(width: 6.w),
+                                        Text(
+                                          email.isVerified ? "VERIFIED" : "NOT VERIFIED",
+                                          style: AppTextStyles.labelSmall.copyWith(
+                                            color: email.isVerified ? Colors.greenAccent : Colors.orangeAccent,
+                                            fontSize: 10.sp,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                        if (!email.isVerified) ...[
+                                          const Spacer(),
+                                          Text(
+                                            "SLIDE RIGHT TO VERIFY",
+                                            style: AppTextStyles.labelSmall.copyWith(color: Colors.white24, fontSize: 8.sp, fontWeight: FontWeight.w900),
+                                          ),
+                                        ] else if (!isPrimary) ...[
+                                          const Spacer(),
+                                          Text(
+                                            _secondsRemaining > 0 
+                                              ? "WAIT ${_secondsRemaining}S" 
+                                              : "TAP TO PROMOTE",
+                                            style: AppTextStyles.labelSmall.copyWith(
+                                              color: _secondsRemaining > 0 ? Colors.white12 : AppColors.crimson.withOpacity(0.5), 
+                                              fontSize: 8.sp, 
+                                              fontWeight: FontWeight.w900
+                                            ),
+                                          ),
+                                        ],
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     );
