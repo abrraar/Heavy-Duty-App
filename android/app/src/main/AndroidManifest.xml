@@ -41,19 +41,20 @@
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
 
-            <!-- Custom URI Scheme Configuration (heavyduty://) -->
-            <intent-filter android:autoVerify="true">
+            <!-- Industrial Custom URI Scheme (heavyduty://heavyduty) -->
+            <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
-                <data android:scheme="heavyduty" />
+                <data android:scheme="heavyduty" android:host="heavyduty" />
             </intent-filter>
 
-            <!-- App Links: https://heavydutyapp.org/share (Sharing) -->
+            <!-- App Links: Direct App Entry for Auth & Sharing -->
             <intent-filter android:autoVerify="true">
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" android:host="heavydutyapp.org" android:pathPrefix="/auth/callback" />
                 <data android:scheme="https" android:host="heavydutyapp.org" android:pathPrefix="/share" />
             </intent-filter>
         </activity>

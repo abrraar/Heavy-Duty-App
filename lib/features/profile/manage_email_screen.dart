@@ -9,6 +9,8 @@ import 'package:heavy_duty/features/auth/provider/auth_provider.dart';
 import 'package:heavy_duty/core/widgets/elite_settings_app_bar.dart';
 import 'package:provider/provider.dart';
 
+import '../../core/navigation/app_routes.dart';
+
 class ManageEmailScreen extends StatefulWidget {
   const ManageEmailScreen({super.key});
 
@@ -157,9 +159,17 @@ class _ManageEmailScreenState extends State<ManageEmailScreen> {
     final emails = authProv.userEmails;
     final canDelete = emails.length > 1;
 
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      body: SafeArea(
+    return PopScope(
+      canPop: Navigator.of(context).canPop(),
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) {
+          // Fallback: If no screen exists behind this one (Cold Start Deep Link), navigate to Home
+          context.go(AppRoutes.home);
+        }
+      },
+      child: Scaffold(
+        backgroundColor: AppColors.background,
+        body: SafeArea(
         child: Column(
           children: [
             const EliteSettingsAppBar(title: "MANAGE EMAILS"),
@@ -290,7 +300,7 @@ class _ManageEmailScreenState extends State<ManageEmailScreen> {
           ],
         ),
       ),
-    );
+    ));
   }
 }
 

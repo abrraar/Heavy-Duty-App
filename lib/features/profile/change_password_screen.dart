@@ -122,11 +122,17 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
     final bool bypassVerification = authProv.isPasswordRecoveryMode;
 
     return PopScope(
+      canPop: Navigator.of(context).canPop(),
       onPopInvokedWithResult: (didPop, _) {
         if (didPop && bypassVerification) {
           // If the user exits recovery mode without finishing, cancel the state
           // to prevent being trapped in the recovery redirect loop.
           context.read<AuthProvider>().cancelPasswordRecovery();
+        }
+        
+        if (!didPop) {
+          // Fallback for Cold Start: go to home if no stack
+          context.go(AppRoutes.home);
         }
       },
       child: Scaffold(

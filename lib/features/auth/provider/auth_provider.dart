@@ -177,7 +177,7 @@ class AuthProvider with ChangeNotifier {
     try {
       await _supabase.auth.updateUser(
         UserAttributes(email: email.trim()),
-        emailRedirectTo: kIsWeb ? null : 'heavyduty://manage-email',
+        emailRedirectTo: kIsWeb ? null : 'heavyduty://heavyduty/email_change',
       );
     } catch (e) {
       debugPrint("Supabase email save failed: $e");
@@ -251,7 +251,7 @@ class AuthProvider with ChangeNotifier {
         email: email,
         password: password,
         data: username != null ? {'username': username} : null,
-        emailRedirectTo: kIsWeb ? null : 'heavyduty://confirm-email',
+        emailRedirectTo: kIsWeb ? null : 'heavyduty://heavyduty/signup',
       );
     } catch (e) {
       _setLoading(false);
@@ -374,7 +374,7 @@ class AuthProvider with ChangeNotifier {
     try {
       await _supabase.auth.resetPasswordForEmail(
         email, 
-        redirectTo: kIsWeb ? null : 'heavyduty://change-password',
+        redirectTo: kIsWeb ? null : 'heavyduty://heavyduty/recovery',
       );
     } catch (e) {
       _setLoading(false);

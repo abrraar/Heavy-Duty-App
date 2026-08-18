@@ -18,7 +18,6 @@ import 'package:provider/provider.dart';
 import 'package:heavy_duty/core/navigation/app_router.dart';
 import 'package:heavy_duty/core/services/notification_service.dart';
 import 'package:heavy_duty/core/services/connectivity_service.dart';
-import 'package:heavy_duty/core/widgets/deep_link_handler.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:alarm/alarm.dart';
 
@@ -65,9 +64,7 @@ void main() async {
         ChangeNotifierProvider(create: (_) => UiProvider()),
         ChangeNotifierProvider(create: (_) => AffirmationProvider()),
       ],
-      child: const DeepLinkHandler(
-        child: AuthWrapper(child: MyApp()),
-      ),
+      child: const AuthWrapper(child: MyApp()),
     ),
   );
 }

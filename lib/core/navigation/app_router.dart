@@ -53,7 +53,17 @@ final appRouter = GoRouter(
   initialLocation: AppRoutes.splash, // Start at Splash
   refreshListenable: AuthProvider(),
   errorBuilder: (context, state) {
-    debugPrint("Router: Error encountered. Redirecting to Home. Error: ${state.error}");
+    // If the error location contains our deep link keywords, try to redirect one more time 
+    // before showing the Home fallback. This catches raw URIs that GoRouter fails to parse.
+    final uriStr = state.uri.toString().toLowerCase();
+    if (uriStr.contains('email_change') || uriStr.contains('verify-secondary-email')) {
+      return const ManageEmailScreen(); // Render directly to avoid the blank screen race
+    }
+    if (uriStr.contains('recovery') || uriStr.contains('reset-password')) {
+      return const ChangePasswordScreen();
+    }
+
+    debugPrint("Router Catch-All: ${state.error}");
     return const HomeScreen();
   },
   redirect: (context, state) {
@@ -61,25 +71,35 @@ final appRouter = GoRouter(
     final isAuthenticated = authProvider.isAuthenticated;
     final isProfileComplete = authProvider.isProfileComplete;
     final location = state.uri.path;
+    final fullUri = state.uri.toString().toLowerCase();
 
-    // 0. ALLOWLIST: Explicitly skip redirection for deep-link landing pages
-    // This prevents the auth guard from bouncing users to Home before parameters are processed.
+    // 0. HIGH-PRIORITY DEEP LINK MAPPING
+    // Handle raw custom scheme URIs (heavyduty://heavyduty/...) by mapping them to 
+    // valid internal app routes. 
+    if (fullUri.contains('email_change') || fullUri.contains('verify-secondary-email')) {
+      debugPrint("Router Match: Mapping email deep link to /settings/manage-email");
+      final message = state.uri.queryParameters['message'];
+      return message != null 
+          ? '${AppRoutes.manageEmail}?verified=true&message=${Uri.encodeComponent(message)}'
+          : '${AppRoutes.manageEmail}?verified=true';
+    }
+    
+    if (fullUri.contains('recovery') || fullUri.contains('reset-password')) {
+      debugPrint("Router Match: Mapping recovery deep link to /settings/change-password");
+      return AppRoutes.changePassword;
+    }
+
+    // 1. ALLOWLIST: Exempt specific landing paths from standard redirects
     final List<String> alwaysAllowed = [
       AppRoutes.changePassword,
       AppRoutes.manageEmail,
       AppRoutes.authCallback,
-      '/change-password', // Custom scheme variants
-      '/manage-email',
-      '/confirm-email',
     ];
 
     if (alwaysAllowed.any((p) => location.startsWith(p))) {
-      debugPrint('[Router] $location allowlisted, skipping guard');
       return null;
     }
 
-    // On cold start, if the location is NOT splash or root, it means we have a deep link.
-    final bool isInitialDeepLink = _isFirstLoad && location != AppRoutes.splash && location != AppRoutes.root;
     if (_isFirstLoad) _isFirstLoad = false;
 
     final isAuthRoute = [
@@ -88,48 +108,32 @@ final appRouter = GoRouter(
       AppRoutes.forgotPass,
       AppRoutes.otp,
       AppRoutes.resetPass,
-      AppRoutes.verifySecondaryEmail,
-      AppRoutes.confirmEmail,
       AppRoutes.splash,
     ].contains(location);
 
-    // 1. Not Authenticated
+    // Standard Auth Logic
     if (!isAuthenticated) {
-      // If we are at an auth-only route or root, go to login
       if (!isAuthRoute && location != AppRoutes.root) {
         return '${AppRoutes.login}?from=${Uri.encodeComponent(location)}';
       }
-
-      // If we are at root (coming from splash), go to login
       if (location == AppRoutes.root) return AppRoutes.login;
-
       return null;
     }
 
-    // 2. Authenticated but Profile Incomplete
     if (!isProfileComplete) {
       if (location == AppRoutes.createProfilePersonal || location == AppRoutes.otp) return null;
       return AppRoutes.createProfilePersonal;
     }
 
-    // 3. Authenticated and Profile Complete
     if (isAuthenticated && isProfileComplete) {
       if (!_hasLoadedUserData) {
         _hasLoadedUserData = true;
-        // Access provider via context here since we are inside a callback with context
         context.read<SupplementProvider>().loadFromDatabase();
       }
 
-      // If we are at an auth route or splash, check if we have a target to return to
       if (isAuthRoute || location == AppRoutes.root || location == AppRoutes.createProfilePersonal) {
         final from = state.uri.queryParameters['from'];
-        if (from != null && from.isNotEmpty) {
-          return from;
-        }
-
-        // If it's a deep link picked up on cold start, don't override it with Home
-        if (isInitialDeepLink) return null;
-
+        if (from != null && from.isNotEmpty) return from;
         return AppRoutes.home;
       }
     }
@@ -316,6 +320,15 @@ final appRouter = GoRouter(
         GoRoute(
           path: 'calorie',
           builder: (context, state) => const CalorieSettingsScreen(),
+          routes: [
+             GoRoute(
+                path: 'import',
+                builder: (context, state) => ImportMealScreen(
+                  shareId: state.uri.queryParameters['id'] ?? "",
+                  senderName: state.uri.queryParameters['from'] ?? "A User",
+                ),
+             )
+          ]
         ),
         GoRoute(
           path: 'hydration',
