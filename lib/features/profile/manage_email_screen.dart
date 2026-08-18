@@ -20,7 +20,10 @@ class ManageEmailScreen extends StatefulWidget {
 
 class _ManageEmailScreenState extends State<ManageEmailScreen> {
   final _emailController = TextEditingController();
+  final _otpController = TextEditingController();
   bool _isSending = false;
+  bool _isVerifying = false;
+  String? _pendingEmail;
 
   @override
   void initState() {
@@ -86,55 +89,110 @@ class _ManageEmailScreenState extends State<ManageEmailScreen> {
                   ),
                 ),
               ),
-              Text("ADD EMAIL ADDRESS", style: AppTextStyles.h3),
+              Text(_pendingEmail == null ? "ADD EMAIL ADDRESS" : "VERIFY CODE", style: AppTextStyles.h3),
               SizedBox(height: 8.h),
-              Text("A CONFIRMATION LINK WILL BE SENT", style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary)),
-              SizedBox(height: 24.h),
-              TextField(
-                controller: _emailController,
-                keyboardType: TextInputType.emailAddress,
-                enabled: !_isSending,
-                style: const TextStyle(color: Colors.white),
-                decoration: InputDecoration(
-                  hintText: "EMAIL ADDRESS",
-                  hintStyle: const TextStyle(color: Colors.white24),
-                  filled: true,
-                  fillColor: AppColors.surfaceLight.withOpacity(0.3),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12.r), borderSide: BorderSide.none),
-                ),
+              Text(
+                _pendingEmail == null 
+                  ? "A 6-DIGIT VERIFICATION CODE WILL BE SENT" 
+                  : "ENTER THE CODE SENT TO ${_pendingEmail!.toUpperCase()}", 
+                style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary)
               ),
               SizedBox(height: 24.h),
+              
+              if (_pendingEmail == null) 
+                TextField(
+                  controller: _emailController,
+                  keyboardType: TextInputType.emailAddress,
+                  enabled: !_isSending,
+                  style: const TextStyle(color: Colors.white),
+                  decoration: InputDecoration(
+                    hintText: "EMAIL ADDRESS",
+                    hintStyle: const TextStyle(color: Colors.white24),
+                    filled: true,
+                    fillColor: AppColors.surfaceLight.withOpacity(0.3),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12.r), borderSide: BorderSide.none),
+                  ),
+                )
+              else
+                TextField(
+                  controller: _otpController,
+                  keyboardType: TextInputType.number,
+                  maxLength: 6,
+                  enabled: !_isVerifying,
+                  style: AppTextStyles.h2.copyWith(color: Colors.white, letterSpacing: 10),
+                  textAlign: TextAlign.center,
+                  decoration: InputDecoration(
+                    counterText: "",
+                    hintText: "000000",
+                    hintStyle: const TextStyle(color: Colors.white12),
+                    filled: true,
+                    fillColor: AppColors.surfaceLight.withOpacity(0.3),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12.r), borderSide: BorderSide.none),
+                  ),
+                ),
+                
+              SizedBox(height: 24.h),
               _PrimaryButton(
-                label: "SEND CONFIRMATION EMAIL",
-                isLoading: _isSending,
+                label: _pendingEmail == null ? "SEND VERIFICATION CODE" : "VERIFY & ADD EMAIL",
+                isLoading: _isSending || _isVerifying,
                 onTap: () async {
-                  final email = _emailController.text.trim();
-                  if (email.isNotEmpty) {
-                    setSheetState(() => _isSending = true);
-                    try {
-                      await context.read<AuthProvider>().addEmail(email);
-                      if (!mounted) return;
-                      Navigator.pop(context);
-                      _emailController.clear();
-                      EliteSnackbar.show(context, "CONFIRMATION EMAIL SENT");
-                    } catch (e) {
-                      if (mounted) {
-                        EliteSnackbar.show(context, "FAILED TO SEND: ${e.toString().toUpperCase()}", isError: true);
+                  if (_pendingEmail == null) {
+                    final email = _emailController.text.trim();
+                    if (email.isNotEmpty) {
+                      setSheetState(() => _isSending = true);
+                      try {
+                        await context.read<AuthProvider>().addEmail(email);
+                        setSheetState(() {
+                          _pendingEmail = email;
+                          _isSending = false;
+                        });
+                      } catch (e) {
+                        if (mounted) EliteSnackbar.show(context, "FAILED: ${e.toString().toUpperCase()}", isError: true);
+                        setSheetState(() => _isSending = false);
                       }
-                    } finally {
-                      if (mounted) setSheetState(() => _isSending = false);
+                    }
+                  } else {
+                    final code = _otpController.text.trim();
+                    if (code.length == 6) {
+                      setSheetState(() => _isVerifying = true);
+                      final success = await context.read<AuthProvider>().verifySecondaryEmailOTP(_pendingEmail!, code);
+                      if (success && mounted) {
+                        Navigator.pop(context);
+                        _resetState();
+                        EliteSnackbar.show(context, "EMAIL VERIFIED SUCCESSFULLY");
+                      } else if (mounted) {
+                        EliteSnackbar.show(context, "INVALID CODE", isError: true);
+                        setSheetState(() => _isVerifying = false);
+                      }
                     }
                   }
                 },
               ),
+              if (_pendingEmail != null)
+                Center(
+                  child: TextButton(
+                    onPressed: () => setSheetState(() => _pendingEmail = null),
+                    child: Text("RE-TYPE EMAIL", style: AppTextStyles.labelSmall.copyWith(color: AppColors.crimson, decoration: TextDecoration.underline)),
+                  ),
+                ),
               SizedBox(height: 12.h),
             ],
           ),
         ),
       ),
-    ).then((_) {
-      if (mounted) setState(() => _isSending = false);
-    });
+    ).then((_) => _resetState());
+  }
+
+  void _resetState() {
+    if (mounted) {
+      setState(() {
+        _emailController.clear();
+        _otpController.clear();
+        _pendingEmail = null;
+        _isSending = false;
+        _isVerifying = false;
+      });
+    }
   }
 
   Future<bool> _confirmDelete(String id, String email) async {

@@ -165,38 +165,62 @@ class AuthProvider with ChangeNotifier {
   Future<void> addEmail(String email) async {
     if (_profileRepo == null) return;
 
-    // Check for duplicates
     final normalizedEmail = email.trim().toLowerCase();
     if (_userEmails.any((e) => e.email.toLowerCase() == normalizedEmail)) {
       return;
     }
 
+    // 1. Generate a 6-digit OTP
+    final String otp = (100000 + (DateTime.now().millisecond * 899999) ~/ 1000).toString();
+    debugPrint("DEBUG: Generated OTP for $normalizedEmail: $otp");
+
     final newEmail = UserEmail(email: email.trim(), isVerified: false);
     await _profileRepo!.insertEmail(newEmail);
 
-    // Save to the cloud table first so it appears in the list (as unverified)
+    // 2. Save to the cloud table with the OTP code
     try {
       await _supabase.from('user_emails').insert({
         'id': newEmail.id,
         'user_id': _currentUser!.id,
         'email': newEmail.email,
         'is_verified': false,
+        'verification_code': otp, // Ensure this column exists in your DB
       });
     } catch (e) {
       debugPrint("Supabase cloud email insert failed: $e");
     }
 
-    // Trigger Supabase Auth update (sends the link)
-    try {
-      await _supabase.auth.updateUser(
-        UserAttributes(email: email.trim()),
-        emailRedirectTo: kIsWeb ? null : 'heavyduty://heavyduty/email_change',
-      );
-    } catch (e) {
-      debugPrint("Supabase Auth email update failed: $e");
-    }
-
+    // NOTE: To send the actual email with the code, you should use a 
+    // Supabase Edge Function or a DB Trigger. For now, we will 
+    // log it to the console for testing.
+    
     await _loadUserEmails();
+  }
+
+  Future<bool> verifySecondaryEmailOTP(String email, String enteredCode) async {
+    _setLoading(true);
+    try {
+      final response = await _supabase
+          .from('user_emails')
+          .select('verification_code')
+          .eq('user_id', _currentUser!.id)
+          .eq('email', email)
+          .maybeSingle();
+
+      if (response != null && response['verification_code'] == enteredCode) {
+        // Success: Update status
+        await _supabase.from('user_emails').update({'is_verified': true}).eq('email', email);
+        await refreshEmails();
+        _setLoading(false);
+        return true;
+      }
+      _setLoading(false);
+      return false;
+    } catch (e) {
+      debugPrint("OTP Verification failed: $e");
+      _setLoading(false);
+      return false;
+    }
   }
 
   Future<void> removeEmail(String id) async {
