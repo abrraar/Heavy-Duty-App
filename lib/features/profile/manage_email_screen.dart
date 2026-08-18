@@ -35,6 +35,7 @@ class _ManageEmailScreenState extends State<ManageEmailScreen> {
       // Check if we arrived via a verification deep link (passed as query param in router)
       final state = GoRouterState.of(context);
       final bool wasVerified = state.uri.queryParameters['verified'] == 'true';
+      final String? verifiedEmail = state.uri.queryParameters['email'];
 
       if (wasVerified) {
         await authProv.refreshEmails();
@@ -42,6 +43,8 @@ class _ManageEmailScreenState extends State<ManageEmailScreen> {
           final message = state.uri.queryParameters['message'];
           if (message != null && message.isNotEmpty) {
             EliteSnackbar.show(context, message.toUpperCase());
+          } else if (verifiedEmail != null) {
+            EliteSnackbar.show(context, 'EMAIL "$verifiedEmail" VERIFIED');
           } else {
             final String currentEmail = authProv.currentUser?.email ?? "";
             EliteSnackbar.show(context, 'EMAIL "$currentEmail" VERIFIED');

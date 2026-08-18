@@ -26,7 +26,8 @@ class UserEmail {
     return UserEmail(
       id: map['id'],
       email: map['email'],
-      isVerified: map['is_verified'] == 1,
+      // Support both boolean (from Supabase) and integer (from SQLite)
+      isVerified: map['is_verified'] == 1 || map['is_verified'] == true,
       isSynced: map['is_synced'] ?? 1,
     );
   }

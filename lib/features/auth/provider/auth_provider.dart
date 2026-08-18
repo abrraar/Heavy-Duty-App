@@ -202,14 +202,21 @@ class AuthProvider with ChangeNotifier {
     try {
       final response = await _supabase
           .from('user_emails')
-          .select('verification_code')
+          .select('id, verification_code')
           .eq('user_id', _currentUser!.id)
           .eq('email', email)
           .maybeSingle();
 
       if (response != null && response['verification_code'] == enteredCode) {
-        // Success: Update status
-        await _supabase.from('user_emails').update({'is_verified': true}).eq('email', email);
+        // 1. Update Cloud Status
+        await _supabase.from('user_emails').update({'is_verified': true}).eq('id', response['id']);
+        
+        // 2. Update Local Repository immediately to guarantee UI update
+        final currentEmails = await _profileRepo!.getEmails();
+        final match = currentEmails.firstWhere((e) => e.email.toLowerCase() == email.toLowerCase());
+        await _profileRepo!.insertEmail(match.copyWith(isVerified: true));
+        
+        // 3. Refresh and reload
         await refreshEmails();
         _setLoading(false);
         return true;

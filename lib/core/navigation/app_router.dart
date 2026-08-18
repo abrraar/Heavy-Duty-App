@@ -74,19 +74,26 @@ final appRouter = GoRouter(
     final fullUri = state.uri.toString().toLowerCase();
 
     // 0. HIGH-PRIORITY DEEP LINK MAPPING
-    // Handle raw custom scheme URIs (heavyduty://heavyduty/...) by mapping them to 
-    // valid internal app routes. 
-    if (fullUri.contains('email_change') || fullUri.contains('verify-secondary-email')) {
-      debugPrint("Router Match: Mapping email deep link to /settings/manage-email");
-      final message = state.uri.queryParameters['message'];
-      return message != null 
-          ? '${AppRoutes.manageEmail}?verified=true&message=${Uri.encodeComponent(message)}'
-          : '${AppRoutes.manageEmail}?verified=true';
-    }
+    // Only intercept if we are coming from an EXTERNAL deep link (scheme starts with heavyduty://)
+    final bool isExternalLink = fullUri.startsWith('heavyduty://');
     
-    if (fullUri.contains('recovery') || fullUri.contains('reset-password')) {
-      debugPrint("Router Match: Mapping recovery deep link to /settings/change-password");
-      return AppRoutes.changePassword;
+    if (isExternalLink) {
+      if (fullUri.contains('email_change') || fullUri.contains('verify-secondary-email')) {
+        debugPrint("Router Match: Mapping external email deep link to /settings/manage-email");
+        final message = state.uri.queryParameters['message'];
+        final email = state.uri.queryParameters['email']; // Extract email if present
+        
+        String path = '${AppRoutes.manageEmail}?verified=true';
+        if (message != null) path += '&message=${Uri.encodeComponent(message)}';
+        if (email != null) path += '&email=${Uri.encodeComponent(email)}';
+        
+        return path;
+      }
+      
+      if (fullUri.contains('recovery') || fullUri.contains('reset-password')) {
+        debugPrint("Router Match: Mapping external recovery deep link to /settings/change-password");
+        return AppRoutes.changePassword;
+      }
     }
 
     // 1. ALLOWLIST: Exempt specific landing paths from standard redirects
