@@ -89,108 +89,117 @@ class _ManageEmailScreenState extends State<ManageEmailScreen> {
       backgroundColor: AppColors.surface,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24.r))),
       builder: (context) => StatefulBuilder(
-        builder: (context, setSheetState) => Padding(
-          padding: EdgeInsets.only(
-            bottom: MediaQuery.of(context).viewInsets.bottom + MediaQuery.of(context).padding.bottom + 20.h,
-            left: 24.r,
-            right: 24.r,
-            top: 24.r,
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Center(
-                child: Container(
-                  width: 40.w,
-                  height: 4.h,
-                  margin: EdgeInsets.only(bottom: 20.h),
-                  decoration: BoxDecoration(
-                    color: Colors.white12,
-                    borderRadius: BorderRadius.circular(2.r),
+        builder: (context, setSheetState) {
+          final authProv = context.read<AuthProvider>();
+          final emailInput = _emailController.text.trim().toLowerCase();
+          final bool isDuplicate = authProv.userEmails.any((e) => e.email.toLowerCase() == emailInput);
+          
+          return Padding(
+            padding: EdgeInsets.only(
+              bottom: MediaQuery.of(context).viewInsets.bottom + MediaQuery.of(context).padding.bottom + 20.h,
+              left: 24.r,
+              right: 24.r,
+              top: 24.r,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 40.w,
+                    height: 4.h,
+                    margin: EdgeInsets.only(bottom: 20.h),
+                    decoration: BoxDecoration(
+                      color: Colors.white12,
+                      borderRadius: BorderRadius.circular(2.r),
+                    ),
                   ),
                 ),
-              ),
-              Text(_pendingEmail == null ? "ADD EMAIL ADDRESS" : "VERIFY CODE", style: AppTextStyles.h3),
-              SizedBox(height: 8.h),
-              Text(
-                _pendingEmail == null 
-                  ? "A 6-DIGIT VERIFICATION CODE WILL BE SENT" 
-                  : "ENTER THE CODE SENT TO ${_pendingEmail!.toUpperCase()}", 
-                style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary)
-              ),
-              SizedBox(height: 24.h),
-              
-              if (_pendingEmail == null) 
-                TextField(
-                  controller: _emailController,
-                  keyboardType: TextInputType.emailAddress,
-                  enabled: !_isSending,
-                  style: const TextStyle(color: Colors.white),
-                  decoration: InputDecoration(
-                    hintText: "EMAIL ADDRESS",
-                    hintStyle: const TextStyle(color: Colors.white24),
-                    filled: true,
-                    fillColor: AppColors.surfaceLight.withOpacity(0.3),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12.r), borderSide: BorderSide.none),
-                  ),
-                )
-              else
-                TextField(
-                  controller: _otpController,
-                  keyboardType: TextInputType.number,
-                  maxLength: 6,
-                  enabled: !_isVerifying,
-                  style: AppTextStyles.h2.copyWith(color: Colors.white, letterSpacing: 10),
-                  textAlign: TextAlign.center,
-                  decoration: InputDecoration(
-                    counterText: "",
-                    hintText: "000000",
-                    hintStyle: const TextStyle(color: Colors.white12),
-                    filled: true,
-                    fillColor: AppColors.surfaceLight.withOpacity(0.3),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12.r), borderSide: BorderSide.none),
-                  ),
+                Text(_pendingEmail == null ? "ADD EMAIL ADDRESS" : "VERIFY CODE", style: AppTextStyles.h3),
+                SizedBox(height: 8.h),
+                Text(
+                  _pendingEmail == null 
+                    ? "A 6-DIGIT VERIFICATION CODE WILL BE SENT" 
+                    : "ENTER THE CODE SENT TO ${_pendingEmail!.toUpperCase()}", 
+                  style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary)
                 ),
+                SizedBox(height: 24.h),
                 
-              SizedBox(height: 24.h),
-              _PrimaryButton(
-                label: _pendingEmail == null ? "SEND VERIFICATION CODE" : "VERIFY & ADD EMAIL",
-                isLoading: _isSending || _isVerifying,
-                onTap: () async {
-                  if (_pendingEmail == null) {
-                    final email = _emailController.text.trim();
-                    if (email.isNotEmpty) {
-                      setSheetState(() => _isSending = true);
-                      try {
-                        await context.read<AuthProvider>().addEmail(email);
-                        _startCooldown();
-                        setSheetState(() {
-                          _pendingEmail = email;
-                          _isSending = false;
-                        });
-                      } catch (e) {
-                        if (mounted) EliteSnackbar.show(context, "FAILED: ${e.toString().toUpperCase()}", isError: true);
-                        setSheetState(() => _isSending = false);
+                if (_pendingEmail == null) 
+                  TextField(
+                    controller: _emailController,
+                    keyboardType: TextInputType.emailAddress,
+                    enabled: !_isSending,
+                    onChanged: (_) => setSheetState(() {}),
+                    style: const TextStyle(color: Colors.white),
+                    decoration: InputDecoration(
+                      hintText: "EMAIL ADDRESS",
+                      hintStyle: const TextStyle(color: Colors.white24),
+                      filled: true,
+                      fillColor: AppColors.surfaceLight.withOpacity(0.3),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12.r), borderSide: BorderSide.none),
+                    ),
+                  )
+                else
+                  TextField(
+                    controller: _otpController,
+                    keyboardType: TextInputType.number,
+                    maxLength: 6,
+                    enabled: !_isVerifying,
+                    style: AppTextStyles.h2.copyWith(color: Colors.white, letterSpacing: 10),
+                    textAlign: TextAlign.center,
+                    decoration: InputDecoration(
+                      counterText: "",
+                      hintText: "000000",
+                      hintStyle: const TextStyle(color: Colors.white12),
+                      filled: true,
+                      fillColor: AppColors.surfaceLight.withOpacity(0.3),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12.r), borderSide: BorderSide.none),
+                    ),
+                  ),
+                  
+                SizedBox(height: 24.h),
+                _PrimaryButton(
+                  label: _pendingEmail != null 
+                    ? "VERIFY & ADD EMAIL" 
+                    : (isDuplicate ? "EMAIL ALREADY EXISTS" : "SEND VERIFICATION CODE"),
+                  isLoading: _isSending || _isVerifying,
+                  enabled: !(isDuplicate && _pendingEmail == null),
+                  onTap: () async {
+                    if (_pendingEmail == null) {
+                      final email = _emailController.text.trim();
+                      if (email.isNotEmpty && !isDuplicate) {
+                        setSheetState(() => _isSending = true);
+                        try {
+                          await context.read<AuthProvider>().addEmail(email);
+                          _startCooldown();
+                          setSheetState(() {
+                            _pendingEmail = email;
+                            _isSending = false;
+                          });
+                        } catch (e) {
+                          if (mounted) EliteSnackbar.show(context, "FAILED: ${e.toString().toUpperCase()}", isError: true);
+                          setSheetState(() => _isSending = false);
+                        }
+                      }
+                    } else {
+                      final code = _otpController.text.trim();
+                      if (code.length == 6) {
+                        setSheetState(() => _isVerifying = true);
+                        final success = await context.read<AuthProvider>().verifySecondaryEmailOTP(_pendingEmail!, code);
+                        if (success && mounted) {
+                          Navigator.pop(context);
+                          _resetState();
+                          EliteSnackbar.show(context, "EMAIL VERIFIED SUCCESSFULLY");
+                        } else if (mounted) {
+                          EliteSnackbar.show(context, "INVALID CODE", isError: true);
+                          setSheetState(() => _isVerifying = false);
+                        }
                       }
                     }
-                  } else {
-                    final code = _otpController.text.trim();
-                    if (code.length == 6) {
-                      setSheetState(() => _isVerifying = true);
-                      final success = await context.read<AuthProvider>().verifySecondaryEmailOTP(_pendingEmail!, code);
-                      if (success && mounted) {
-                        Navigator.pop(context);
-                        _resetState();
-                        EliteSnackbar.show(context, "EMAIL VERIFIED SUCCESSFULLY");
-                      } else if (mounted) {
-                        EliteSnackbar.show(context, "INVALID CODE", isError: true);
-                        setSheetState(() => _isVerifying = false);
-                      }
-                    }
-                  }
-                },
-              ),
+                  },
+                ),
               if (_pendingEmail != null) ...[
                 Center(
                   child: TextButton(
