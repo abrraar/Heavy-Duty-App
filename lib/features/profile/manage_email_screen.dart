@@ -238,7 +238,7 @@ class _ManageEmailScreenState extends State<ManageEmailScreen> {
               SizedBox(height: 12.h),
             ],
           ),
-        ),
+          );},
       ),
     ).then((_) => _resetState());
   }
@@ -442,9 +442,13 @@ class _ManageEmailScreenState extends State<ManageEmailScreen> {
             Padding(
               padding: EdgeInsets.all(24.r),
               child: _PrimaryButton(
-                label: limitReached ? "MAXIMUM EMAILS REACHED" : "ADD EMAIL ADDRESS",
-                onTap: limitReached ? () {} : _showAddEmailSheet,
-                enabled: !limitReached,
+                label: limitReached 
+                    ? "MAXIMUM EMAILS REACHED" 
+                    : (_secondsRemaining > 0 
+                        ? "WAIT ${_secondsRemaining}S" 
+                        : "ADD EMAIL ADDRESS"),
+                onTap: (limitReached || _secondsRemaining > 0) ? () {} : _showAddEmailSheet,
+                enabled: !limitReached && _secondsRemaining == 0,
               ),
             ),
             SizedBox(height: 20.h),
