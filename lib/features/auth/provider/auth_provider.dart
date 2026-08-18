@@ -199,32 +199,49 @@ class AuthProvider with ChangeNotifier {
 
   Future<bool> verifySecondaryEmailOTP(String email, String enteredCode) async {
     _setLoading(true);
+    debugPrint("AuthProvider: Attempting to verify OTP for $email");
     try {
       final response = await _supabase
           .from('user_emails')
           .select('id, verification_code')
           .eq('user_id', _currentUser!.id)
-          .eq('email', email)
+          .eq('email', email.trim())
           .maybeSingle();
 
       if (response != null && response['verification_code'] == enteredCode) {
-        // 1. Update Cloud Status
-        await _supabase.from('user_emails').update({'is_verified': true}).eq('id', response['id']);
+        debugPrint("AuthProvider: OTP Match found. Updating Supabase...");
         
-        // 2. Update Local Repository immediately to guarantee UI update
-        final currentEmails = await _profileRepo!.getEmails();
-        final match = currentEmails.firstWhere((e) => e.email.toLowerCase() == email.toLowerCase());
-        await _profileRepo!.insertEmail(match.copyWith(isVerified: true));
+        // 1. Update Cloud Status (Use select() to verify it actually happened)
+        final updateResult = await _supabase
+            .from('user_emails')
+            .update({'is_verified': true})
+            .eq('id', response['id'])
+            .select();
         
-        // 3. Refresh and reload
-        await refreshEmails();
-        _setLoading(false);
-        return true;
+        debugPrint("AuthProvider: Supabase Update Result: $updateResult");
+
+        if (updateResult.isNotEmpty) {
+          // 2. Update Local Repository immediately
+          final currentEmails = await _profileRepo!.getEmails();
+          final match = currentEmails.firstWhere((e) => e.email.toLowerCase() == email.trim().toLowerCase());
+          await _profileRepo!.insertEmail(match.copyWith(isVerified: true));
+          
+          debugPrint("AuthProvider: Local Update Successful. Refreshing...");
+          
+          // 3. Refresh and reload to ensure UI is in sync
+          await refreshEmails();
+          _setLoading(false);
+          return true;
+        } else {
+          debugPrint("AuthProvider: Supabase Update failed (no rows affected)");
+        }
+      } else {
+        debugPrint("AuthProvider: OTP Mismatch or record not found. Expected: ${response?['verification_code']}, Entered: $enteredCode");
       }
       _setLoading(false);
       return false;
     } catch (e) {
-      debugPrint("OTP Verification failed: $e");
+      debugPrint("AuthProvider: OTP Verification ERROR: $e");
       _setLoading(false);
       return false;
     }
