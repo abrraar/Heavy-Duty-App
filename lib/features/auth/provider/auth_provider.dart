@@ -164,6 +164,11 @@ class AuthProvider with ChangeNotifier {
 
   Future<void> addEmail(String email) async {
     if (_profileRepo == null) return;
+    
+    // ENFORCE LIMIT: Max 5 emails
+    if (_userEmails.length >= 5) {
+      throw "MAXIMUM EMAIL LIMIT REACHED (5)";
+    }
 
     final normalizedEmail = email.trim().toLowerCase();
     if (_userEmails.any((e) => e.email.toLowerCase() == normalizedEmail)) {
@@ -177,24 +182,54 @@ class AuthProvider with ChangeNotifier {
     final newEmail = UserEmail(email: email.trim(), isVerified: false);
     await _profileRepo!.insertEmail(newEmail);
 
-    // 2. Save to the cloud table with the OTP code
+    // 2. Save to the cloud table for persistence
     try {
       await _supabase.from('user_emails').insert({
         'id': newEmail.id,
         'user_id': _currentUser!.id,
         'email': newEmail.email,
         'is_verified': false,
-        'verification_code': otp, // Ensure this column exists in your DB
+        'verification_code': otp,
       });
     } catch (e) {
-      debugPrint("Supabase cloud email insert failed: $e");
+      debugPrint("Supabase local record save failed: $e");
     }
 
-    // NOTE: To send the actual email with the code, you should use a 
-    // Supabase Edge Function or a DB Trigger. For now, we will 
-    // log it to the console for testing.
+    // 3. DIRECT INVOCATION: Trigger the email sender immediately
+    // This allows us to catch errors and confirm the send-request was successful
+    try {
+      debugPrint("AuthProvider: Invoking Edge Function 'secondary-email-otp'...");
+      final response = await _supabase.functions.invoke(
+        'secondary-email-otp', 
+        body: {'email': email.trim(), 'otp': otp}
+      );
+      debugPrint("AuthProvider: Edge Function Response Status: ${response.status}");
+    } catch (e) {
+      debugPrint("AuthProvider: DIRECT Edge Function trigger failed: $e");
+    }
     
     await _loadUserEmails();
+  }
+
+  Future<void> resendSecondaryOTP(String email) async {
+    _setLoading(true);
+    try {
+      // 1. Generate new OTP
+      final String otp = (100000 + (DateTime.now().millisecond * 899999) ~/ 1000).toString();
+      
+      // 2. Update code in database
+      await _supabase.from('user_emails').update({'verification_code': otp}).eq('email', email.trim());
+      
+      // 3. Trigger Email
+      await _supabase.functions.invoke('secondary-email-otp', body: {'email': email.trim(), 'otp': otp});
+      
+      debugPrint("AuthProvider: OTP Resent to $email: $otp");
+    } catch (e) {
+      debugPrint("AuthProvider: Resend failed: $e");
+      rethrow;
+    } finally {
+      _setLoading(false);
+    }
   }
 
   Future<bool> verifySecondaryEmailOTP(String email, String enteredCode) async {

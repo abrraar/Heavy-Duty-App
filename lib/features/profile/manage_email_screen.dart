@@ -171,13 +171,33 @@ class _ManageEmailScreenState extends State<ManageEmailScreen> {
                   }
                 },
               ),
-              if (_pendingEmail != null)
+              if (_pendingEmail != null) ...[
+                Center(
+                  child: TextButton(
+                    onPressed: (_isSending || _isVerifying) ? null : () async {
+                      setSheetState(() => _isSending = true);
+                      try {
+                        await context.read<AuthProvider>().resendSecondaryOTP(_pendingEmail!);
+                        EliteSnackbar.show(context, "FRESH CODE SENT");
+                      } catch (e) {
+                        EliteSnackbar.show(context, "RESEND FAILED", isError: true);
+                      } finally {
+                        setSheetState(() => _isSending = false);
+                      }
+                    },
+                    child: Text(
+                      _isSending ? "SENDING..." : "RESEND VERIFICATION CODE", 
+                      style: AppTextStyles.labelSmall.copyWith(color: AppColors.crimson, decoration: TextDecoration.underline)
+                    ),
+                  ),
+                ),
                 Center(
                   child: TextButton(
                     onPressed: () => setSheetState(() => _pendingEmail = null),
-                    child: Text("RE-TYPE EMAIL", style: AppTextStyles.labelSmall.copyWith(color: AppColors.crimson, decoration: TextDecoration.underline)),
+                    child: Text("RE-TYPE EMAIL", style: AppTextStyles.labelSmall.copyWith(color: Colors.white24, decoration: TextDecoration.underline)),
                   ),
                 ),
+              ],
               SizedBox(height: 12.h),
             ],
           ),
@@ -219,12 +239,12 @@ class _ManageEmailScreenState extends State<ManageEmailScreen> {
     final authProv = context.watch<AuthProvider>();
     final emails = authProv.userEmails;
     final canDelete = emails.length > 1;
+    final bool limitReached = emails.length >= 5;
 
     return PopScope(
       canPop: Navigator.of(context).canPop(),
       onPopInvokedWithResult: (didPop, _) {
         if (!didPop) {
-          // Fallback: If no screen exists behind this one (Cold Start Deep Link), navigate to Home
           context.go(AppRoutes.home);
         }
       },
@@ -249,9 +269,32 @@ class _ManageEmailScreenState extends State<ManageEmailScreen> {
 
                     return Dismissible(
                       key: Key(email.id),
-                      direction: (canDelete && !isPrimary) ? DismissDirection.endToStart : DismissDirection.none,
-                      confirmDismiss: (_) => _confirmDelete(email.id, email.email),
+                      // Slide Right (Start to End) to Verify | Slide Left (End to Start) to Delete
+                      direction: isPrimary ? DismissDirection.none : DismissDirection.horizontal,
+                      confirmDismiss: (dir) async {
+                        if (dir == DismissDirection.startToEnd) {
+                          // SLIDE TO VERIFY
+                          if (!email.isVerified) {
+                            setState(() => _pendingEmail = email.email);
+                            _showAddEmailSheet();
+                          }
+                          return false; // Don't actually dismiss the card
+                        } else {
+                          // SLIDE TO DELETE
+                          return await _confirmDelete(email.id, email.email);
+                        }
+                      },
                       background: Container(
+                        margin: EdgeInsets.only(bottom: 16.h),
+                        decoration: BoxDecoration(
+                          color: Colors.greenAccent.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(16.r),
+                        ),
+                        alignment: Alignment.centerLeft,
+                        padding: EdgeInsets.only(left: 24.w),
+                        child: Icon(Icons.verified_user_outlined, color: Colors.greenAccent, size: 28.r),
+                      ),
+                      secondaryBackground: Container(
                         margin: EdgeInsets.only(bottom: 16.h),
                         decoration: BoxDecoration(
                           color: AppColors.crimson.withOpacity(0.1),
@@ -337,6 +380,13 @@ class _ManageEmailScreenState extends State<ManageEmailScreen> {
                                           fontWeight: FontWeight.bold,
                                         ),
                                       ),
+                                      if (!email.isVerified) ...[
+                                        const Spacer(),
+                                        Text(
+                                          "SLIDE RIGHT TO VERIFY",
+                                          style: AppTextStyles.labelSmall.copyWith(color: Colors.white24, fontSize: 8.sp, fontWeight: FontWeight.w900),
+                                        ),
+                                      ],
                                     ],
                                   ),
                                 ],
@@ -353,8 +403,9 @@ class _ManageEmailScreenState extends State<ManageEmailScreen> {
             Padding(
               padding: EdgeInsets.all(24.r),
               child: _PrimaryButton(
-                label: "ADD EMAIL ADDRESS",
-                onTap: _showAddEmailSheet,
+                label: limitReached ? "MAXIMUM EMAILS REACHED" : "ADD EMAIL ADDRESS",
+                onTap: limitReached ? () {} : _showAddEmailSheet,
+                enabled: !limitReached,
               ),
             ),
             SizedBox(height: 20.h),
@@ -364,28 +415,34 @@ class _ManageEmailScreenState extends State<ManageEmailScreen> {
     ));
   }
 }
+}
 
 class _PrimaryButton extends StatelessWidget {
   final String label;
   final VoidCallback onTap;
   final bool isLoading;
-  const _PrimaryButton({required this.label, required this.onTap, this.isLoading = false});
+  final bool enabled;
+  const _PrimaryButton({required this.label, required this.onTap, this.isLoading = false, this.enabled = true});
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: isLoading ? null : onTap,
-      child: Container(
-        width: double.infinity,
-        height: 56.h,
-        decoration: BoxDecoration(
-          color: AppColors.crimson,
-          borderRadius: BorderRadius.circular(12.r),
+      onTap: (isLoading || !enabled) ? null : onTap,
+      child: AnimatedOpacity(
+        duration: const Duration(milliseconds: 200),
+        opacity: enabled ? 1.0 : 0.4,
+        child: Container(
+          width: double.infinity,
+          height: 56.h,
+          decoration: BoxDecoration(
+            color: AppColors.crimson,
+            borderRadius: BorderRadius.circular(12.r),
+          ),
+          alignment: Alignment.center,
+          child: isLoading 
+            ? SizedBox(height: 24.r, width: 24.r, child: const CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+            : Text(label, style: AppTextStyles.labelMedium.copyWith(color: Colors.white, fontWeight: FontWeight.w900)),
         ),
-        alignment: Alignment.center,
-        child: isLoading 
-          ? SizedBox(height: 24.r, width: 24.r, child: const CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-          : Text(label, style: AppTextStyles.labelMedium.copyWith(color: Colors.white, fontWeight: FontWeight.w900)),
       ),
     );
   }
