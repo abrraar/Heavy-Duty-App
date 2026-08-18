@@ -2,7 +2,9 @@
 
 import 'package:flutter/material.dart';
 import 'package:heavy_duty/core/theme/app_colors.dart';
+import 'package:heavy_duty/features/tracker/supplement/model/supplement_settings.dart';
 import 'package:heavy_duty/features/tracker/supplement/model/supplement_stack.dart';
+import 'package:collection/collection.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'package:uuid/uuid.dart';
@@ -28,41 +30,20 @@ class SupplementProvider with ChangeNotifier {
   RealtimeChannel? _realtimeChannel;
 
   SupplementProvider() {
-    _notificationService.addNotificationActionListener(_handleNotificationAction);
-  }
-
-  void _handleNotificationAction(String? payload, String? actionId) async {
-    if (payload == null) return;
-
-    // Safety: Wait a brief moment for auth/database initialization to catch up if app was just launched
-    if (_localRepo == null) {
-      await Future.delayed(const Duration(milliseconds: 500));
-      if (_localRepo == null) return; 
-    }
-
-    final parts = payload.split('|');
-    final String targetId = parts[0];
-
-    if (actionId == 'log_intake') {
-      final double? forcedAmount = parts.length > 1 ? double.tryParse(parts[1]) : null;
-      quickLogIntakeOnly(targetId, forcedAmount: forcedAmount, isNotification: true);
-    } else if (actionId == 'log_stack') {
-      final List<double>? forcedValues = parts.length > 1 
-          ? parts[1].split(',').map((v) => double.tryParse(v) ?? 1.0).toList()
-          : null;
-      quickLogStack(targetId, forcedValues: forcedValues, isNotification: true);
-    }
+    // No longer listening to notification actions for interventions
   }
 
   final List<Supplement> _library = [];
   final List<SupplementItem> _history = [];
   final List<SupplementStack> _supplementStacks = [];
+  SupplementSettings _settings = SupplementSettings();
 
   String _searchQuery = "";
   String _historyCategory = "ALL";
 
   List<Supplement> get library => _library;
   List<SupplementStack> get supplementStacks => _supplementStacks;
+  SupplementSettings get settings => _settings;
 
   void initializeForUser(String userId) {
     _localRepo = SupplementLocalRepository(userId: userId);
@@ -199,15 +180,60 @@ class SupplementProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  List<Supplement> get activeSupplements =>
-      _library.where((item) => item.isActive).toList();
+  List<Supplement> get activeSupplements {
+    final now = DateTime.now();
+    return _library.where((item) {
+      if (!item.isActive) return false;
+      if (!_settings.showExpired && item.expiryDate != null && item.expiryDate!.isBefore(now)) return false;
+      if (_settings.hideEmptyStock && (item.remainingStock ?? 0) <= 0) return false;
+      return true;
+    }).toList();
+  }
 
-  List<Supplement> get pinnedSupplements =>
-      _library.where((item) => item.isActive && item.isPinnedToHome).toList();
+  List<Supplement> get pinnedSupplements {
+    final items = _library.where((item) {
+      if (!item.isActive || !item.isPinnedToHome) return false;
+      if (_settings.hideEmptyStock && (item.remainingStock ?? 0) <= 0) return false;
+      return true;
+    }).toList();
+    
+    if (_settings.pinnedOrder.isEmpty) return items;
+
+    // Sort according to pinnedOrder
+    items.sort((a, b) {
+      final idxA = _settings.pinnedOrder.indexOf(a.id);
+      final idxB = _settings.pinnedOrder.indexOf(b.id);
+      if (idxA == -1 && idxB == -1) return 0;
+      if (idxA == -1) return 1;
+      if (idxB == -1) return -1;
+      return idxA.compareTo(idxB);
+    });
+    return items;
+  }
 
   // Expose stacks that have been pinned for home quick-log
-  List<SupplementStack> get pinnedStacks =>
-      _supplementStacks.where((s) => s.isPinnedToHome).toList();
+  List<SupplementStack> get pinnedStacks {
+    final stacks = _supplementStacks.where((s) => s.isPinnedToHome).where((s) {
+      if (!_settings.hideEmptyStock) return true;
+      // Hide stack if any item is empty
+      return s.items.every((item) {
+        final libItem = _library.firstWhereOrNull((l) => l.id == item.id);
+        return (libItem?.remainingStock ?? 0) > 0;
+      });
+    }).toList();
+
+    if (_settings.pinnedOrder.isEmpty) return stacks;
+
+    stacks.sort((a, b) {
+      final idxA = _settings.pinnedOrder.indexOf(a.id);
+      final idxB = _settings.pinnedOrder.indexOf(b.id);
+      if (idxA == -1 && idxB == -1) return 0;
+      if (idxA == -1) return 1;
+      if (idxB == -1) return -1;
+      return idxA.compareTo(idxB);
+    });
+    return stacks;
+  }
 
   List<SupplementItem> get history => _history;
 
@@ -223,6 +249,12 @@ class SupplementProvider with ChangeNotifier {
       if (_historyCategory == "RESTOCK") {
         matchesCategory = entry.type == "Restock";
       }
+
+      if (_settings.hideEmptyStock) {
+        final supp = _library.firstWhere((s) => s.id == entry.supplementId, orElse: () => null as dynamic);
+        if (supp != null && (supp.remainingStock ?? 0) <= 0) return false;
+      }
+
       return matchesSearch && matchesCategory;
     }).toList();
 
@@ -238,6 +270,12 @@ class SupplementProvider with ChangeNotifier {
   /// Call this method in main.dart to load data instantly from local cache, then sync safely.
   Future<void> loadFromDatabase() async {
     try {
+      // 0. Load Settings
+      final localSettings = await _localRepo!.getSettings();
+      if (localSettings != null) {
+        _settings = localSettings;
+      }
+
       // 1. Fetch data from local SQLite database storage partition instantly
       final localSupps = await _localRepo!.getAllSupplements();
       _library.clear();
@@ -324,6 +362,17 @@ class SupplementProvider with ChangeNotifier {
           historyEntry.isSynced = 1; // It's from cloud, so it's synced
           await _localRepo!.insertSupplementItem(historyEntry);
         }
+      }
+
+      // 3.4 Settings
+      final cloudSettings = await _cloudRepo.getSettings();
+      if (cloudSettings != null) {
+        if (_settings.isSynced == 1) {
+          _settings = cloudSettings;
+          await _localRepo!.saveSettings(_settings);
+        }
+      } else {
+        _syncSettings(_settings);
       }
 
       // 4. Re-read fresh state mutations back into current provider variable objects
@@ -649,13 +698,24 @@ class SupplementProvider with ChangeNotifier {
         pinnedUseServingsRestock: useServingsRestock,
       );
       
+      // Update pinnedOrder in settings
+      List<String> newOrder = List.from(_settings.pinnedOrder);
+      if (isPinned) {
+        if (!newOrder.contains(id)) newOrder.add(id);
+      } else {
+        newOrder.remove(id);
+      }
+      _settings = _settings.copyWith(pinnedOrder: newOrder, isSynced: 0);
+
       // Notify listeners IMMEDIATELY for instant UI feedback
       notifyListeners();
 
       await _localRepo!.saveSupplement(_library[index]);
+      await _localRepo!.saveSettings(_settings);
       await _notificationService.scheduleSupplementReminders(_library[index]);
       try {
         await _cloudRepo.saveSupplement(_library[index]);
+        _syncSettings(_settings);
       } catch (_) {}
     }
   }
@@ -776,14 +836,24 @@ class SupplementProvider with ChangeNotifier {
     final index = _supplementStacks.indexWhere((s) => s.id == stackId);
     if (index != -1) {
       final bool isCurrentlyPinned = _supplementStacks[index].isPinnedToHome;
+      final bool newPinnedState = !isCurrentlyPinned;
 
       _supplementStacks[index] = _supplementStacks[index].copyWith(
-        isPinnedToHome: !isCurrentlyPinned,
-        isPinned: !isCurrentlyPinned,
-        pinnedRecordModes: !isCurrentlyPinned ? recordModes : {},
-        pinnedUseServings: !isCurrentlyPinned ? useServings : {},
-        pinnedAmounts: !isCurrentlyPinned ? amounts : {},
+        isPinnedToHome: newPinnedState,
+        isPinned: newPinnedState,
+        pinnedRecordModes: newPinnedState ? recordModes : {},
+        pinnedUseServings: newPinnedState ? useServings : {},
+        pinnedAmounts: newPinnedState ? amounts : {},
       );
+
+      // Update pinnedOrder in settings
+      List<String> newOrder = List.from(_settings.pinnedOrder);
+      if (newPinnedState) {
+        if (!newOrder.contains(stackId)) newOrder.add(stackId);
+      } else {
+        newOrder.remove(stackId);
+      }
+      _settings = _settings.copyWith(pinnedOrder: newOrder, isSynced: 0);
 
       _supplementStacks.sort((a, b) {
         if (a.isPinnedToHome && !b.isPinnedToHome) return -1;
@@ -795,6 +865,11 @@ class SupplementProvider with ChangeNotifier {
       notifyListeners();
 
       await _localRepo!.saveStack(_supplementStacks[index]);
+      await _localRepo!.saveSettings(_settings);
+      try {
+        await _cloudRepo.saveStack(_supplementStacks[index]);
+        _syncSettings(_settings);
+      } catch (_) {}
     }
   }
 
@@ -809,6 +884,14 @@ class SupplementProvider with ChangeNotifier {
     required DateTime timestamp,
     String? sourceId,
   }) async {
+    double updatedStock = (supplement.remainingStock ?? 0) + weightAdjustment;
+
+    // Strict Discipline: Prevent negative stock for intakes
+    if (isIntake && updatedStock < -0.0001) {
+      debugPrint("SupplementProvider: Aborting intake for ${supplement.name} due to insufficient stock.");
+      return;
+    }
+
     final entry = SupplementItem(
       id: const Uuid().v4(),
       supplementId: supplement.id,
@@ -820,8 +903,6 @@ class SupplementProvider with ChangeNotifier {
       sourceId: sourceId,
       isSynced: 0,
     );
-
-    double updatedStock = (supplement.remainingStock ?? 0) + weightAdjustment;
 
     // 1. Commit to in-memory state and notify listeners IMMEDIATELY to keep UI responsive
     final suppIndex = _library.indexWhere((s) => s.id == supplement.id);
@@ -999,6 +1080,8 @@ class SupplementProvider with ChangeNotifier {
   }
 
   void quickLogIntakeOnly(String id, {double? forcedAmount, bool isNotification = false}) {
+    if (!canLogSupplement(id, amount: forcedAmount)) return;
+    
     final item = _library.firstWhere((s) => s.id == id);
     
     // Use the forced amount from notification if provided, otherwise use pinned settings
@@ -1046,6 +1129,8 @@ class SupplementProvider with ChangeNotifier {
   }
 
   void quickLogStack(String stackId, {List<double>? forcedValues, bool isNotification = false}) async {
+    if (!canLogStack(stackId)) return;
+    
     final index = _supplementStacks.indexWhere((s) => s.id == stackId);
     if (index == -1) return;
 
@@ -1258,7 +1343,13 @@ class SupplementProvider with ChangeNotifier {
     String formattedValue = servingsLeft % 1 == 0
         ? servingsLeft.toInt().toString()
         : servingsLeft.toStringAsFixed(1);
-    return "$formattedValue ${item.servingUnit}";
+    
+    String unit = item.servingUnit;
+    if (servingsLeft != 1 && !unit.endsWith('s')) {
+      unit = "${unit}s";
+    }
+    
+    return "$formattedValue $unit";
   }
 
   void setSearchQuery(String query) {
@@ -1481,5 +1572,63 @@ class SupplementProvider with ChangeNotifier {
     );
 
     addOrUpdateStack(stack);
+  }
+
+  Future<void> updateSettings(SupplementSettings newSettings) async {
+    if (_localRepo == null) return;
+    final localSettings = newSettings.copyWith(isSynced: 0);
+    _settings = localSettings;
+    notifyListeners();
+
+    try {
+      await _localRepo!.saveSettings(localSettings);
+      _syncSettings(localSettings);
+    } catch (e) {
+      debugPrint("Error saving supplement settings locally: $e");
+    }
+  }
+
+  Future<void> _syncSettings(SupplementSettings settings) async {
+    try {
+      await _cloudRepo.saveSettings(settings);
+      await _localRepo!.saveSettings(settings.copyWith(isSynced: 1));
+      if (_settings.isSynced == 0) {
+        _settings = _settings.copyWith(isSynced: 1);
+        notifyListeners();
+      }
+    } catch (e) {
+      debugPrint("Background Sync Error (Supplement Settings): $e");
+    }
+  }
+
+  Future<void> updatePinnedOrder(List<String> newOrder) async {
+    final newSettings = _settings.copyWith(pinnedOrder: newOrder);
+    await updateSettings(newSettings);
+  }
+
+  bool canLogSupplement(String id, {double? amount}) {
+    final item = _library.firstWhereOrNull((s) => s.id == id);
+    if (item == null) return false;
+    double needed = amount ?? (item.pinnedUseServingsIntake ? (item.pinnedIntakeAmount * item.weightPerServing) : item.pinnedIntakeAmount);
+    return (item.remainingStock ?? 0) >= (needed - 0.0001); // Precision tolerance
+  }
+
+  bool canLogStack(String stackId) {
+    final stack = _supplementStacks.firstWhereOrNull((s) => s.id == stackId);
+    if (stack == null) return false;
+    for (var stackItem in stack.items) {
+      final libraryItem = _library.firstWhereOrNull((s) => s.id == stackItem.id && s.isActive);
+      if (libraryItem == null) continue;
+      
+      final bool isRecord = stack.pinnedRecordModes[libraryItem.id] ?? true;
+      if (!isRecord) continue; 
+      
+      final bool servings = stack.pinnedUseServings[libraryItem.id] ?? true;
+      final double amount = stack.pinnedAmounts[libraryItem.id] ?? 1.0;
+      double needed = servings ? (amount * libraryItem.weightPerServing) : amount;
+      
+      if ((libraryItem.remainingStock ?? 0) < (needed - 0.0001)) return false;
+    }
+    return true;
   }
 }

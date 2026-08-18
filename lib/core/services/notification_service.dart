@@ -57,18 +57,6 @@ class NotificationService {
       requestSoundPermission: true,
       notificationCategories: [
         DarwinNotificationCategory(
-          'supplement_category',
-          actions: [
-            DarwinNotificationAction.plain('log_intake', 'LOG INTAKE'),
-          ],
-        ),
-        DarwinNotificationCategory(
-          'stack_category',
-          actions: [
-            DarwinNotificationAction.plain('log_stack', 'LOG ALL'),
-          ],
-        ),
-        DarwinNotificationCategory(
           'hydration_category',
           actions: [
             DarwinNotificationAction.plain('log_water', 'LOG WATER'),
@@ -208,11 +196,8 @@ class NotificationService {
                 'Supplement Reminders',
                 importance: Importance.max,
                 priority: Priority.high,
-                actions: [
-                  AndroidNotificationAction('log_intake', 'LOG INTAKE', showsUserInterface: true),
-                ],
               ),
-              iOS: DarwinNotificationDetails(categoryIdentifier: 'supplement_category'),
+              iOS: DarwinNotificationDetails(),
             ),
             androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
             payload: '${supplement.id}|${reminder.value}',
@@ -239,9 +224,8 @@ class NotificationService {
                   android: AndroidNotificationDetails(
                     'heavy_duty_channel', 'Supplement Reminders',
                     importance: Importance.max, priority: Priority.high,
-                    actions: [AndroidNotificationAction('log_intake', 'LOG INTAKE', showsUserInterface: true)],
                   ),
-                  iOS: DarwinNotificationDetails(categoryIdentifier: 'supplement_category'),
+                  iOS: DarwinNotificationDetails(),
                 ),
                 androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
                 uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
@@ -267,9 +251,8 @@ class NotificationService {
                 android: AndroidNotificationDetails(
                   'heavy_duty_channel', 'Supplement Reminders',
                   importance: Importance.max, priority: Priority.high,
-                  actions: [AndroidNotificationAction('log_intake', 'LOG INTAKE', showsUserInterface: true)],
                 ),
-                iOS: DarwinNotificationDetails(categoryIdentifier: 'supplement_category'),
+                iOS: DarwinNotificationDetails(),
               ),
               androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
               uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
@@ -426,9 +409,8 @@ class NotificationService {
               android: AndroidNotificationDetails(
                 'heavy_duty_channel', 'Supplement Reminders',
                 importance: Importance.max, priority: Priority.high,
-                actions: [AndroidNotificationAction('log_stack', 'LOG ALL', showsUserInterface: true)],
               ),
-              iOS: DarwinNotificationDetails(categoryIdentifier: 'stack_category'),
+              iOS: DarwinNotificationDetails(),
             ),
             androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
             payload: '${stack.id}|$valuesPayload',
@@ -453,9 +435,8 @@ class NotificationService {
                   android: AndroidNotificationDetails(
                     'heavy_duty_channel', 'Supplement Reminders',
                     importance: Importance.max, priority: Priority.high,
-                    actions: [AndroidNotificationAction('log_stack', 'LOG ALL', showsUserInterface: true)],
                   ),
-                  iOS: DarwinNotificationDetails(categoryIdentifier: 'stack_category'),
+                  iOS: DarwinNotificationDetails(),
                 ),
                 androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
                 uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
@@ -481,9 +462,8 @@ class NotificationService {
                 android: AndroidNotificationDetails(
                   'heavy_duty_channel', 'Supplement Reminders',
                   importance: Importance.max, priority: Priority.high,
-                  actions: [AndroidNotificationAction('log_stack', 'LOG ALL', showsUserInterface: true)],
                 ),
-                iOS: DarwinNotificationDetails(categoryIdentifier: 'stack_category'),
+                iOS: DarwinNotificationDetails(),
               ),
               androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
               uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,

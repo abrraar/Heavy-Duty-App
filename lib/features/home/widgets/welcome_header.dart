@@ -23,7 +23,7 @@ class WelcomeHeader extends StatelessWidget {
                 color: AppColors.crimson,
                 letterSpacing: 2,
                 fontSize: 12.sp,
-                fontWeight: FontWeight.w900,
+                fontWeight: FontWeight.w500,
               ),
             ),
             SizedBox(height: 6.h),
@@ -31,7 +31,7 @@ class WelcomeHeader extends StatelessWidget {
               'READY FOR INTENSITY?',
               style: AppTextStyles.h1.copyWith(
                 fontSize: 32.sp,
-                fontWeight: FontWeight.w900,
+                fontWeight: FontWeight.w500,
                 color: Colors.white,
                 letterSpacing: -0.5,
               ),

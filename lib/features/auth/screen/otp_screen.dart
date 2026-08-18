@@ -1,12 +1,15 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:heavy_duty/core/theme/app_colors.dart';
 import 'package:heavy_duty/core/theme/app_text_styles.dart';
 import 'package:heavy_duty/core/navigation/app_routes.dart';
 import 'package:heavy_duty/core/constants/dimensions.dart';
+import 'package:heavy_duty/core/widgets/elite_snackbar.dart';
 import 'package:heavy_duty/features/auth/provider/auth_provider.dart';
 import 'package:heavy_duty/features/auth/widgets/auth_components.dart';
 
@@ -20,9 +23,41 @@ class OtpScreen extends StatefulWidget {
 class _OtpScreenState extends State<OtpScreen> {
   final List<TextEditingController> _controllers = List.generate(6, (_) => TextEditingController());
   final List<FocusNode> _focusNodes = List.generate(6, (_) => FocusNode());
+  
+  Timer? _resendTimer;
+  int _secondsRemaining = 60;
+  bool _canResend = false;
+  bool _isVerifying = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _startResendTimer();
+  }
+
+  void _startResendTimer() {
+    setState(() {
+      _canResend = false;
+      _secondsRemaining = 60;
+    });
+    _resendTimer?.cancel();
+    _resendTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (_secondsRemaining == 0) {
+        setState(() {
+          _canResend = true;
+          timer.cancel();
+        });
+      } else {
+        setState(() {
+          _secondsRemaining--;
+        });
+      }
+    });
+  }
 
   @override
   void dispose() {
+    _resendTimer?.cancel();
     for (final c in _controllers) {
       c.dispose();
     }
@@ -41,9 +76,11 @@ class _OtpScreenState extends State<OtpScreen> {
   }
 
   Future<void> _verifyOtp() async {
+    if (_isVerifying) return;
+
     final otp = _controllers.map((c) => c.text).join();
     if (otp.length < 6) {
-      _showErrorSnackBar('PLEASE ENTER THE FULL 6-DIGIT CODE');
+      EliteSnackbar.show(context, 'PLEASE ENTER THE FULL 6-DIGIT CODE', isError: true);
       return;
     }
 
@@ -52,30 +89,45 @@ class _OtpScreenState extends State<OtpScreen> {
       final email = authProvider.pendingEmail;
 
       if (email == null) {
-        _showErrorSnackBar('SESSION EXPIRED. PLEASE SIGN UP AGAIN.');
-        context.go(AppRoutes.signin);
+        // If we are already verifying, don't show session expired as we're likely transitioning
+        if (!_isVerifying) {
+          EliteSnackbar.show(context, 'SESSION EXPIRED. PLEASE SIGN UP AGAIN.', isError: true);
+          context.go(AppRoutes.signin);
+        }
         return;
       }
 
+      setState(() => _isVerifying = true);
       await authProvider.verifyOTPCode(email, otp);
+      
+      // Explicit navigation safety: The router SHOULD handle this via redirect, 
+      // but adding a guard to prevent further interaction on this screen.
     } catch (e) {
       if (!mounted) return;
-      _showErrorSnackBar('VERIFICATION FAILED: ${e.toString().toUpperCase()}');
-    }
-  }
+      setState(() => _isVerifying = false);
+      
+      String errorMessage = "VERIFICATION FAILED";
+      if (e is AuthException) {
+        final message = e.message.toLowerCase();
+        if (message.contains("invalid") || message.contains("token")) {
+          errorMessage = "INVALID OR EXPIRED VERIFICATION CODE";
+        } else if (message.contains("too many")) {
+          errorMessage = "TOO MANY ATTEMPTS. PLEASE WAIT.";
+        } else {
+          errorMessage = e.message.toUpperCase();
+        }
+      } else {
+        errorMessage = e.toString().toUpperCase();
+      }
 
-  void _showErrorSnackBar(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message, style: AppTextStyles.bodySmall),
-        backgroundColor: AppColors.error,
-      ),
-    );
+      EliteSnackbar.show(context, errorMessage, isError: true);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    final isLoading = context.watch<AuthProvider>().isLoading;
+    final authProvider = context.watch<AuthProvider>();
+    final isLoading = authProvider.isLoading || _isVerifying;
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -181,7 +233,7 @@ class _OtpScreenState extends State<OtpScreen> {
                 style: AppTextStyles.caption.copyWith(fontSize: isWideLayout ? 14 : 13.sp),
               ),
               TextButton(
-                onPressed: isLoading
+                onPressed: (isLoading || !_canResend)
                     ? null
                     : () async {
                         final authProvider = context.read<AuthProvider>();
@@ -190,22 +242,26 @@ class _OtpScreenState extends State<OtpScreen> {
                           try {
                             await authProvider.resendOTP(email);
                             if (!mounted) return;
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('CODE RESENT SUCCESSFULLY!'),
-                                backgroundColor: Colors.green,
-                              ),
-                            );
+                            _startResendTimer();
+                            EliteSnackbar.show(context, 'CODE RESENT SUCCESSFULLY!');
                           } catch (e) {
                             if (!mounted) return;
-                            _showErrorSnackBar(e.toString().toUpperCase());
+                            String error = "RESEND FAILED";
+                            if (e is AuthException) {
+                              if (e.message.toLowerCase().contains("too many")) {
+                                error = "PLEASE WAIT BEFORE REQUESTING A NEW CODE";
+                              } else {
+                                error = e.message.toUpperCase();
+                              }
+                            }
+                            EliteSnackbar.show(context, error, isError: true);
                           }
                         }
                       },
                 child: Text(
-                  'RESEND OTP',
+                  _canResend ? 'RESEND OTP' : 'RESEND OTP IN ${_secondsRemaining}S',
                   style: AppTextStyles.link.copyWith(
-                    color: AppColors.crimson,
+                    color: _canResend ? AppColors.crimson : AppColors.textSecondary.withOpacity(0.5),
                     fontWeight: FontWeight.bold,
                     fontSize: isWideLayout ? 14 : 13.sp,
                   ),
@@ -231,7 +287,7 @@ class _OtpScreenState extends State<OtpScreen> {
         maxLength: 1,
         enabled: enabled,
         style: AppTextStyles.h3.copyWith(
-          color: AppColors.crimson,
+          color: Colors.white,
           fontSize: isWideLayout ? 24 : 20.sp,
         ),
         inputFormatters: [FilteringTextInputFormatter.digitsOnly],

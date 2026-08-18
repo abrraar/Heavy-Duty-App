@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:heavy_duty/core/theme/app_colors.dart';
 import 'package:heavy_duty/core/theme/app_text_styles.dart';
 import 'package:heavy_duty/core/navigation/app_routes.dart';
 import 'package:heavy_duty/core/constants/dimensions.dart';
+import 'package:heavy_duty/core/widgets/elite_snackbar.dart';
 import 'package:heavy_duty/features/auth/provider/auth_provider.dart';
 import 'package:heavy_duty/features/auth/widgets/auth_components.dart';
 
@@ -34,31 +36,33 @@ class _ResetPassScreenState extends State<ResetPassScreen> {
     final confirm = _confirmPasswordController.text;
 
     if (pass.isEmpty || confirm.isEmpty) {
-      _showSnackBar('PLEASE FILL IN BOTH FIELDS', isError: true);
+      EliteSnackbar.show(context, 'PLEASE FILL IN BOTH FIELDS', isError: true);
       return;
     }
     if (pass != confirm) {
-      _showSnackBar('PASSWORDS DO NOT MATCH', isError: true);
+      EliteSnackbar.show(context, 'PASSWORDS DO NOT MATCH', isError: true);
       return;
     }
 
     try {
+      final authProv = context.read<AuthProvider>();
+      await authProv.updateUserPassword(pass);
+      
       if (!mounted) return;
-      _showSnackBar('PASSWORD UPDATED SUCCESSFULLY!', isError: false);
+      EliteSnackbar.show(context, 'PASSWORD UPDATED SUCCESSFULLY!');
       context.go(AppRoutes.login);
     } catch (e) {
       if (!mounted) return;
-      _showSnackBar('UPDATE FAILED: ${e.toString().toUpperCase()}', isError: true);
+      
+      String errorMsg = "UPDATE FAILED";
+      if (e is AuthException) {
+        errorMsg = e.message.toUpperCase();
+      } else {
+        errorMsg = e.toString().toUpperCase();
+      }
+      
+      EliteSnackbar.show(context, errorMsg, isError: true);
     }
-  }
-
-  void _showSnackBar(String message, {required bool isError}) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message, style: AppTextStyles.bodySmall),
-        backgroundColor: isError ? AppColors.error : Colors.green,
-      ),
-    );
   }
 
   @override

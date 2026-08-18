@@ -11,6 +11,7 @@ import 'package:heavy_duty/features/tracker/supplement/widgets/sheets/stack_form
 import 'package:heavy_duty/features/tracker/supplement/widgets/sheets/stack_notification_sheet.dart'; // Import the new sheet
 import 'package:heavy_duty/core/widgets/elite_snackbar.dart';
 import 'package:provider/provider.dart';
+import 'package:collection/collection.dart';
 
 import 'package:heavy_duty/features/tracker/calorie/provider/calorie_provider.dart';
 import 'package:heavy_duty/features/auth/provider/auth_provider.dart';
@@ -140,8 +141,25 @@ class _StackerCardState extends State<StackerCard> {
     final int activeCount = itemsWithStatus.where((e) => e['isActive'] == true).length;
     final bool hasInvalidItems = itemsWithStatus.any((e) => e['isActive'] == false);
     
+    // Check for stock issues on current settings
+    bool hasStockIssue = false;
+    for (var data in itemsWithStatus) {
+      if (data['isActive'] == false) continue;
+      final Supplement item = data['item'];
+      if (_isRecordMode[item.id] == true) {
+        final double amount = double.tryParse(_controllers[item.id]?.text ?? "0") ?? 0.0;
+        final bool servings = _useServings[item.id] ?? true;
+        double needed = servings ? (amount * item.weightPerServing) : amount;
+        if ((item.remainingStock ?? 0) < (needed - 0.0001)) {
+          hasStockIssue = true;
+          break;
+        }
+      }
+    }
+    
     // A stack is disabled if any item is missing/inactive OR if it has fewer than 2 valid items
-    final bool isStackDisabled = hasInvalidItems || activeCount < 2;
+    // OR if there is a stock issue for an intake item
+    final bool isStackDisabled = hasInvalidItems || activeCount < 2 || hasStockIssue;
 
     return Opacity(
       opacity: isStackDisabled ? 0.6 : 1.0,
@@ -961,25 +979,52 @@ class _StackerCardState extends State<StackerCard> {
       return val <= 0;
     });
 
+    // Check for stock issue again for the button label
+    bool hasStockIssue = false;
+    for (var controllerEntry in _controllers.entries) {
+      final String id = controllerEntry.key;
+      if (_isRecordMode[id] == true) {
+        final double amount = double.tryParse(controllerEntry.value.text) ?? 0;
+        final provider = context.read<SupplementProvider>();
+        final item = provider.library.firstWhereOrNull((s) => s.id == id);
+        if (item != null) {
+          final bool servings = _useServings[id] ?? true;
+          double needed = servings ? (amount * item.weightPerServing) : amount;
+          if ((item.remainingStock ?? 0) < (needed - 0.0001)) {
+            hasStockIssue = true;
+            break;
+          }
+        }
+      }
+    }
+
+    final bool canExecute = valid && !hasZeroValue && !hasStockIssue;
+    String label = "EXECUTE STACK";
+    if (!valid || hasZeroValue) {
+      label = "DATA REQUIRED";
+    } else if (hasStockIssue) {
+      label = "INSUFFICIENT STOCK";
+    }
+
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: 16.w),
       child: GestureDetector(
-        onTap: (valid && !hasZeroValue) ? _showExecuteConfirmation : null,
+        onTap: canExecute ? _showExecuteConfirmation : null,
         child: Container(
           height: 52.h,
           width: double.infinity,
           decoration: BoxDecoration(
-            color: (valid && !hasZeroValue)
+            color: canExecute
                 ? AppColors.crimson
                 : AppColors.background.withOpacity(0.5),
             borderRadius: BorderRadius.circular(14.r),
           ),
           alignment: Alignment.center,
           child: Text(
-            (valid && !hasZeroValue) ? "EXECUTE STACK" : "DATA REQUIRED",
+            label,
             style: AppTextStyles.buttonPrimary.copyWith(
               fontSize: 13.sp,
-              color: (valid && !hasZeroValue) ? Colors.white : Colors.white24,
+              color: canExecute ? Colors.white : Colors.white24,
             ),
           ),
         ),

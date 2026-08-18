@@ -442,6 +442,18 @@ class DatabaseHelper {
         created_at TEXT DEFAULT CURRENT_TIMESTAMP
       )
     ''');
+
+    // 26. Supplement Settings Table
+    await db.execute('''
+      CREATE TABLE ss_settings (
+        id INTEGER PRIMARY KEY CHECK (id = 1),
+        show_expired INTEGER DEFAULT 1,
+        hide_empty_stock INTEGER DEFAULT 0,
+        pinned_order_json TEXT,
+        is_synced INTEGER DEFAULT 1,
+        created_at TEXT DEFAULT CURRENT_TIMESTAMP
+      )
+    ''');
   }
 
   Future _onUpgrade(Database db, int oldVersion, int newVersion) async {

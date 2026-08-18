@@ -18,14 +18,14 @@ import 'package:provider/provider.dart';
 import 'package:heavy_duty/core/navigation/app_router.dart';
 import 'package:heavy_duty/core/services/notification_service.dart';
 import 'package:heavy_duty/core/services/connectivity_service.dart';
+import 'package:heavy_duty/core/services/deep_link_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:alarm/alarm.dart';
 
 import 'features/tracker/body_composition/provider/body_comp_provider.dart';
-import 'features/tracker/calorie/provider/calorie_provider.dart';
-import 'features/tracker/supplement/provider/supplement_provider.dart';
 import 'features/affirmation/provider/affirmation_provider.dart';
 import 'core/providers/ui_provider.dart';
+import 'features/tracker/supplement/provider/supplement_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized(); // Ensure this is first
@@ -36,6 +36,9 @@ void main() async {
   await Supabase.initialize(
     url: AppConstants.supabaseUrl,
     anonKey: AppConstants.supabaseAnonKey,
+    authOptions: const FlutterAuthClientOptions(
+      authFlowType: AuthFlowType.pkce,
+    ),
   );
 
   SystemChrome.setSystemUIOverlayStyle(
@@ -144,8 +147,20 @@ class _AuthWrapperState extends State<AuthWrapper> {
   Widget build(BuildContext context) => widget.child;
 }
 
-class MyApp extends StatelessWidget {
+class MyApp extends StatefulWidget {
   const MyApp({super.key});
+
+  @override
+  State<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> {
+  @override
+  void initState() {
+    super.initState();
+    // Initialize Deep Link handling after router exists
+    DeepLinkService().init(appRouter);
+  }
 
   @override
   Widget build(BuildContext context) {

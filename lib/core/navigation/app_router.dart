@@ -51,12 +51,29 @@ bool _isFirstLoad = true;
 final appRouter = GoRouter(
   navigatorKey: _rootNavigatorKey,
   initialLocation: AppRoutes.splash, // Start at Splash
-  refreshListenable: AuthProviderListenable(),
+  refreshListenable: AuthProvider(),
+  errorBuilder: (context, state) {
+    debugPrint("Router: Error encountered. Redirecting to Home. Error: ${state.error}");
+    return const HomeScreen();
+  },
   redirect: (context, state) {
-    final authProvider = context.read<AuthProvider>();
+    final authProvider = AuthProvider();
     final isAuthenticated = authProvider.isAuthenticated;
     final isProfileComplete = authProvider.isProfileComplete;
     final location = state.uri.path;
+
+    // These must be reachable regardless of auth/onboarding state to ensure 
+    // deep-link navigation isn't silently overridden.
+    final List<String> alwaysAllowed = [
+      AppRoutes.changePassword,
+      AppRoutes.manageEmail,
+      AppRoutes.authCallback,
+    ];
+
+    if (alwaysAllowed.any((p) => location.startsWith(p))) {
+      debugPrint('[Router] $location allowlisted, skipping guard');
+      return null;
+    }
 
     // On cold start, if the location is NOT splash or root, it means we have a deep link.
     final bool isInitialDeepLink = _isFirstLoad && location != AppRoutes.splash && location != AppRoutes.root;
@@ -68,6 +85,8 @@ final appRouter = GoRouter(
       AppRoutes.forgotPass,
       AppRoutes.otp,
       AppRoutes.resetPass,
+      AppRoutes.verifySecondaryEmail,
+      AppRoutes.confirmEmail,
       AppRoutes.splash,
     ].contains(location);
 
@@ -77,7 +96,7 @@ final appRouter = GoRouter(
       if (!isAuthRoute && location != AppRoutes.root) {
         return '${AppRoutes.login}?from=${Uri.encodeComponent(location)}';
       }
-      
+
       // If we are at root (coming from splash), go to login
       if (location == AppRoutes.root) return AppRoutes.login;
 
@@ -94,9 +113,10 @@ final appRouter = GoRouter(
     if (isAuthenticated && isProfileComplete) {
       if (!_hasLoadedUserData) {
         _hasLoadedUserData = true;
+        // Access provider via context here since we are inside a callback with context
         context.read<SupplementProvider>().loadFromDatabase();
       }
-      
+
       // If we are at an auth route or splash, check if we have a target to return to
       if (isAuthRoute || location == AppRoutes.root || location == AppRoutes.createProfilePersonal) {
         final from = state.uri.queryParameters['from'];
@@ -106,7 +126,7 @@ final appRouter = GoRouter(
 
         // If it's a deep link picked up on cold start, don't override it with Home
         if (isInitialDeepLink) return null;
-        
+
         return AppRoutes.home;
       }
     }
@@ -143,11 +163,6 @@ final appRouter = GoRouter(
       path: AppRoutes.otp,
       parentNavigatorKey: _rootNavigatorKey,
       builder: (context, state) => const OtpScreen(),
-    ),
-    GoRoute(
-      path: AppRoutes.resetPass,
-      parentNavigatorKey: _rootNavigatorKey,
-      builder: (context, state) => const ResetPassScreen(),
     ),
     GoRoute(
       path: AppRoutes.createProfilePersonal,

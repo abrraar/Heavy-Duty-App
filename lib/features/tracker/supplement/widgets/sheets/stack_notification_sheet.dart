@@ -49,13 +49,16 @@ class _StackNotificationSheetState extends State<StackNotificationSheet> {
     intakeReminders = widget.initialReminders
         .where((r) => r.type == ReminderType.intake)
         .toList();
-    recordEnabled = intakeReminders.isNotEmpty;
+    
+    // Respect the master enabled flag from the parent card
+    recordEnabled = widget.initialEnabled && intakeReminders.isNotEmpty;
     
     if (intakeReminders.isNotEmpty) {
       _selectedMode = intakeReminders.first.reminderMode;
     }
 
-    restockEnabled = widget.initialReminders.any(
+    // Respect the master enabled flag from the parent card
+    restockEnabled = widget.initialEnabled && widget.initialReminders.any(
       (r) => r.type == ReminderType.lowStock,
     );
 

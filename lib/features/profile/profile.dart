@@ -8,9 +8,11 @@ import 'package:heavy_duty/core/theme/app_text_styles.dart';
 import 'package:heavy_duty/features/auth/provider/auth_provider.dart';
 import 'package:heavy_duty/features/tracker/body_composition/provider/body_comp_provider.dart';
 import 'package:heavy_duty/features/tracker/cycle_tracker/provider/cycle_provider.dart';
+import 'package:heavy_duty/features/tracker/cycle_tracker/model/cycle_settings.dart';
 import '../main_wrapper.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 import '../tracker/body_composition/model/body_comp_log.dart';
 
 class ProfileScreen extends StatelessWidget {
@@ -37,28 +39,40 @@ class ProfileScreen extends StatelessWidget {
           bmi = weight / ((height / 100) * (height / 100));
         }
 
-        // Calculate Records
-        double heaviestWeight = 0;
+        // Calculate Elite Records
+        double heaviestWeightKg = 0;
         String heaviestExercise = "N/A";
+        
+        final Set<String> loggedExerciseNames = {};
         double bestGain = 0;
         String bestGainExercise = "N/A";
 
+        // 1. Identify the absolute heaviest lift (Filter for existing exercises)
         for (var log in cycleProv.logs) {
-          if (log.weightKg > heaviestWeight) {
-            heaviestWeight = log.weightKg;
-            heaviestExercise = cycleProv.getExerciseName(log.exerciseId) ?? "Unknown";
+          final name = cycleProv.getExerciseName(log.exerciseId);
+          if (name == null) continue; // Skip logs for exercises that have been deleted
+
+          if (log.weightKg > heaviestWeightKg) {
+            heaviestWeightKg = log.weightKg;
+            heaviestExercise = name;
+          }
+          
+          loggedExerciseNames.add(name);
+        }
+
+        // 2. Identify the highest strength gain percentage across active exercises
+        for (var exName in loggedExerciseNames) {
+          final prog = cycleProv.calculateExerciseProgress(exName);
+          if (prog > bestGain) {
+            bestGain = prog;
+            bestGainExercise = exName;
           }
         }
 
-        for (var workout in cycleProv.workouts) {
-          for (var exercise in workout.exercises) {
-            final prog = cycleProv.calculateExerciseProgress(exercise.name);
-            if (prog > bestGain) {
-              bestGain = prog;
-              bestGainExercise = exercise.name;
-            }
-          }
-        }
+        // 3. Handle Unit Conversions for Display
+        final bool isLbs = cycleProv.settings.weightUnit == WeightUnit.lbs;
+        final double displayHeaviestWeight = isLbs ? (heaviestWeightKg * 2.205) : heaviestWeightKg;
+        final String weightLabel = isLbs ? "LBS" : "KG";
 
         return SingleChildScrollView(
           physics: const BouncingScrollPhysics(),
@@ -83,8 +97,13 @@ class ProfileScreen extends StatelessWidget {
                 child: Column(
                   children: [
                     _buildInfoTile('Name', authProv.displayName),
-                    _buildInfoTile('Username', authProv.username),
-                    _buildInfoTile('Email', authProv.currentUser?.email ?? "N/A"),
+                    _buildInfoTile('Gender', authProv.gender?.toUpperCase() ?? "NOT SET"),
+                    _buildInfoTile(
+                      'Birthday', 
+                      authProv.birthday != null 
+                        ? DateFormat('MMM dd, yyyy').format(authProv.birthday!).toUpperCase() 
+                        : "NOT SET"
+                    ),
                     _buildInfoTile(
                       'Height', 
                       "${height.toStringAsFixed(0)} cm",
@@ -125,13 +144,17 @@ class ProfileScreen extends StatelessWidget {
                     _buildRecordTile(
                       label: 'Heaviest Lift',
                       exercise: heaviestExercise.toUpperCase(),
-                      value: '${heaviestWeight.toStringAsFixed(1)} KG',
-                      isHot: heaviestWeight > 0,
+                      value: heaviestWeightKg > 0 
+                          ? '${displayHeaviestWeight.toStringAsFixed(1)} $weightLabel'
+                          : 'NO RECORDS',
+                      isHot: heaviestWeightKg > 0,
                     ),
                     _buildRecordTile(
                       label: 'Best Strength Gain',
                       exercise: bestGainExercise.toUpperCase(),
-                      value: '+${(bestGain * 100).toStringAsFixed(1)}%',
+                      value: bestGain > 0 
+                          ? '+${(bestGain * 100).toStringAsFixed(1)}%'
+                          : 'N/A',
                       isHot: bestGain > 0,
                     ),
                   ],

@@ -6,6 +6,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../model/supplement.dart';
 import '../model/supplement_stack.dart';
 import '../model/supplement_item.dart';
+import '../model/supplement_settings.dart';
 
 class SupplementCloudRepository {
   final SupabaseClient _supabase = Supabase.instance.client;
@@ -208,6 +209,44 @@ class SupplementCloudRepository {
     } catch (e) {
       debugPrint("Cloud Repository Error (deleteStack): $e");
       rethrow;
+    }
+  }
+
+  // ==========================================
+  // 4. SETTINGS METHODS
+  // ==========================================
+
+  Future<SupplementSettings?> getSettings() async {
+    final uid = _currentUserId;
+    if (uid == null) return null;
+
+    try {
+      final response = await _supabase
+          .from('ss_settings')
+          .select()
+          .eq('user_id', uid)
+          .maybeSingle();
+
+      if (response != null) return SupplementSettings.fromMap(response);
+    } catch (e) {
+      debugPrint("Cloud Repository Error (getSettings): $e");
+    }
+    return null;
+  }
+
+  Future<void> saveSettings(SupplementSettings settings) async {
+    final uid = _currentUserId;
+    if (uid == null) return;
+
+    try {
+      final data = settings.toMap();
+      data['user_id'] = uid;
+      data.remove('id');
+      data.remove('is_synced');
+      
+      await _supabase.from('ss_settings').upsert(data, onConflict: 'user_id');
+    } catch (e) {
+      debugPrint("Cloud Repository Error (saveSettings): $e");
     }
   }
 }

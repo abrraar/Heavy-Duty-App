@@ -46,6 +46,13 @@ class _IntakeSheetState extends State<IntakeSheet> {
   );
 
   @override
+  void initState() {
+    super.initState();
+    // Default recordIntake to false if there is no inventory available
+    recordIntake = (widget.supplement.remainingStock ?? 0) > 0;
+  }
+
+  @override
   void dispose() {
     intakeController.dispose();
     restockController.dispose();
@@ -64,8 +71,22 @@ class _IntakeSheetState extends State<IntakeSheet> {
     double iVal = double.tryParse(intakeController.text) ?? 0.0;
     double rVal = double.tryParse(restockController.text) ?? 0.0;
 
-    final bool isActionEnabled =
-        (recordIntake && iVal > 0) || (restockInventory && rVal > 0);
+    double neededIntakeWeight = useServingsForIntake
+        ? (iVal * widget.supplement.weightPerServing)
+        : iVal;
+    
+    final bool hasStock = (widget.supplement.remainingStock ?? 0) >= (neededIntakeWeight - 0.0001);
+    final bool intakeValid = recordIntake && iVal > 0 && hasStock;
+    final bool restockValid = restockInventory && rVal > 0;
+
+    final bool isActionEnabled = intakeValid || restockValid;
+
+    String buttonLabel = "ENABLE AN ACTION ABOVE";
+    if (isActionEnabled) {
+      buttonLabel = "CONFIRM LOG";
+    } else if (recordIntake && !hasStock) {
+      buttonLabel = "INSUFFICIENT STOCK";
+    }
 
     return Material(
       color: Colors.transparent,
@@ -102,6 +123,7 @@ class _IntakeSheetState extends State<IntakeSheet> {
                               "RECORD INTAKE",
                               recordIntake,
                               (v) => setState(() => recordIntake = v),
+                              isEnabled: (widget.supplement.remainingStock ?? 0) > 0,
                             ),
                             if (recordIntake) ...[
                               SizedBox(height: 16.h),
@@ -141,15 +163,13 @@ class _IntakeSheetState extends State<IntakeSheet> {
                       SizedBox(height: 32.h),
 
                       _buildActionButton(
-                        label: isActionEnabled
-                            ? "CONFIRM LOG"
-                            : "ENABLE AN ACTION ABOVE",
+                        label: buttonLabel,
                         isEnabled: isActionEnabled,
                         onPressed: () {
                           if (isActionEnabled) {
                             widget.onConfirm(
-                              recordIntake: recordIntake,
-                              restockInventory: restockInventory,
+                              recordIntake: intakeValid,
+                              restockInventory: restockValid,
                               intakeVal:
                                   double.tryParse(intakeController.text) ?? 0.5,
                               restockVal:
@@ -251,18 +271,21 @@ class _IntakeSheetState extends State<IntakeSheet> {
     ),
   );
 
-  Widget _buildToggleRow(String title, bool value, Function(bool) onChanged) {
+  Widget _buildToggleRow(String title, bool value, Function(bool) onChanged, {bool isEnabled = true}) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Text(
           title,
-          style: AppTextStyles.labelSmall.copyWith(fontWeight: FontWeight.bold),
+          style: AppTextStyles.labelSmall.copyWith(
+            fontWeight: FontWeight.bold,
+            color: isEnabled ? Colors.white : AppColors.textSecondary.withOpacity(0.4),
+          ),
         ),
         Switch.adaptive(
-          value: value,
+          value: isEnabled ? value : false,
           activeColor: AppColors.crimson,
-          onChanged: onChanged,
+          onChanged: isEnabled ? onChanged : null,
         ),
       ],
     );

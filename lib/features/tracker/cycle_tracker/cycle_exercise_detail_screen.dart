@@ -408,7 +408,7 @@ class _CycleExerciseDetailScreenState extends State<CycleExerciseDetailScreen> {
                   Padding(
                     padding: EdgeInsets.only(top: 8.h),
                     child: Text(
-                      "VOLUME: ${volumeValue.toStringAsFixed(1)}",
+                      "TONNAGE: ${volumeValue.toStringAsFixed(1)} T",
                       style: AppTextStyles.labelSmall.copyWith(
                         color: AppColors.textSecondary,
                         fontWeight: FontWeight.w400,
@@ -503,7 +503,7 @@ class _CycleExerciseDetailScreenState extends State<CycleExerciseDetailScreen> {
               ),
               SizedBox(width: 16.w),
               _buildAnalysisCard(
-                label: "VOLUME CHANGE",
+                label: "TONNAGE CHANGE",
                 value: volumeChange,
                 isPercentage: true,
                 color: volumeChange >= 0 ? AppColors.success : AppColors.crimson,

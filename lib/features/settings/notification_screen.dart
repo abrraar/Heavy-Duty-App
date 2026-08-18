@@ -92,27 +92,7 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
                       ),
                       SizedBox(height: 24.h),
 
-                      // 4. SUPPLEMENT SIGNALS
-                      if (activeSupps.isNotEmpty || activeStacks.isNotEmpty) ...[
-                        _buildSectionHeader("SUPPLEMENT INTERVENTIONS"),
-                        ...activeSupps.map((s) => _buildSignalTile(
-                          icon: Icons.medication_rounded,
-                          title: s.name.toUpperCase(),
-                          subtitle: s.notificationsEnabled ? "Active Intake Reminders" : "Reminders Paused",
-                          value: s.notificationsEnabled,
-                          onChanged: (val) => suppProv.updateReminders(s.id, s.reminders, val),
-                        )),
-                        ...activeStacks.map((st) => _buildSignalTile(
-                          icon: Icons.layers_rounded,
-                          title: "STACK: ${st.name.toUpperCase()}",
-                          subtitle: st.notificationsEnabled ? "Protocol Bundle Active" : "Bundle Paused",
-                          value: st.notificationsEnabled,
-                          onChanged: (val) => suppProv.updateStackNotifications(st.id, st.reminders, val),
-                        )),
-                        SizedBox(height: 24.h),
-                      ],
-
-                      // 5. NUTRITION SIGNALS
+                      // 4. NUTRITION SIGNALS
                       if (activeMeals.isNotEmpty) ...[
                         _buildSectionHeader("NUTRITION LEDGER"),
                         ...activeMeals.map((m) => _buildSignalTile(

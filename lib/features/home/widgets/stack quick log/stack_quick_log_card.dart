@@ -7,83 +7,93 @@ import 'package:heavy_duty/features/tracker/supplement/model/supplement_stack.da
 class StackQuickLogCard extends StatelessWidget {
   final SupplementStack stack;
   final VoidCallback onTap;
+  final bool canLog;
 
   const StackQuickLogCard({
     super.key,
     required this.stack,
     required this.onTap,
+    this.canLog = true,
   });
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
-      child: Container(
-        width: 145.w,
-        margin: EdgeInsets.only(right: 16.w),
-        padding: EdgeInsets.all(16.r),
-        decoration: BoxDecoration(
-          color: AppColors.surfaceLight.withOpacity(0.6),
-          borderRadius: BorderRadius.circular(24.r),
-          border: Border.all(color: Colors.white.withOpacity(0.1)),
-          boxShadow: [
-            BoxShadow(color: Colors.black26, blurRadius: 6, offset: Offset(0, 3)),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Container(
-              padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
-              decoration: BoxDecoration(
-                color: AppColors.crimson.withOpacity(0.2),
-                borderRadius: BorderRadius.circular(8.r),
-              ),
-              child: Text(
-                "STACK",
-                style: AppTextStyles.labelSmall.copyWith(
-                  fontSize: 10.sp,
-                  color: AppColors.crimson,
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
+      child: Opacity(
+        opacity: canLog ? 1.0 : 0.5,
+        child: IntrinsicWidth(
+          child: Container(
+            constraints: BoxConstraints(minWidth: 145.w),
+            margin: EdgeInsets.only(right: 16.w),
+            padding: EdgeInsets.all(16.r),
+            decoration: BoxDecoration(
+              color: AppColors.surfaceLight.withOpacity(0.6),
+              borderRadius: BorderRadius.circular(24.r),
+              border: Border.all(color: Colors.white.withOpacity(0.1)),
+              boxShadow: [
+                BoxShadow(color: Colors.black26, blurRadius: 6, offset: Offset(0, 3)),
+              ],
             ),
-            Text(
-              stack.name.toUpperCase(),
-              maxLines: 2,
-              style: AppTextStyles.labelSmall.copyWith(
-                fontSize: 13.sp,
-                fontWeight: FontWeight.w900,
-                color: Colors.white,
-              ),
-              overflow: TextOverflow.ellipsis,
-            ),
-            Container(
-              padding: EdgeInsets.only(top: 8.h),
-              decoration: BoxDecoration(
-                border: Border(top: BorderSide(color: Colors.white.withOpacity(0.1))),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    "${stack.items.length} ITEMS",
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Container(
+                  padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
+                  decoration: BoxDecoration(
+                    color: AppColors.crimson.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(8.r),
+                  ),
+                  child: Text(
+                    "STACK",
                     style: AppTextStyles.labelSmall.copyWith(
                       fontSize: 10.sp,
-                      color: AppColors.textSecondary,
-                      fontWeight: FontWeight.w800,
+                      color: AppColors.crimson,
+                      fontWeight: FontWeight.w900,
                     ),
                   ),
-                  Icon(
-                    Icons.arrow_forward_ios_rounded,
-                    size: 12.r,
-                    color: AppColors.crimson,
+                ),
+                SizedBox(height: 12.h),
+                Text(
+                  stack.name.toUpperCase(),
+                  maxLines: 2,
+                  style: AppTextStyles.labelSmall.copyWith(
+                    fontSize: 13.sp,
+                    fontWeight: FontWeight.w900,
+                    color: Colors.white,
                   ),
-                ],
-              ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+                SizedBox(height: 12.h),
+                Container(
+                  padding: EdgeInsets.only(top: 8.h),
+                  decoration: BoxDecoration(
+                    border: Border(top: BorderSide(color: Colors.white.withOpacity(0.1))),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        "${stack.items.length} ITEMS",
+                        style: AppTextStyles.labelSmall.copyWith(
+                          fontSize: 10.sp,
+                          color: AppColors.textSecondary,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      SizedBox(width: 12.w),
+                      Icon(
+                        Icons.arrow_forward_ios_rounded,
+                        size: 12.r,
+                        color: AppColors.crimson,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );

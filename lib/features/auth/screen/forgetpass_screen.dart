@@ -1,11 +1,14 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:heavy_duty/core/theme/app_colors.dart';
 import 'package:heavy_duty/core/theme/app_text_styles.dart';
 import 'package:heavy_duty/core/navigation/app_routes.dart';
 import 'package:heavy_duty/core/constants/dimensions.dart';
+import 'package:heavy_duty/core/widgets/elite_snackbar.dart';
 import 'package:heavy_duty/features/auth/provider/auth_provider.dart';
 import 'package:heavy_duty/features/auth/widgets/auth_components.dart';
 
@@ -18,43 +21,69 @@ class ForgotPassScreen extends StatefulWidget {
 
 class _ForgotPassScreenState extends State<ForgotPassScreen> {
   final _emailController = TextEditingController();
+  
+  Timer? _resendTimer;
+  int _secondsRemaining = 0;
+  bool _canSend = true;
 
   @override
   void dispose() {
+    _resendTimer?.cancel();
     _emailController.dispose();
     super.dispose();
+  }
+
+  void _startResendTimer() {
+    setState(() {
+      _canSend = false;
+      _secondsRemaining = 60;
+    });
+    _resendTimer?.cancel();
+    _resendTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (_secondsRemaining == 0) {
+        setState(() {
+          _canSend = true;
+          timer.cancel();
+        });
+      } else {
+        setState(() {
+          _secondsRemaining--;
+        });
+      }
+    });
   }
 
   Future<void> _handleSendOtp() async {
     final email = _emailController.text.trim();
 
     if (email.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'PLEASE ENTER YOUR EMAIL',
-            style: AppTextStyles.bodySmall,
-          ),
-          backgroundColor: AppColors.error,
-        ),
-      );
+      EliteSnackbar.show(context, 'PLEASE ENTER YOUR EMAIL', isError: true);
       return;
     }
 
     try {
+      await context.read<AuthProvider>().sendPasswordResetEmail(email);
+      
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('RESET LINK OR OTP SENT SUCCESSFULLY!')),
-      );
-      context.push(AppRoutes.otp);
+      _startResendTimer();
+      EliteSnackbar.show(context, 'RESET LINK SENT SUCCESSFULLY!');
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(e.toString().toUpperCase()),
-          backgroundColor: AppColors.error,
-        ),
-      );
+      
+      String errorMsg = "SEND FAILED";
+      if (e is AuthException) {
+        if (e.message.toLowerCase().contains("not found")) {
+          errorMsg = "USER NOT FOUND";
+        } else if (e.message.toLowerCase().contains("too many")) {
+          errorMsg = "PLEASE WAIT BEFORE TRYING AGAIN";
+        } else {
+          errorMsg = e.message.toUpperCase();
+        }
+      } else {
+        errorMsg = e.toString().toUpperCase();
+      }
+      
+      EliteSnackbar.show(context, errorMsg, isError: true);
     }
   }
 
@@ -155,9 +184,9 @@ class _ForgotPassScreenState extends State<ForgotPassScreen> {
         ),
         SizedBox(height: 32.h.clamp(24, 48)),
         AuthPrimaryButton(
-          label: 'SEND OTP',
+          label: _canSend ? 'SEND RESET LINK' : 'RESEND IN ${_secondsRemaining}S',
           isLoading: isLoading,
-          onTap: _handleSendOtp,
+          onTap: _canSend ? _handleSendOtp : () {},
           isWideLayout: isWideLayout,
         ),
         SizedBox(height: 48.h.clamp(32, 80)),

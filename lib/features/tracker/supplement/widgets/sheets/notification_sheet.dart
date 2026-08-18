@@ -49,7 +49,9 @@ class _NotificationSheetState extends State<NotificationSheet> {
     intakeReminders = widget.initialReminders
         .where((r) => r.type == ReminderType.intake)
         .toList();
-    recordEnabled = intakeReminders.isNotEmpty;
+    
+    // Respect the master enabled flag from the parent card
+    recordEnabled = widget.initialEnabled && intakeReminders.isNotEmpty;
 
     if (intakeReminders.isNotEmpty) {
       _selectedMode = intakeReminders.first.reminderMode;
@@ -65,7 +67,8 @@ class _NotificationSheetState extends State<NotificationSheet> {
       ),
     );
 
-    restockEnabled = widget.initialReminders.any(
+    // Respect the master enabled flag from the parent card
+    restockEnabled = widget.initialEnabled && widget.initialReminders.any(
       (r) => r.type == ReminderType.lowStock,
     );
     lowStockThreshold = restockReminder.value;

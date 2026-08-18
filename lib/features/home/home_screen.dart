@@ -362,10 +362,19 @@ class _SupplementLogSection extends StatelessWidget {
         if (pinned.isEmpty) return const SizedBox.shrink();
         List<Widget> cards = [];
         for (var item in pinned) {
-          if (item.pinnedIntakeAmount > 0) cards.add(QuickLogCard(item: item, isRestock: false, onTap: () {
-            provider.quickLogIntakeOnly(item.id);
-            EliteSnackbar.show(context, "${item.name} RECORDED", onUndo: () => provider.deleteLastEntry());
-          }));
+          if (item.pinnedIntakeAmount > 0) {
+            final bool canLog = provider.canLogSupplement(item.id);
+            cards.add(QuickLogCard(
+              item: item, 
+              isRestock: false, 
+              onTap: canLog ? () {
+                provider.quickLogIntakeOnly(item.id);
+                EliteSnackbar.show(context, "${item.name} RECORDED", onUndo: () => provider.deleteLastEntry());
+              } : () {
+                EliteSnackbar.show(context, "INSUFFICIENT STOCK FOR ${item.name.toUpperCase()}", isError: true);
+              },
+            ));
+          }
           if (item.pinnedRestockAmount > 0) cards.add(QuickLogCard(item: item, isRestock: true, onTap: () {
             provider.quickLogRestockOnly(item.id);
             EliteSnackbar.show(context, "${item.name} RESTOCKED", onUndo: () => provider.deleteLastEntry());
@@ -415,10 +424,20 @@ class _StackLogSection extends StatelessWidget {
                   scrollDirection: Axis.horizontal, 
                   physics: const ClampingScrollPhysics(),
                   itemCount: pinnedStacks.length, 
-                  itemBuilder: (context, index) => StackQuickLogCard(stack: pinnedStacks[index], onTap: () {
-                    provider.quickLogStack(pinnedStacks[index].id);
-                    EliteSnackbar.show(context, "${pinnedStacks[index].name} LOGGED", onUndo: () => provider.deleteLastEntry());
-                  }),
+                  itemBuilder: (context, index) {
+                    final stack = pinnedStacks[index];
+                    final bool canLog = provider.canLogStack(stack.id);
+                    return StackQuickLogCard(
+                      stack: stack, 
+                      canLog: canLog,
+                      onTap: canLog ? () {
+                        provider.quickLogStack(stack.id);
+                        EliteSnackbar.show(context, "${stack.name} LOGGED", onUndo: () => provider.deleteLastEntry());
+                      } : () {
+                        EliteSnackbar.show(context, "INSUFFICIENT STOCK FOR STACK: ${stack.name.toUpperCase()}", isError: true);
+                      },
+                    );
+                  },
                 ),
               ),
             ],

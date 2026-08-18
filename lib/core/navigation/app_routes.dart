@@ -34,6 +34,11 @@ class AppRoutes {
   static const String manageEmail = '/settings/manage-email';
   static const String changePassword = '/settings/change-password';
 
+  static const String authCallback = '/auth/callback';
+  static const String verifyEmail  = '/verify-email';
+  static const String verifySecondaryEmail = '/verify-secondary-email';
+  static const String confirmEmail = '/confirm-email';
+
   static const String alarmRinging = '/alarm-ringing';
   static const String shareCycle = '/share/cycle';
   static const String shareMeal = '/share/meal';

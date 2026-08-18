@@ -18,6 +18,36 @@ class ManageEmailScreen extends StatefulWidget {
 
 class _ManageEmailScreenState extends State<ManageEmailScreen> {
   final _emailController = TextEditingController();
+  bool _isSending = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // Auto-refresh when entering the screen to catch any verification updates from deep links
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final authProv = context.read<AuthProvider>();
+      
+      // Check if we arrived via a verification deep link (passed as query param in router)
+      final state = GoRouterState.of(context);
+      final bool wasVerified = state.uri.queryParameters['verified'] == 'true';
+
+      if (wasVerified) {
+        await authProv.refreshEmails();
+        if (mounted) {
+          final message = state.uri.queryParameters['message'];
+          if (message != null && message.isNotEmpty) {
+            EliteSnackbar.show(context, message.toUpperCase());
+          } else {
+            final String currentEmail = authProv.currentUser?.email ?? "";
+            EliteSnackbar.show(context, 'EMAIL "$currentEmail" VERIFIED');
+          }
+        }
+      } else {
+        // Just a standard entry, sync quietly
+        authProv.refreshEmails();
+      }
+    });
+  }
 
   @override
   void dispose() {
@@ -31,66 +61,81 @@ class _ManageEmailScreenState extends State<ManageEmailScreen> {
       isScrollControlled: true,
       backgroundColor: AppColors.surface,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24.r))),
-      builder: (context) => Padding(
-        padding: EdgeInsets.only(
-          bottom: MediaQuery.of(context).viewInsets.bottom,
-          left: 24.r,
-          right: 24.r,
-          top: 24.r,
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Center(
-              child: Container(
-                width: 40.w,
-                height: 4.h,
-                margin: EdgeInsets.only(bottom: 20.h),
-                decoration: BoxDecoration(
-                  color: Colors.white12,
-                  borderRadius: BorderRadius.circular(2.r),
+      builder: (context) => StatefulBuilder(
+        builder: (context, setSheetState) => Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).viewInsets.bottom + MediaQuery.of(context).padding.bottom + 20.h,
+            left: 24.r,
+            right: 24.r,
+            top: 24.r,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40.w,
+                  height: 4.h,
+                  margin: EdgeInsets.only(bottom: 20.h),
+                  decoration: BoxDecoration(
+                    color: Colors.white12,
+                    borderRadius: BorderRadius.circular(2.r),
+                  ),
                 ),
               ),
-            ),
-            Text("ADD EMAIL ADDRESS", style: AppTextStyles.h3),
-            SizedBox(height: 8.h),
-            Text("A CONFIRMATION LINK WILL BE SENT", style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary)),
-            SizedBox(height: 24.h),
-            TextField(
-              controller: _emailController,
-              keyboardType: TextInputType.emailAddress,
-              style: const TextStyle(color: Colors.white),
-              decoration: InputDecoration(
-                hintText: "EMAIL ADDRESS",
-                hintStyle: const TextStyle(color: Colors.white24),
-                filled: true,
-                fillColor: AppColors.surfaceLight.withOpacity(0.3),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12.r), borderSide: BorderSide.none),
+              Text("ADD EMAIL ADDRESS", style: AppTextStyles.h3),
+              SizedBox(height: 8.h),
+              Text("A CONFIRMATION LINK WILL BE SENT", style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary)),
+              SizedBox(height: 24.h),
+              TextField(
+                controller: _emailController,
+                keyboardType: TextInputType.emailAddress,
+                enabled: !_isSending,
+                style: const TextStyle(color: Colors.white),
+                decoration: InputDecoration(
+                  hintText: "EMAIL ADDRESS",
+                  hintStyle: const TextStyle(color: Colors.white24),
+                  filled: true,
+                  fillColor: AppColors.surfaceLight.withOpacity(0.3),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12.r), borderSide: BorderSide.none),
+                ),
               ),
-            ),
-            SizedBox(height: 24.h),
-            _PrimaryButton(
-              label: "SEND CONFIRMATION EMAIL",
-              onTap: () async {
-                final email = _emailController.text.trim();
-                if (email.isNotEmpty) {
-                  await context.read<AuthProvider>().addEmail(email);
-                  if (!mounted) return;
-                  Navigator.pop(context);
-                  _emailController.clear();
-                  EliteSnackbar.show(context, "CONFIRMATION EMAIL SENT");
-                }
-              },
-            ),
-            SizedBox(height: 32.h),
-          ],
+              SizedBox(height: 24.h),
+              _PrimaryButton(
+                label: "SEND CONFIRMATION EMAIL",
+                isLoading: _isSending,
+                onTap: () async {
+                  final email = _emailController.text.trim();
+                  if (email.isNotEmpty) {
+                    setSheetState(() => _isSending = true);
+                    try {
+                      await context.read<AuthProvider>().addEmail(email);
+                      if (!mounted) return;
+                      Navigator.pop(context);
+                      _emailController.clear();
+                      EliteSnackbar.show(context, "CONFIRMATION EMAIL SENT");
+                    } catch (e) {
+                      if (mounted) {
+                        EliteSnackbar.show(context, "FAILED TO SEND: ${e.toString().toUpperCase()}", isError: true);
+                      }
+                    } finally {
+                      if (mounted) setSheetState(() => _isSending = false);
+                    }
+                  }
+                },
+              ),
+              SizedBox(height: 12.h),
+            ],
+          ),
         ),
       ),
-    );
+    ).then((_) {
+      if (mounted) setState(() => _isSending = false);
+    });
   }
 
-  Future<void> _confirmDelete(String id, String email) async {
+  Future<bool> _confirmDelete(String id, String email) async {
     final confirmed = await EliteConfirmDialog.show(
       context,
       title: "REMOVE EMAIL",
@@ -101,7 +146,9 @@ class _ManageEmailScreenState extends State<ManageEmailScreen> {
     if (confirmed == true && mounted) {
       await context.read<AuthProvider>().removeEmail(id);
       EliteSnackbar.show(context, "EMAIL REMOVED");
+      return true;
     }
+    return false;
   }
 
   @override
@@ -117,105 +164,119 @@ class _ManageEmailScreenState extends State<ManageEmailScreen> {
           children: [
             const EliteSettingsAppBar(title: "MANAGE EMAILS"),
             Expanded(
-              child: ListView.builder(
-                padding: EdgeInsets.all(24.r),
-                itemCount: emails.length,
-                itemBuilder: (context, index) {
-                  final email = emails[index];
-                  final bool isPrimary = email.email == authProv.currentUser?.email;
+              child: RefreshIndicator(
+                onRefresh: () => authProv.refreshEmails(),
+                color: AppColors.crimson,
+                backgroundColor: AppColors.surface,
+                child: ListView.builder(
+                  padding: EdgeInsets.all(24.r),
+                  physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+                  itemCount: emails.length,
+                  itemBuilder: (context, index) {
+                    final email = emails[index];
+                    final bool isPrimary = email.email == authProv.currentUser?.email;
 
-                  return Container(
-                    margin: EdgeInsets.only(bottom: 16.h),
-                    padding: EdgeInsets.all(16.r),
-                    decoration: BoxDecoration(
-                      color: AppColors.surfaceLight.withOpacity(0.2),
-                      borderRadius: BorderRadius.circular(16.r),
-                      border: Border.all(
-                        color: isPrimary ? AppColors.crimson.withOpacity(0.3) : Colors.white.withOpacity(0.05),
+                    return Dismissible(
+                      key: Key(email.id),
+                      direction: (canDelete && !isPrimary) ? DismissDirection.endToStart : DismissDirection.none,
+                      confirmDismiss: (_) => _confirmDelete(email.id, email.email),
+                      background: Container(
+                        margin: EdgeInsets.only(bottom: 16.h),
+                        decoration: BoxDecoration(
+                          color: AppColors.crimson.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(16.r),
+                        ),
+                        alignment: Alignment.centerRight,
+                        padding: EdgeInsets.only(right: 24.w),
+                        child: Icon(Icons.delete_outline_rounded, color: AppColors.crimson, size: 28.r),
                       ),
-                    ),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                children: [
-                                  Text(email.email, style: AppTextStyles.labelMedium.copyWith(color: Colors.white)),
-                                  if (isPrimary) ...[
-                                    SizedBox(width: 8.w),
-                                    Container(
-                                      padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 2.h),
-                                      decoration: BoxDecoration(
-                                        color: AppColors.crimson.withOpacity(0.15),
-                                        borderRadius: BorderRadius.circular(4.r),
-                                        border: Border.all(color: AppColors.crimson.withOpacity(0.3)),
-                                      ),
-                                      child: Text(
-                                        "PRIMARY",
-                                        style: AppTextStyles.labelSmall.copyWith(
-                                          color: AppColors.crimson,
-                                          fontSize: 8.sp,
-                                          fontWeight: FontWeight.w900,
-                                          letterSpacing: 0.5,
-                                        ),
-                                      ),
-                                    ),
-                                  ] else ...[
-                                    SizedBox(width: 8.w),
-                                    Container(
-                                      padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 2.h),
-                                      decoration: BoxDecoration(
-                                        color: Colors.white.withOpacity(0.05),
-                                        borderRadius: BorderRadius.circular(4.r),
-                                      ),
-                                      child: Text(
-                                        "SECONDARY",
-                                        style: AppTextStyles.labelSmall.copyWith(
-                                          color: Colors.white38,
-                                          fontSize: 8.sp,
-                                          fontWeight: FontWeight.w900,
-                                          letterSpacing: 0.5,
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ],
-                              ),
-                              SizedBox(height: 6.h),
-                              Row(
-                                children: [
-                                  Icon(
-                                    email.isVerified ? Icons.verified_rounded : Icons.pending_actions_rounded,
-                                    size: 14.r,
-                                    color: email.isVerified ? Colors.greenAccent : Colors.orangeAccent,
-                                  ),
-                                  SizedBox(width: 6.w),
-                                  Text(
-                                    email.isVerified ? "VERIFIED" : "NOT VERIFIED",
-                                    style: AppTextStyles.labelSmall.copyWith(
-                                      color: email.isVerified ? Colors.greenAccent : Colors.orangeAccent,
-                                      fontSize: 10.sp,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ],
+                      child: Container(
+                        margin: EdgeInsets.only(bottom: 16.h),
+                        padding: EdgeInsets.all(16.r),
+                        decoration: BoxDecoration(
+                          color: AppColors.surfaceLight.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(16.r),
+                          border: Border.all(
+                            color: isPrimary ? AppColors.crimson.withOpacity(0.3) : Colors.white.withOpacity(0.05),
                           ),
                         ),
-                        IconButton(
-                          icon: Icon(
-                            Icons.delete_outline_rounded,
-                            color: (canDelete && !isPrimary) ? AppColors.crimson : Colors.white10,
-                          ),
-                          onPressed: (canDelete && !isPrimary) ? () => _confirmDelete(email.id, email.email) : null,
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Expanded(child: Text(email.email, style: AppTextStyles.labelMedium.copyWith(color: Colors.white), overflow: TextOverflow.ellipsis)),
+                                      if (isPrimary) ...[
+                                        SizedBox(width: 8.w),
+                                        Container(
+                                          padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 2.h),
+                                          decoration: BoxDecoration(
+                                            color: AppColors.crimson.withOpacity(0.15),
+                                            borderRadius: BorderRadius.circular(4.r),
+                                            border: Border.all(color: AppColors.crimson.withOpacity(0.3)),
+                                          ),
+                                          child: Text(
+                                            "PRIMARY",
+                                            style: AppTextStyles.labelSmall.copyWith(
+                                              color: AppColors.crimson,
+                                              fontSize: 8.sp,
+                                              fontWeight: FontWeight.w900,
+                                              letterSpacing: 0.5,
+                                            ),
+                                          ),
+                                        ),
+                                      ] else ...[
+                                        SizedBox(width: 8.w),
+                                        Container(
+                                          padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 2.h),
+                                          decoration: BoxDecoration(
+                                            color: Colors.white.withOpacity(0.05),
+                                            borderRadius: BorderRadius.circular(4.r),
+                                          ),
+                                          child: Text(
+                                            "SECONDARY",
+                                            style: AppTextStyles.labelSmall.copyWith(
+                                              color: Colors.white38,
+                                              fontSize: 8.sp,
+                                              fontWeight: FontWeight.w900,
+                                              letterSpacing: 0.5,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ],
+                                  ),
+                                  SizedBox(height: 6.h),
+                                  Row(
+                                    children: [
+                                      Icon(
+                                        email.isVerified ? Icons.verified_rounded : Icons.pending_actions_rounded,
+                                        size: 14.r,
+                                        color: email.isVerified ? Colors.greenAccent : Colors.orangeAccent,
+                                      ),
+                                      SizedBox(width: 6.w),
+                                      Text(
+                                        email.isVerified ? "VERIFIED" : "NOT VERIFIED",
+                                        style: AppTextStyles.labelSmall.copyWith(
+                                          color: email.isVerified ? Colors.greenAccent : Colors.orangeAccent,
+                                          fontSize: 10.sp,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
                         ),
-                      ],
-                    ),
-                  );
-                },
+                      ),
+                    );
+                  },
+                ),
               ),
             ),
             Padding(
@@ -236,12 +297,13 @@ class _ManageEmailScreenState extends State<ManageEmailScreen> {
 class _PrimaryButton extends StatelessWidget {
   final String label;
   final VoidCallback onTap;
-  const _PrimaryButton({required this.label, required this.onTap});
+  final bool isLoading;
+  const _PrimaryButton({required this.label, required this.onTap, this.isLoading = false});
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: onTap,
+      onTap: isLoading ? null : onTap,
       child: Container(
         width: double.infinity,
         height: 56.h,
@@ -250,7 +312,9 @@ class _PrimaryButton extends StatelessWidget {
           borderRadius: BorderRadius.circular(12.r),
         ),
         alignment: Alignment.center,
-        child: Text(label, style: AppTextStyles.labelMedium.copyWith(color: Colors.white, fontWeight: FontWeight.w900)),
+        child: isLoading 
+          ? SizedBox(height: 24.r, width: 24.r, child: const CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+          : Text(label, style: AppTextStyles.labelMedium.copyWith(color: Colors.white, fontWeight: FontWeight.w900)),
       ),
     );
   }

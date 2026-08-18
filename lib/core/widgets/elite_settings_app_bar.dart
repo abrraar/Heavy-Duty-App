@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
+import '../../features/auth/provider/auth_provider.dart';
+import '../navigation/app_routes.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_text_styles.dart';
 
@@ -26,7 +30,21 @@ class EliteSettingsAppBar extends StatelessWidget {
                 Icons.arrow_back_ios_new_rounded,
                 color: AppColors.white,
               ),
-              onPressed: onBackPressed ?? () => Navigator.pop(context),
+              onPressed: onBackPressed ?? () {
+                final authProv = context.read<AuthProvider>();
+
+                // If we are currently in recovery mode, ensure we cancel it on back
+                // to prevent any potential redirection issues.
+                if (authProv.isPasswordRecoveryMode) {
+                  authProv.cancelPasswordRecovery();
+                }
+
+                if (context.canPop()) {
+                  context.pop();
+                } else {
+                  context.go(AppRoutes.home);
+                }
+              },
             ),
             Expanded(
               child: Text(

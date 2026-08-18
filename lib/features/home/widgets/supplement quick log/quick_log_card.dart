@@ -31,95 +31,106 @@ class QuickLogCard extends StatelessWidget {
     final provider = Provider.of<SupplementProvider>(context);
     final String remainingServings = provider.getRemainingServings(item);
 
+    final bool canLog = isRestock || provider.canLogSupplement(item.id);
+
     return GestureDetector(
       onTap: onTap,
-      child: Container(
-        width: 145.w,
-        margin: EdgeInsets.only(right: 16.w),
-        padding: EdgeInsets.all(16.r),
-        decoration: BoxDecoration(
-          color: AppColors.surfaceLight.withOpacity(0.6),
-          borderRadius: BorderRadius.circular(24.r),
-          border: Border.all(color: Colors.white.withOpacity(0.1)),
-          boxShadow: [
-            BoxShadow(color: Colors.black26, blurRadius: 6, offset: Offset(0, 3)),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Container(
-              padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
-              decoration: BoxDecoration(
-                color: themeColor.withOpacity(0.2),
-                borderRadius: BorderRadius.circular(8.r),
-              ),
-              child: Text(
-                actionLabel,
-                style: AppTextStyles.labelSmall.copyWith(
-                  fontSize: 10.sp,
-                  fontWeight: FontWeight.w900,
-                  color: themeColor,
-                ),
-              ),
+      child: Opacity(
+        opacity: canLog ? 1.0 : 0.5,
+        child: IntrinsicWidth(
+          child: Container(
+            constraints: BoxConstraints(minWidth: 145.w),
+            margin: EdgeInsets.only(right: 16.w),
+            padding: EdgeInsets.all(16.r),
+            decoration: BoxDecoration(
+              color: AppColors.surfaceLight.withOpacity(0.6),
+              borderRadius: BorderRadius.circular(24.r),
+              border: Border.all(color: Colors.white.withOpacity(0.1)),
+              boxShadow: [
+                BoxShadow(color: Colors.black26, blurRadius: 6, offset: Offset(0, 3)),
+              ],
             ),
-            Column(
+            child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  item.name.toUpperCase(),
-                  style: AppTextStyles.labelSmall.copyWith(
-                    fontSize: 14.sp,
-                    fontWeight: FontWeight.w900,
-                    color: Colors.white,
+                Container(
+                  padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
+                  decoration: BoxDecoration(
+                    color: themeColor.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(8.r),
                   ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+                  child: Text(
+                    actionLabel,
+                    style: AppTextStyles.labelSmall.copyWith(
+                      fontSize: 10.sp,
+                      fontWeight: FontWeight.w900,
+                      color: themeColor,
+                    ),
+                  ),
                 ),
-                SizedBox(height: 4.h),
-                Row(
+                SizedBox(height: 12.h),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Icon(actionIcon, color: themeColor, size: 16.r),
-                    SizedBox(width: 4.w),
                     Text(
-                      amountDisplay.toUpperCase(),
+                      item.name.toUpperCase(),
                       style: AppTextStyles.labelSmall.copyWith(
-                        fontSize: 11.sp,
-                        color: Colors.white70,
+                        fontSize: 14.sp,
+                        fontWeight: FontWeight.w900,
+                        color: Colors.white,
                       ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    SizedBox(height: 4.h),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(actionIcon, color: themeColor, size: 16.r),
+                        SizedBox(width: 4.w),
+                        Text(
+                          amountDisplay.toUpperCase(),
+                          style: AppTextStyles.labelSmall.copyWith(
+                            fontSize: 11.sp,
+                            color: Colors.white70,
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
+                SizedBox(height: 12.h),
+                Container(
+                  padding: EdgeInsets.only(top: 8.h),
+                  decoration: BoxDecoration(
+                    border: Border(top: BorderSide(color: Colors.white.withOpacity(0.1))),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        "STOCK",
+                        style: AppTextStyles.labelSmall.copyWith(
+                          fontSize: 10.sp,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                      SizedBox(width: 12.w),
+                      Text(
+                        "${(item.remainingStock ?? 0).toInt()}${item.weightUnit} | $remainingServings",
+                        style: AppTextStyles.labelSmall.copyWith(
+                          fontSize: 10.sp,
+                          color: provider.getStockColor(item),
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ],
             ),
-            Container(
-              padding: EdgeInsets.only(top: 8.h),
-              decoration: BoxDecoration(
-                border: Border(top: BorderSide(color: Colors.white.withOpacity(0.1))),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    "STOCK",
-                    style: AppTextStyles.labelSmall.copyWith(
-                      fontSize: 10.sp,
-                      color: AppColors.textSecondary,
-                    ),
-                  ),
-                  Text(
-                    "${(item.remainingStock ?? 0).toInt()}${item.weightUnit} | ${remainingServings}S",
-                    style: AppTextStyles.labelSmall.copyWith(
-                      fontSize: 10.sp,
-                      color: provider.getStockColor(item),
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
+          ),
         ),
       ),
     );

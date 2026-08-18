@@ -92,6 +92,19 @@ class CycleDetailViewScreen extends StatelessWidget {
                   padding: EdgeInsets.all(24.r),
                   physics: const BouncingScrollPhysics(),
                   children: [
+                    if (cycle.description.isNotEmpty) ...[
+                      Text(
+                        cycle.description.toUpperCase(),
+                        style: AppTextStyles.labelSmall.copyWith(
+                          color: AppColors.textSecondary.withValues(alpha: 0.6),
+                          fontSize: 12.sp,
+                          letterSpacing: 1,
+                          height: 1.4,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                      SizedBox(height: 24.h),
+                    ],
                     _buildInfoTile("STRUCTURE", "${cycleWorkouts.length} SESSIONS"),
                     SizedBox(height: 24.h),
                     _buildSectionHeader("WORKOUT ARCHITECTURE"),

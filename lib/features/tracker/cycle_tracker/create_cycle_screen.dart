@@ -22,6 +22,7 @@ class CreateCycleScreen extends StatefulWidget {
 
 class _CreateCycleScreenState extends State<CreateCycleScreen> {
   final TextEditingController _nameController = TextEditingController();
+  final TextEditingController _descriptionController = TextEditingController();
   final List<Map<String, dynamic>> _workouts = [];
 
   @override
@@ -29,6 +30,7 @@ class _CreateCycleScreenState extends State<CreateCycleScreen> {
     super.initState();
     if (widget.existingCycle != null) {
       _nameController.text = widget.existingCycle!.name;
+      _descriptionController.text = widget.existingCycle!.description;
       for (var w in widget.existingCycle!.workouts) {
         _workouts.add({
           "id": w.id,
@@ -37,6 +39,13 @@ class _CreateCycleScreenState extends State<CreateCycleScreen> {
         });
       }
     }
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _descriptionController.dispose();
+    super.dispose();
   }
 
   void _addWorkout() {
@@ -228,6 +237,13 @@ class _CreateCycleScreenState extends State<CreateCycleScreen> {
                   _buildSectionHeader("CYCLE IDENTITY"),
                   SizedBox(height: 16.h),
                   _buildTextField("CYCLE NAME", _nameController),
+                  SizedBox(height: 16.h),
+                  _buildTextField(
+                    "DESCRIPTION (OPTIONAL)", 
+                    _descriptionController, 
+                    maxLines: 2,
+                    hint: "e.g. FOCUS ON PROGRESSIVE OVERLOAD AND RECOVERY",
+                  ),
                   SizedBox(height: 32.h),
                   _buildSectionHeader("WORKOUT ARCHITECTURE"),
                   SizedBox(height: 16.h),
@@ -500,6 +516,7 @@ class _CreateCycleScreenState extends State<CreateCycleScreen> {
     final template = TrainingCycle(
       id: templateId,
       name: _nameController.text.trim(),
+      description: _descriptionController.text.trim(),
       status: widget.existingCycle?.status ?? CycleStatus.template,
       isDefault: widget.existingCycle?.isDefault ?? false,
       workouts: List.generate(_workouts.length, (i) {
@@ -573,7 +590,7 @@ class _CreateCycleScreenState extends State<CreateCycleScreen> {
     );
   }
 
-  Widget _buildTextField(String label, TextEditingController controller) {
+  Widget _buildTextField(String label, TextEditingController controller, {int? maxLines, String? hint}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -581,9 +598,24 @@ class _CreateCycleScreenState extends State<CreateCycleScreen> {
         SizedBox(height: 8.h),
         TextField(
           controller: controller,
-          onChanged: (_) => setState(() {}),
+          maxLines: maxLines ?? 1,
+          onChanged: (val) {
+            if (maxLines == 2) {
+              final lines = val.split('\n');
+              if (lines.length > 2) {
+                // Prevent adding more lines
+                controller.text = lines.sublist(0, 2).join('\n');
+                controller.selection = TextSelection.fromPosition(
+                  TextPosition(offset: controller.text.length),
+                );
+              }
+            }
+            setState(() {});
+          },
           style: const TextStyle(color: Colors.white),
           decoration: InputDecoration(
+            hintText: hint,
+            hintStyle: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary.withOpacity(0.3), fontSize: 10.sp),
             filled: true,
             fillColor: AppColors.surface,
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(12.r), borderSide: BorderSide.none),

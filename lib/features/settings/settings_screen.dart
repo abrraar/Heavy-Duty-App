@@ -99,7 +99,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         _buildSettingTile(
                           icon: Icons.layers_rounded,
                           title: "SUPPLEMENT STACKS",
-                          subtitle: "Inventory alerts and stack defaults",
+                          subtitle: "Inventory alerts and display preferences",
                           onTap: () => context.push(AppRoutes.settingsSupplement),
                         ),
                         _buildSettingTile(

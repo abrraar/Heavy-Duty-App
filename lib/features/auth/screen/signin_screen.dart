@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:heavy_duty/core/theme/app_colors.dart';
 import 'package:heavy_duty/core/theme/app_text_styles.dart';
 import 'package:heavy_duty/core/navigation/app_routes.dart';
 import 'package:heavy_duty/core/constants/dimensions.dart';
+import 'package:heavy_duty/core/widgets/elite_snackbar.dart';
 import 'package:heavy_duty/features/auth/provider/auth_provider.dart';
 import 'package:heavy_duty/features/auth/widgets/auth_components.dart';
 
@@ -40,38 +42,55 @@ class _SignInScreenState extends State<SignInScreen> {
     final confirm = _confirmPasswordController.text;
 
     if (username.isEmpty || email.isEmpty || password.isEmpty || confirm.isEmpty) {
-      _showErrorSnackBar('PLEASE FILL IN ALL FIELDS');
+      EliteSnackbar.show(context, 'PLEASE FILL IN ALL FIELDS', isError: true);
       return;
     }
 
     final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
     if (!emailRegex.hasMatch(email)) {
-      _showErrorSnackBar('PLEASE ENTER A VALID EMAIL ADDRESS');
+      EliteSnackbar.show(context, 'PLEASE ENTER A VALID EMAIL ADDRESS', isError: true);
       return;
     }
 
     if (password != confirm) {
-      _showErrorSnackBar('PASSWORDS DO NOT MATCH');
+      EliteSnackbar.show(context, 'PASSWORDS DO NOT MATCH', isError: true);
       return;
     }
 
     try {
-      await context.read<AuthProvider>().signUp(email, password, username: username);
+      final authProv = context.read<AuthProvider>();
+      
+      // 1. Check Username Availability
+      final bool isAvailable = await authProv.checkUsernameAvailability(username);
+      if (!isAvailable) {
+        if (!mounted) return;
+        EliteSnackbar.show(context, 'USERNAME IS ALREADY TAKEN', isError: true);
+        return;
+      }
+
+      // 2. Proceed with Sign Up
+      await authProv.signUp(email, password, username: username);
       if (!mounted) return;
       context.push(AppRoutes.otp);
     } catch (e) {
       if (!mounted) return;
-      _showErrorSnackBar(e.toString().toUpperCase());
+      
+      String errorMessage = "SIGN UP FAILED";
+      if (e is AuthException) {
+        final message = e.message.toLowerCase();
+        if (message.contains("already registered")) {
+          errorMessage = "THIS EMAIL IS ALREADY REGISTERED";
+        } else if (message.contains("password")) {
+          errorMessage = "PASSWORD IS TOO WEAK";
+        } else {
+          errorMessage = e.message.toUpperCase();
+        }
+      } else {
+        errorMessage = e.toString().toUpperCase();
+      }
+      
+      EliteSnackbar.show(context, errorMessage, isError: true);
     }
-  }
-
-  void _showErrorSnackBar(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message, style: AppTextStyles.bodySmall),
-        backgroundColor: AppColors.error,
-      ),
-    );
   }
 
   @override

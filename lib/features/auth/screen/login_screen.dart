@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:provider/provider.dart';
 import 'package:heavy_duty/core/navigation/app_routes.dart';
 import 'package:heavy_duty/core/theme/app_colors.dart';
 import 'package:heavy_duty/core/theme/app_text_styles.dart';
 import 'package:heavy_duty/core/constants/dimensions.dart';
+import 'package:heavy_duty/core/widgets/elite_snackbar.dart';
 import 'package:heavy_duty/features/auth/provider/auth_provider.dart';
 import 'package:heavy_duty/features/auth/widgets/auth_components.dart';
 
@@ -29,31 +31,36 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _handleLogin() async {
-    final email = _emailController.text.trim();
+    final identifier = _emailController.text.trim();
     final password = _passwordController.text.trim();
 
-    if (email.isEmpty || password.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('PLEASE FILL IN ALL FIELDS'),
-          backgroundColor: AppColors.error,
-        ),
-      );
+    if (identifier.isEmpty || password.isEmpty) {
+      EliteSnackbar.show(context, 'PLEASE FILL IN ALL FIELDS', isError: true);
       return;
     }
 
     try {
-      await context.read<AuthProvider>().signIn(email, password);
+      await context.read<AuthProvider>().signIn(identifier, password);
       if (mounted) {
         context.go(AppRoutes.home);
       }
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(e.toString().toUpperCase()),
-          backgroundColor: AppColors.error,
-        ),
+      
+      String errorMessage = e.toString().toUpperCase();
+      
+      // Handle Supabase specific AuthException
+      if (e is AuthException) {
+        errorMessage = e.message.toUpperCase();
+        if (errorMessage.contains('INVALID LOGIN CREDENTIALS')) {
+          errorMessage = "INVALID USERNAME, EMAIL OR PASSWORD";
+        }
+      }
+
+      EliteSnackbar.show(
+        context,
+        errorMessage,
+        isError: true,
       );
     }
   }

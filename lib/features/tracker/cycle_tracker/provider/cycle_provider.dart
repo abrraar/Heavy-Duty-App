@@ -558,7 +558,7 @@ class CycleProvider with ChangeNotifier {
       id: newCycleId,
       status: CycleStatus.active,
       startedAt: DateTime.now(),
-      isDefault: false,
+      isDefault: template.isDefault,
       isSynced: 0,
       workouts: template.workouts.map((tw) {
         final nwId = Uuid().v4();
@@ -582,10 +582,24 @@ class CycleProvider with ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> _markCycleAsModified(String cycleId) async {
+    final idx = _cycles.indexWhere((c) => c.id == cycleId);
+    if (idx != -1 && _cycles[idx].isDefault) {
+      final updatedCycle = _cycles[idx].copyWith(isDefault: false, isSynced: 0);
+      _cycles[idx] = updatedCycle;
+      await _localRepo!.insertCycle(updatedCycle);
+      _syncCycle(updatedCycle);
+      notifyListeners();
+    }
+  }
+
   Future<void> addWorkout(Workout workout) async {
     if (_localRepo == null) return;
     
-    // 1. OPTIMISTIC UPDATE: Update memory state immediately
+    // 1. Mark parent cycle as modified if it was a default
+    await _markCycleAsModified(workout.cycleId);
+
+    // 2. OPTIMISTIC UPDATE: Update memory state immediately
     final cycleIdx = _cycles.indexWhere((c) => c.id == workout.cycleId);
     if (cycleIdx != -1) {
       final updatedCycle = _cycles[cycleIdx].copyWith(
@@ -614,6 +628,8 @@ class CycleProvider with ChangeNotifier {
     for (int i = 0; i < _cycles.length; i++) {
       final wIdx = _cycles[i].workouts.indexWhere((w) => w.id == exercise.workoutId);
       if (wIdx != -1) {
+        await _markCycleAsModified(_cycles[i].id);
+        
         final updatedWorkout = _cycles[i].workouts[wIdx].copyWith(
           exercises: [..._cycles[i].workouts[wIdx].exercises, exercise],
         );
@@ -647,6 +663,8 @@ class CycleProvider with ChangeNotifier {
     for (int i = 0; i < _cycles.length; i++) {
       final wIdx = _cycles[i].workouts.indexWhere((w) => w.id == id);
       if (wIdx != -1) {
+        await _markCycleAsModified(_cycles[i].id);
+
         final updatedWorkouts = List<Workout>.from(_cycles[i].workouts)..removeAt(wIdx);
         final updatedCycle = _cycles[i].copyWith(workouts: updatedWorkouts);
         _cycles[i] = updatedCycle;
@@ -677,6 +695,10 @@ class CycleProvider with ChangeNotifier {
         final List<Exercise> exList = _cycles[i].workouts[j].exercises;
         final exIdx = exList.indexWhere((e) => e.id == id);
         if (exIdx != -1) {
+          await _markCycleAsModified(_cycles[i].id);
+
+          final String workoutId = _cycles[i].workouts[j].id;
+
           final updatedExercises = List<Exercise>.from(exList)..removeAt(exIdx);
           final updatedWorkout = _cycles[i].workouts[j].copyWith(exercises: updatedExercises);
           final updatedWorkouts = List<Workout>.from(_cycles[i].workouts);
@@ -690,6 +712,8 @@ class CycleProvider with ChangeNotifier {
           await _localRepo!.deleteExercise(id);
           await _localRepo!.addToDeletionQueue(id, 'hit_exercises');
           _syncExerciseDelete(id);
+
+          await _checkWorkoutCompletion(workoutId: workoutId);
           found = true;
           break;
         }
@@ -797,7 +821,7 @@ class CycleProvider with ChangeNotifier {
     _syncExerciseLog(localLog);
 
     // 4. CHECK COMPLETION (Updates UI via _updateWorkoutInCycle)
-    await _checkWorkoutCompletion(localLog.exerciseId);
+    await _checkWorkoutCompletion(exerciseId: localLog.exerciseId);
   }
 
   Future<void> deleteExerciseLog(String logId) async {
@@ -815,7 +839,7 @@ class CycleProvider with ChangeNotifier {
       _syncExerciseLogDelete(logId);
       
       // Check if workout completion status needs to change
-      await _checkWorkoutCompletion(exId);
+      await _checkWorkoutCompletion(exerciseId: exId);
     }
   }
 
@@ -828,35 +852,45 @@ class CycleProvider with ChangeNotifier {
     }
   }
 
-  Future<void> _checkWorkoutCompletion(String exerciseId) async {
+  Future<void> _checkWorkoutCompletion({String? exerciseId, String? workoutId}) async {
     try {
       Workout? targetWorkout;
       TrainingCycle? targetCycle;
       
-      // 1. Locate the specific Workout/Cycle for this exercise instance.
-      // We prioritize searching in the Active cycle to avoid colliding with deterministic IDs in history.
-      final active = activeCycle;
-      if (active != null) {
-        for (var w in active.workouts) {
-          if (w.exercises.any((e) => e.id == exerciseId)) {
-            targetWorkout = w;
-            targetCycle = active;
+      // 1. Locate the specific Workout/Cycle
+      if (workoutId != null) {
+        for (var c in _cycles) {
+          final wIdx = c.workouts.indexWhere((w) => w.id == workoutId);
+          if (wIdx != -1) {
+            targetWorkout = c.workouts[wIdx];
+            targetCycle = c;
             break;
           }
         }
-      }
-
-      // If not in active cycle, search everywhere (Fallback)
-      if (targetWorkout == null) {
-        for (var c in _cycles) {
-          for (var w in c.workouts) {
+      } else if (exerciseId != null) {
+        final active = activeCycle;
+        if (active != null) {
+          for (var w in active.workouts) {
             if (w.exercises.any((e) => e.id == exerciseId)) {
               targetWorkout = w;
-              targetCycle = c;
+              targetCycle = active;
               break;
             }
           }
-          if (targetWorkout != null) break;
+        }
+
+        // If not in active cycle, search everywhere (Fallback)
+        if (targetWorkout == null) {
+          for (var c in _cycles) {
+            for (var w in c.workouts) {
+              if (w.exercises.any((e) => e.id == exerciseId)) {
+                targetWorkout = w;
+                targetCycle = c;
+                break;
+              }
+            }
+            if (targetWorkout != null) break;
+          }
         }
       }
 
@@ -970,6 +1004,8 @@ class CycleProvider with ChangeNotifier {
     
     final idx = _cycles.indexWhere((c) => c.id == cycleId);
     if (idx != -1) {
+      await _markCycleAsModified(cycleId);
+
       final updatedWorkouts = workouts.asMap().entries.map((entry) {
         return entry.value.copyWith(order: entry.key);
       }).toList();
@@ -992,6 +1028,8 @@ class CycleProvider with ChangeNotifier {
     for (int i = 0; i < _cycles.length; i++) {
       final wIdx = _cycles[i].workouts.indexWhere((w) => w.id == workoutId);
       if (wIdx != -1) {
+        await _markCycleAsModified(_cycles[i].id);
+
         final updatedWorkout = _cycles[i].workouts[wIdx].copyWith(name: newName.toUpperCase());
         final updatedWorkouts = List<Workout>.from(_cycles[i].workouts);
         updatedWorkouts[wIdx] = updatedWorkout;
@@ -1068,6 +1106,8 @@ class CycleProvider with ChangeNotifier {
     
     final index = _cycles.indexWhere((c) => c.id == cycleId);
     if (index != -1) {
+      await _markCycleAsModified(cycleId);
+
       final updatedCycle = _cycles[index].copyWith(name: newName.toUpperCase(), isSynced: 0);
       _cycles[index] = updatedCycle;
       
@@ -1202,6 +1242,8 @@ class CycleProvider with ChangeNotifier {
     for (int i = 0; i < _cycles.length; i++) {
       final wIdx = _cycles[i].workouts.indexWhere((w) => w.id == workoutId);
       if (wIdx != -1) {
+        await _markCycleAsModified(_cycles[i].id);
+
         final updatedExercises = exercises.asMap().entries.map((entry) {
           return entry.value.copyWith(order: entry.key);
         }).toList();
@@ -1609,14 +1651,14 @@ class CycleProvider with ChangeNotifier {
     return null;
   }
 
-  Future<void> saveCycleAsTemplate(String cycleId, String name) async {
+  Future<void> saveCycleAsTemplate(String cycleId, String name, String description) async {
     final cycle = _cycles.firstWhere((c) => c.id == cycleId);
     
     final templateId = const Uuid().v4();
     final template = TrainingCycle(
       id: templateId,
       name: name.toUpperCase(),
-      description: "CUSTOM ARCHITECTURE",
+      description: description.isNotEmpty ? description.toUpperCase() : "CUSTOM ARCHITECTURE",
       status: CycleStatus.template,
       isDefault: false,
       isSynced: 0,

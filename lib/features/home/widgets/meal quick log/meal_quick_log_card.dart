@@ -18,81 +18,88 @@ class MealQuickLogCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
-      child: Container(
-        width: 145.w,
-        margin: EdgeInsets.only(right: 16.w),
-        padding: EdgeInsets.all(16.r),
-        decoration: BoxDecoration(
-          color: AppColors.surfaceLight.withOpacity(0.6),
-          borderRadius: BorderRadius.circular(24.r),
-          border: Border.all(color: Colors.white.withOpacity(0.1)),
-          boxShadow: [
-            BoxShadow(color: Colors.black26, blurRadius: 6, offset: Offset(0, 3)),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Container(
-              padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
-              decoration: BoxDecoration(
-                color: Colors.greenAccent.withOpacity(0.2),
-                borderRadius: BorderRadius.circular(8.r),
-              ),
-              child: Text(
-                "LOG MEAL",
-                style: AppTextStyles.labelSmall.copyWith(
-                  fontSize: 10.sp,
-                  fontWeight: FontWeight.w900,
-                  color: Colors.greenAccent,
+      child: IntrinsicWidth(
+        child: Container(
+          constraints: BoxConstraints(minWidth: 145.w),
+          margin: EdgeInsets.only(right: 16.w),
+          padding: EdgeInsets.all(16.r),
+          decoration: BoxDecoration(
+            color: AppColors.surfaceLight.withOpacity(0.6),
+            borderRadius: BorderRadius.circular(24.r),
+            border: Border.all(color: Colors.white.withOpacity(0.1)),
+            boxShadow: [
+              BoxShadow(color: Colors.black26, blurRadius: 6, offset: Offset(0, 3)),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Container(
+                padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
+                decoration: BoxDecoration(
+                  color: Colors.greenAccent.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(8.r),
                 ),
-              ),
-            ),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  meal.name.toUpperCase(),
+                child: Text(
+                  "LOG MEAL",
                   style: AppTextStyles.labelSmall.copyWith(
-                    fontSize: 14.sp,
+                    fontSize: 10.sp,
                     fontWeight: FontWeight.w900,
-                    color: Colors.white,
+                    color: Colors.greenAccent,
                   ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
                 ),
-                SizedBox(height: 4.h),
-                Row(
-                  children: [
-                    Icon(Icons.local_fire_department_rounded, color: AppColors.crimson, size: 16.r),
-                    SizedBox(width: 4.w),
-                    Text(
-                      "${meal.calories.toInt()} KCAL",
-                      style: AppTextStyles.labelSmall.copyWith(
-                        fontSize: 11.sp,
-                        color: Colors.white70,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-            Container(
-              padding: EdgeInsets.only(top: 8.h),
-              decoration: BoxDecoration(
-                border: Border(top: BorderSide(color: Colors.white.withOpacity(0.1))),
               ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              SizedBox(height: 12.h),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildMiniMacro("${meal.protein?.toInt() ?? '-'}P", Colors.blueAccent),
-                  _buildMiniMacro("${meal.carbs?.toInt() ?? '-'}C", Colors.greenAccent),
-                  _buildMiniMacro("${meal.fats?.toInt() ?? '-'}F", Colors.orangeAccent),
+                  Text(
+                    meal.name.toUpperCase(),
+                    style: AppTextStyles.labelSmall.copyWith(
+                      fontSize: 14.sp,
+                      fontWeight: FontWeight.w900,
+                      color: Colors.white,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  SizedBox(height: 4.h),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.local_fire_department_rounded, color: AppColors.crimson, size: 16.r),
+                      SizedBox(width: 4.w),
+                      Text(
+                        "${meal.calories.toInt()} KCAL",
+                        style: AppTextStyles.labelSmall.copyWith(
+                          fontSize: 11.sp,
+                          color: Colors.white70,
+                        ),
+                      ),
+                    ],
+                  ),
                 ],
               ),
-            ),
-          ],
+              SizedBox(height: 12.h),
+              Container(
+                padding: EdgeInsets.only(top: 8.h),
+                decoration: BoxDecoration(
+                  border: Border(top: BorderSide(color: Colors.white.withOpacity(0.1))),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    _buildMiniMacro("${meal.protein?.toInt() ?? '-'}P", Colors.blueAccent),
+                    SizedBox(width: 8.w),
+                    _buildMiniMacro("${meal.carbs?.toInt() ?? '-'}C", Colors.greenAccent),
+                    SizedBox(width: 8.w),
+                    _buildMiniMacro("${meal.fats?.toInt() ?? '-'}F", Colors.orangeAccent),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

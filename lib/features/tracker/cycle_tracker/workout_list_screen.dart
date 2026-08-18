@@ -28,6 +28,7 @@ class WorkoutListScreen extends StatefulWidget {
 class _WorkoutListScreenState extends State<WorkoutListScreen> {
   final TextEditingController _cycleNoteController = TextEditingController();
   final TextEditingController _templateNameController = TextEditingController();
+  final TextEditingController _templateDescriptionController = TextEditingController();
   Timer? _debounce;
   bool _isInitialLoad = true;
   final Set<String> _expandedWorkoutIds = {};
@@ -43,36 +44,130 @@ class _WorkoutListScreenState extends State<WorkoutListScreen> {
     _debounce?.cancel();
     _cycleNoteController.dispose();
     _templateNameController.dispose();
+    _templateDescriptionController.dispose();
     super.dispose();
   }
 
   void _showSaveTemplateDialog() {
+    final provider = context.read<CycleProvider>();
+    String currentDesc = "";
+    try {
+      final cycle = provider.cycles.firstWhere((c) => c.id == widget.cycleId);
+      currentDesc = cycle.description;
+    } catch (_) {}
+
     _templateNameController.text = widget.cycleName;
+    _templateDescriptionController.text = currentDesc;
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: AppColors.surface,
-        title: Text("SAVE AS TEMPLATE", style: AppTextStyles.h3),
-        content: TextField(
-          controller: _templateNameController,
-          autofocus: true,
-          style: const TextStyle(color: Colors.white),
-          decoration: InputDecoration(
-            hintText: "Enter template name...",
-            hintStyle: TextStyle(color: AppColors.textSecondary.withOpacity(0.5)),
-          ),
+        surfaceTintColor: Colors.transparent,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28.r)),
+        title: Column(
+          children: [
+            Container(
+              padding: EdgeInsets.all(12.r),
+              decoration: BoxDecoration(color: AppColors.crimson.withOpacity(0.1), shape: BoxShape.circle),
+              child: Icon(Icons.save_as_rounded, color: AppColors.crimson, size: 28.r),
+            ),
+            SizedBox(height: 16.h),
+            Text("SAVE AS TEMPLATE", style: AppTextStyles.h3.copyWith(fontSize: 16.sp, letterSpacing: 1.2), textAlign: TextAlign.center),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text("NAME", style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary.withOpacity(0.5), fontSize: 8.sp, fontWeight: FontWeight.bold, letterSpacing: 1.5)),
+                TextField(
+                  controller: _templateNameController,
+                  autofocus: true,
+                  style: AppTextStyles.h3.copyWith(color: AppColors.white, fontSize: 16.sp),
+                  textCapitalization: TextCapitalization.characters,
+                  textAlign: TextAlign.center,
+                  decoration: InputDecoration(
+                    hintText: "ENTER TEMPLATE NAME",
+                    hintStyle: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary, fontSize: 12.sp),
+                    enabledBorder: const UnderlineInputBorder(borderSide: BorderSide(color: AppColors.crimson, width: 2)),
+                    focusedBorder: const UnderlineInputBorder(borderSide: BorderSide(color: AppColors.crimson, width: 2)),
+                  ),
+                ),
+              ],
+            ),
+            SizedBox(height: 24.h),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text("DESCRIPTION", style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary.withOpacity(0.5), fontSize: 8.sp, fontWeight: FontWeight.bold, letterSpacing: 1.5)),
+                TextField(
+                  controller: _templateDescriptionController,
+                  maxLines: 2,
+                  style: AppTextStyles.labelSmall.copyWith(color: AppColors.white),
+                  textCapitalization: TextCapitalization.characters,
+                  textAlign: TextAlign.center,
+                  onChanged: (val) {
+                    final lines = val.split('\n');
+                    if (lines.length > 2) {
+                      _templateDescriptionController.text = lines.sublist(0, 2).join('\n');
+                      _templateDescriptionController.selection = TextSelection.fromPosition(
+                        TextPosition(offset: _templateDescriptionController.text.length),
+                      );
+                    }
+                  },
+                  decoration: InputDecoration(
+                    hintText: "ENTER DESCRIPTION (OPTIONAL)",
+                    hintStyle: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary.withOpacity(0.3), fontSize: 10.sp),
+                    enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: AppColors.white.withOpacity(0.1))),
+                    focusedBorder: const UnderlineInputBorder(borderSide: BorderSide(color: AppColors.crimson)),
+                  ),
+                ),
+              ],
+            ),
+          ],
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text("CANCEL")),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.crimson),
-            onPressed: () async {
-              if (_templateNameController.text.trim().isNotEmpty) {
-                await context.read<CycleProvider>().saveCycleAsTemplate(widget.cycleId, _templateNameController.text.trim());
-                if (mounted) Navigator.pop(context);
-              }
-            },
-            child: const Text("SAVE"),
+          Padding(
+            padding: EdgeInsets.fromLTRB(12.w, 0, 12.w, 16.h),
+            child: Row(
+              children: [
+                Expanded(
+                  child: GestureDetector(
+                    onTap: () => Navigator.pop(context),
+                    child: Container(
+                      padding: EdgeInsets.symmetric(vertical: 12.h),
+                      decoration: BoxDecoration(color: Colors.transparent, borderRadius: BorderRadius.circular(12.r), border: Border.all(color: AppColors.white.withOpacity(0.1))),
+                      alignment: Alignment.center,
+                      child: Text("CANCEL", style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary, fontWeight: FontWeight.bold)),
+                    ),
+                  ),
+                ),
+                SizedBox(width: 12.w),
+                Expanded(
+                  child: GestureDetector(
+                    onTap: () async {
+                      if (_templateNameController.text.trim().isNotEmpty) {
+                        await context.read<CycleProvider>().saveCycleAsTemplate(
+                          widget.cycleId, 
+                          _templateNameController.text.trim(),
+                          _templateDescriptionController.text.trim(),
+                        );
+                        if (mounted) Navigator.pop(context);
+                      }
+                    },
+                    child: Container(
+                      padding: EdgeInsets.symmetric(vertical: 12.h),
+                      decoration: BoxDecoration(color: AppColors.crimson.withOpacity(0.1), borderRadius: BorderRadius.circular(12.r), border: Border.all(color: AppColors.crimson.withOpacity(0.5))),
+                      alignment: Alignment.center,
+                      child: Text("SAVE", style: AppTextStyles.labelSmall.copyWith(color: AppColors.crimson, fontWeight: FontWeight.bold)),
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),
@@ -561,6 +656,43 @@ class _WorkoutListScreenState extends State<WorkoutListScreen> {
   }
 
   Widget _buildTemplateAction(CycleProvider provider) {
+    bool isDefault = false;
+    try {
+      final cycle = provider.cycles.firstWhere((c) => c.id == widget.cycleId);
+      isDefault = cycle.isDefault;
+    } catch (_) {}
+
+    if (isDefault) {
+      return Padding(
+        padding: EdgeInsets.symmetric(horizontal: 24.w),
+        child: Container(
+          height: 56.h,
+          width: double.infinity,
+          decoration: BoxDecoration(
+            color: AppColors.surfaceLight.withOpacity(0.05),
+            borderRadius: BorderRadius.circular(12.r),
+            border: Border.all(color: AppColors.white.withOpacity(0.03)),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.save_as_rounded, color: AppColors.textSecondary.withOpacity(0.1), size: 18.r),
+              SizedBox(width: 12.w),
+              Text(
+                "SYSTEM DEFAULT – SAVING DISABLED",
+                style: AppTextStyles.labelSmall.copyWith(
+                  color: AppColors.textSecondary.withOpacity(0.3),
+                  fontSize: 10.sp,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 1,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     final matchingTemplate = provider.findMatchingTemplate(widget.cycleId);
 
     return Padding(
@@ -1276,7 +1408,7 @@ class _WorkoutListScreenState extends State<WorkoutListScreen> {
                                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                   children: [
                                     Text(
-                                      "TOTAL WORKOUT VOLUME",
+                                      "TOTAL WORKOUT TONNAGE",
                                       style: AppTextStyles.labelSmall.copyWith(
                                         color: AppColors.white,
                                         fontSize: 9.sp,
@@ -1285,7 +1417,7 @@ class _WorkoutListScreenState extends State<WorkoutListScreen> {
                                       ),
                                     ),
                                     Text(
-                                      totalWorkoutVolume.toStringAsFixed(1),
+                                      "${totalWorkoutVolume.toStringAsFixed(1)} T",
                                       style: AppTextStyles.labelMedium.copyWith(
                                         color: AppColors.crimson,
                                         fontWeight: FontWeight.w900,

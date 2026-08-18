@@ -2,6 +2,7 @@
 
 import 'dart:convert';
 import 'package:heavy_duty/features/tracker/supplement/model/supplement_item.dart';
+import 'package:heavy_duty/features/tracker/supplement/model/supplement_settings.dart';
 import 'package:sqflite/sqflite.dart';
 import '../../../../../core/database/database_helper.dart';
 import '../model/supplement.dart';
@@ -181,5 +182,21 @@ class SupplementLocalRepository {
       where: 'id = ?',
       whereArgs: [id],
     ); // Aligned table name
+  }
+
+  // ==========================================
+  // 4. SETTINGS METHODS
+  // ==========================================
+
+  Future<SupplementSettings?> getSettings() async {
+    final db = await _getDatabase();
+    final List<Map<String, dynamic>> maps = await db.query('ss_settings', where: 'id = 1');
+    if (maps.isNotEmpty) return SupplementSettings.fromMap(maps.first);
+    return null;
+  }
+
+  Future<void> saveSettings(SupplementSettings settings) async {
+    final db = await _getDatabase();
+    await db.insert('ss_settings', settings.toMap(), conflictAlgorithm: ConflictAlgorithm.replace);
   }
 }

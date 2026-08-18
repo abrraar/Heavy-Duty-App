@@ -8,6 +8,9 @@ import 'package:heavy_duty/core/theme/app_colors.dart';
 import 'package:heavy_duty/core/theme/app_text_styles.dart';
 import 'package:heavy_duty/core/navigation/app_routes.dart';
 import 'package:heavy_duty/features/auth/provider/auth_provider.dart';
+import 'package:heavy_duty/features/tracker/body_composition/provider/body_comp_provider.dart';
+import 'package:heavy_duty/features/tracker/body_composition/model/body_comp_log.dart';
+import 'package:uuid/uuid.dart';
 
 class CreateAccPersoScreen extends StatefulWidget {
   const CreateAccPersoScreen({super.key});
@@ -22,6 +25,7 @@ class _CreateAccPersoScreenState extends State<CreateAccPersoScreen> {
   final _weightController = TextEditingController();
   DateTime? _selectedBirthday;
   String? _selectedGender;
+  bool _isSaving = false;
 
   @override
   void dispose() {
@@ -60,6 +64,8 @@ class _CreateAccPersoScreenState extends State<CreateAccPersoScreen> {
   }
 
   Future<void> _handleCompleteProfile() async {
+    if (_isSaving) return;
+
     final name = _nameController.text.trim();
     final height = double.tryParse(_heightController.text.trim());
 
@@ -69,19 +75,42 @@ class _CreateAccPersoScreenState extends State<CreateAccPersoScreen> {
     }
 
     try {
-      final provider = context.read<AuthProvider>();
+      setState(() => _isSaving = true);
+      final authProv = context.read<AuthProvider>();
+      final bodyProv = context.read<BodyCompProvider>();
       
-      // Update the user metadata via provider
-      await provider.updateUserProfile(
+      final double? weight = double.tryParse(_weightController.text.trim());
+
+      // 1. Update Core Profile
+      await authProv.updateUserProfile(
         name: name,
         height: height,
-        // Birthday and gender can be added here if AuthProvider supports it
+        extraMetadata: {
+          'birthday': _selectedBirthday?.toIso8601String(),
+          'gender': _selectedGender,
+          'weight': weight,
+        },
       );
+
+      // 2. Log Weight entry if provided
+      if (weight != null && weight > 0) {
+        final dualValues = bodyProv.calculateDualValues(weight, BodyMetricUnit.kg);
+        
+        await bodyProv.addLog(BodyCompLog(
+          id: const Uuid().v4(),
+          valueKg: dualValues['kg']!,
+          valueLbs: dualValues['lbs']!,
+          type: BodyMetricType.weight,
+          unit: BodyMetricUnit.kg,
+          timestamp: DateTime.now(),
+        ));
+      }
 
       if (!mounted) return;
       context.go(AppRoutes.home);
     } catch (e) {
       if (!mounted) return;
+      setState(() => _isSaving = false);
       _showErrorSnackBar('FAILED TO UPDATE PROFILE: ${e.toString()}');
     }
   }
@@ -97,7 +126,8 @@ class _CreateAccPersoScreenState extends State<CreateAccPersoScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isLoading = context.watch<AuthProvider>().isLoading;
+    final authProv = context.watch<AuthProvider>();
+    final isLoading = authProv.isLoading || _isSaving;
 
     return Scaffold(
       backgroundColor: AppColors.background,

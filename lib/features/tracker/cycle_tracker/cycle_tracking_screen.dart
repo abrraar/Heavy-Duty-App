@@ -670,6 +670,11 @@ class _CycleTrackingScreenState extends State<CycleTrackingScreen>
           "volume": sortedCycles.map((c) => _calculateTotalCycleVolume(c, provider.logs)).toList(),
         };
 
+        final Map<String, MetricMetadata> metadata = {
+          "strength": MetricMetadata(label: "STRENGTH", unit: _getStrengthUnit(), color: AppColors.crimson),
+          "volume": MetricMetadata(label: "VOLUME", unit: _getVolumeUnit(provider), color: Colors.orangeAccent),
+        };
+
         return RefreshIndicator(
           onRefresh: () => provider.forceRefresh(),
           color: AppColors.crimson,
@@ -703,13 +708,12 @@ class _CycleTrackingScreenState extends State<CycleTrackingScreen>
                   SizedBox(height: 40.h),
                   _buildSectionHeader("DATA COMPARISON"),
                   SizedBox(height: 16.h),
-                  CycleComparisonWidget(
-                    idx1: _comparisonIdx1,
-                    idx2: _comparisonIdx2,
-                    dates: sortedDates,
-                    data: aggregatedData,
-                    onPointAChanged: (val) => setState(() => _comparisonIdx1 = val),
-                    onPointBChanged: (val) => setState(() => _comparisonIdx2 = val),
+                  _buildDataComparisonWidget(
+                    sortedCycles.map((c) => c.name).toList(),
+                    sortedDates,
+                    aggregatedData,
+                    metadata,
+                    provider,
                   ),
                 ],
                 SizedBox(height: 40.h),
@@ -1015,7 +1019,7 @@ class _CycleTrackingScreenState extends State<CycleTrackingScreen>
               duration: const Duration(milliseconds: 300),
               curve: Curves.fastOutSlowIn,
               alignment: Alignment.topCenter,
-              child: isExpanded ? Container(padding: EdgeInsets.fromLTRB(24.w, 0, 24.w, 24.h), child: Container(padding: EdgeInsets.all(20.r), decoration: BoxDecoration(color: AppColors.surfaceLight.withOpacity(0.3), borderRadius: BorderRadius.circular(16.r)), child: Row(crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Column(crossAxisAlignment: CrossAxisAlignment.start, children: [if (volumeProg != 0) ...[Text("VOLUME CHANGE", style: AppTextStyles.labelSmall.copyWith(color: AppColors.white, fontSize: 9.sp, fontWeight: FontWeight.w500, letterSpacing: 1)), SizedBox(height: 8.h), Text("${volumeProg > 0 ? '+' : ''}${(volumeProg * 100).toStringAsFixed(1)}%", style: AppTextStyles.labelMedium.copyWith(color: volumeProg > 0 ? AppColors.success : AppColors.crimson, fontWeight: FontWeight.w900, fontSize: 18.sp)), if (totalVolume != null && totalVolume > 0) SizedBox(height: 12.h)], if (totalVolume != null && totalVolume > 0) ...[Text("TOTAL VOLUME", style: AppTextStyles.labelSmall.copyWith(color: AppColors.white, fontSize: 9.sp, fontWeight: FontWeight.w500, letterSpacing: 1)), SizedBox(height: 4.h), Text(totalVolume.toStringAsFixed(1), style: AppTextStyles.labelMedium.copyWith(color: AppColors.white.withOpacity(0.9), fontWeight: FontWeight.w900, fontSize: 16.sp))]]), if (startDate != null) Column(crossAxisAlignment: CrossAxisAlignment.end, children: [_dateRow("STARTED", startDate), SizedBox(height: 8.h), _dateRow("ENDED", endDate ?? startDate)])]))) : const SizedBox(width: double.infinity, height: 0),
+              child: isExpanded ? Container(padding: EdgeInsets.fromLTRB(24.w, 0, 24.w, 24.h), child: Container(padding: EdgeInsets.all(20.r), decoration: BoxDecoration(color: AppColors.surfaceLight.withOpacity(0.3), borderRadius: BorderRadius.circular(16.r)), child: Row(crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Column(crossAxisAlignment: CrossAxisAlignment.start, children: [if (volumeProg != 0) ...[Text("TONNAGE CHANGE", style: AppTextStyles.labelSmall.copyWith(color: AppColors.white, fontSize: 9.sp, fontWeight: FontWeight.w500, letterSpacing: 1)), SizedBox(height: 8.h), Text("${volumeProg > 0 ? '+' : ''}${(volumeProg * 100).toStringAsFixed(1)}%", style: AppTextStyles.labelMedium.copyWith(color: volumeProg > 0 ? AppColors.success : AppColors.crimson, fontWeight: FontWeight.w900, fontSize: 18.sp)), if (totalVolume != null && totalVolume > 0) SizedBox(height: 12.h)], if (totalVolume != null && totalVolume > 0) ...[Text("TOTAL TONNAGE", style: AppTextStyles.labelSmall.copyWith(color: AppColors.white, fontSize: 9.sp, fontWeight: FontWeight.w500, letterSpacing: 1)), SizedBox(height: 4.h), Text("${totalVolume.toStringAsFixed(1)} T", style: AppTextStyles.labelMedium.copyWith(color: AppColors.white.withOpacity(0.9), fontWeight: FontWeight.w900, fontSize: 16.sp))]]) , if (startDate != null) Column(crossAxisAlignment: CrossAxisAlignment.end, children: [_dateRow("STARTED", startDate), SizedBox(height: 8.h), _dateRow("ENDED", endDate ?? startDate)])]))) : const SizedBox(width: double.infinity, height: 0),
             ),
           ],
         ],
@@ -1083,6 +1087,14 @@ class _CycleTrackingScreenState extends State<CycleTrackingScreen>
   }
 
   Widget _buildSectionHeader(String title) { return Row(children: [Container(width: 2.5.w, height: 12.h, decoration: BoxDecoration(color: AppColors.crimson, borderRadius: BorderRadius.circular(2.r))), SizedBox(width: 8.w), Text(title, style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary.withValues(alpha: 0.8), fontSize: 12.sp))]); }
+
+  String _getVolumeUnit(CycleProvider provider) {
+    return "TONNAGE";
+  }
+
+  String _getStrengthUnit() {
+    return "%";
+  }
 
   void _openFilterSheet() {
     final provider = context.read<CycleProvider>();
@@ -1383,7 +1395,7 @@ class _CycleFilterSheetState extends State<_CycleFilterSheet> {
                   _buildSectionLabel("STRENGTH PROGRESSION (%)"),
                   Row(children: [Expanded(child: _buildTextField(_minStrengthController, "MIN", (val) => _updateFilter(_currentFilter.copyWith(minStrength: double.tryParse(val))))), SizedBox(width: 16.w), Expanded(child: _buildTextField(_maxStrengthController, "MAX", (val) => _updateFilter(_currentFilter.copyWith(maxStrength: double.tryParse(val)))))],),
                   SizedBox(height: 24.h),
-                  _buildSectionLabel("TOTAL VOLUME"),
+                  _buildSectionLabel("TOTAL TONNAGE"),
                   Row(children: [Expanded(child: _buildTextField(_minVolumeController, "MIN", (val) => _updateFilter(_currentFilter.copyWith(minVolume: double.tryParse(val))))), SizedBox(width: 16.w), Expanded(child: _buildTextField(_maxVolumeController, "MAX", (val) => _updateFilter(_currentFilter.copyWith(maxVolume: double.tryParse(val)))))],),
                   SizedBox(height: 32.h),
                 ],

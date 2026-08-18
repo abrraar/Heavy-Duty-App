@@ -41,7 +41,7 @@ class _TrackerCardState extends State<TrackerCard> {
       );
       stockText =
           "${widget.supplement.remainingStock!.toInt()}${widget.supplement.weightUnit} |"
-          " ${formattedServings}s left";
+          " $formattedServings left";
     }
 
     // Expiry and Days Remaining calculation variables
