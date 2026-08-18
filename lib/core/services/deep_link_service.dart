@@ -30,7 +30,7 @@ class DeepLinkService {
   }
 
   void _route(Uri uri, GoRouter router) {
-    // Supabase sometimes puts parameters in the fragment (#) instead of query (?)
+    // Capture parameters from both query and fragment (Supabase sometimes uses hashes)
     final Map<String, String> params = {...uri.queryParameters};
     if (uri.hasFragment) {
       try {
@@ -44,36 +44,31 @@ class DeepLinkService {
     debugPrint('[DeepLink] resolved params: $params');
 
     final type = params['type'];
-    final path = switch (type) {
+    final basePath = switch (type) {
       'recovery' => AppRoutes.changePassword,
       'email_change' => AppRoutes.manageEmail,
       _ => null,
     };
 
-    if (path == null) {
+    if (basePath == null) {
       debugPrint('[DeepLink] no matching type, ignoring: $type');
       return; // Do NOT fall back to '/'
     }
 
-    debugPrint('[DeepLink] routing to $path');
-    
-    if (path == AppRoutes.manageEmail) {
-      // Build natural stack for Manage Email: Home -> Settings -> Manage Email
-      router.go(AppRoutes.home);
-      router.push(AppRoutes.settings);
-      
+    String finalPath = basePath;
+    if (basePath == AppRoutes.manageEmail) {
       final message = params['message'];
-      final String finalPath = message != null 
-          ? '${AppRoutes.manageEmail}?verified=true&message=${Uri.encodeComponent(message)}'
-          : '${AppRoutes.manageEmail}?verified=true';
-          
-      router.push(finalPath);
-    } else {
-      // For recovery, go straight there (it replaces the stack)
-      router.go(path);
+      finalPath = message != null 
+          ? '$basePath?verified=true&message=${Uri.encodeComponent(message)}'
+          : '$basePath?verified=true';
     }
-    
-    debugPrint('[DeepLink] navigation triggered for $path');
+
+    debugPrint('[DeepLink] routing to $finalPath');
+    // Single go() call. go_router resolves the full ancestor chain from the
+    // nested route hierarchy (Settings -> ManageEmail / Settings ->
+    // ChangePassword) automatically. 
+    router.go(finalPath);
+    debugPrint('[DeepLink] router.go($finalPath) called');
   }
 
   void dispose() {
