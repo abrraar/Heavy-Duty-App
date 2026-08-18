@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
@@ -24,6 +26,9 @@ class _ManageEmailScreenState extends State<ManageEmailScreen> {
   bool _isSending = false;
   bool _isVerifying = false;
   String? _pendingEmail;
+
+  Timer? _cooldownTimer;
+  int _secondsRemaining = 0;
 
   @override
   void initState() {
@@ -59,8 +64,22 @@ class _ManageEmailScreenState extends State<ManageEmailScreen> {
 
   @override
   void dispose() {
+    _cooldownTimer?.cancel();
     _emailController.dispose();
+    _otpController.dispose();
     super.dispose();
+  }
+
+  void _startCooldown() {
+    setState(() => _secondsRemaining = 120); // 2 minutes
+    _cooldownTimer?.cancel();
+    _cooldownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (_secondsRemaining == 0) {
+        timer.cancel();
+      } else {
+        setState(() => _secondsRemaining--);
+      }
+    });
   }
 
   void _showAddEmailSheet() {
@@ -145,6 +164,7 @@ class _ManageEmailScreenState extends State<ManageEmailScreen> {
                       setSheetState(() => _isSending = true);
                       try {
                         await context.read<AuthProvider>().addEmail(email);
+                        _startCooldown();
                         setSheetState(() {
                           _pendingEmail = email;
                           _isSending = false;
@@ -174,10 +194,11 @@ class _ManageEmailScreenState extends State<ManageEmailScreen> {
               if (_pendingEmail != null) ...[
                 Center(
                   child: TextButton(
-                    onPressed: (_isSending || _isVerifying) ? null : () async {
+                    onPressed: (_isSending || _isVerifying || _secondsRemaining > 0) ? null : () async {
                       setSheetState(() => _isSending = true);
                       try {
                         await context.read<AuthProvider>().resendSecondaryOTP(_pendingEmail!);
+                        _startCooldown();
                         EliteSnackbar.show(context, "FRESH CODE SENT");
                       } catch (e) {
                         EliteSnackbar.show(context, "RESEND FAILED", isError: true);
@@ -186,8 +207,15 @@ class _ManageEmailScreenState extends State<ManageEmailScreen> {
                       }
                     },
                     child: Text(
-                      _isSending ? "SENDING..." : "RESEND VERIFICATION CODE", 
-                      style: AppTextStyles.labelSmall.copyWith(color: AppColors.crimson, decoration: TextDecoration.underline)
+                      _isSending 
+                        ? "SENDING..." 
+                        : (_secondsRemaining > 0 
+                            ? "RESEND IN ${_secondsRemaining}S" 
+                            : "RESEND VERIFICATION CODE"), 
+                      style: AppTextStyles.labelSmall.copyWith(
+                        color: _secondsRemaining > 0 ? Colors.white12 : AppColors.crimson, 
+                        decoration: _secondsRemaining > 0 ? TextDecoration.none : TextDecoration.underline
+                      )
                     ),
                   ),
                 ),
@@ -269,15 +297,17 @@ class _ManageEmailScreenState extends State<ManageEmailScreen> {
 
                     return Dismissible(
                       key: Key(email.id),
-                      // Slide Right (Start to End) to Verify | Slide Left (End to Start) to Delete
-                      direction: isPrimary ? DismissDirection.none : DismissDirection.horizontal,
+                      // isPrimary: No slide
+                      // Unverified: Both directions (Right to Verify, Left to Delete)
+                      // Verified: Only Left to Delete
+                      direction: isPrimary 
+                          ? DismissDirection.none 
+                          : (email.isVerified ? DismissDirection.endToStart : DismissDirection.horizontal),
                       confirmDismiss: (dir) async {
                         if (dir == DismissDirection.startToEnd) {
                           // SLIDE TO VERIFY
-                          if (!email.isVerified) {
-                            setState(() => _pendingEmail = email.email);
-                            _showAddEmailSheet();
-                          }
+                          setState(() => _pendingEmail = email.email);
+                          _showAddEmailSheet();
                           return false; // Don't actually dismiss the card
                         } else {
                           // SLIDE TO DELETE
@@ -415,7 +445,7 @@ class _ManageEmailScreenState extends State<ManageEmailScreen> {
     ));
   }
 }
-}
+
 
 class _PrimaryButton extends StatelessWidget {
   final String label;
