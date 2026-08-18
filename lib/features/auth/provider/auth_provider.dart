@@ -141,13 +141,14 @@ class AuthProvider with ChangeNotifier {
         for (var data in cloudData) {
           final emailObj = UserEmail.fromMap(data);
 
-          // AUTO-SYNC: If this is the current primary account email and the session 
-          // says we are verified, ensure our custom table reflects that.
+          // AUTO-SYNC: If this email matches the current auth email and we are verified 
+          // in the auth session, update our custom table.
           if (emailObj.email.toLowerCase() == _currentUser!.email?.toLowerCase() && isEmailVerified) {
-            final verifiedObj = emailObj.copyWith(isVerified: true);
-            await _profileRepo!.insertEmail(verifiedObj);
-            // Update cloud table too for consistency
-            await _supabase.from('user_emails').update({'is_verified': true}).eq('id', emailObj.id);
+            if (!emailObj.isVerified) {
+              final verifiedObj = emailObj.copyWith(isVerified: true);
+              await _profileRepo!.insertEmail(verifiedObj);
+              await _supabase.from('user_emails').update({'is_verified': true}).eq('id', emailObj.id);
+            }
           } else {
             await _profileRepo!.insertEmail(emailObj);
           }
@@ -173,14 +174,26 @@ class AuthProvider with ChangeNotifier {
     final newEmail = UserEmail(email: email.trim(), isVerified: false);
     await _profileRepo!.insertEmail(newEmail);
 
-    // MOCK: Save to Supabase (assuming a 'user_emails' table exists or using metadata)
+    // Save to the cloud table first so it appears in the list (as unverified)
+    try {
+      await _supabase.from('user_emails').insert({
+        'id': newEmail.id,
+        'user_id': _currentUser!.id,
+        'email': newEmail.email,
+        'is_verified': false,
+      });
+    } catch (e) {
+      debugPrint("Supabase cloud email insert failed: $e");
+    }
+
+    // Trigger Supabase Auth update (sends the link)
     try {
       await _supabase.auth.updateUser(
         UserAttributes(email: email.trim()),
         emailRedirectTo: kIsWeb ? null : 'heavyduty://heavyduty/email_change',
       );
     } catch (e) {
-      debugPrint("Supabase email save failed: $e");
+      debugPrint("Supabase Auth email update failed: $e");
     }
 
     await _loadUserEmails();
