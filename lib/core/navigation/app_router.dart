@@ -62,12 +62,15 @@ final appRouter = GoRouter(
     final isProfileComplete = authProvider.isProfileComplete;
     final location = state.uri.path;
 
-    // These must be reachable regardless of auth/onboarding state to ensure 
-    // deep-link navigation isn't silently overridden.
+    // 0. ALLOWLIST: Explicitly skip redirection for deep-link landing pages
+    // This prevents the auth guard from bouncing users to Home before parameters are processed.
     final List<String> alwaysAllowed = [
       AppRoutes.changePassword,
       AppRoutes.manageEmail,
       AppRoutes.authCallback,
+      '/change-password', // Custom scheme variants
+      '/manage-email',
+      '/confirm-email',
     ];
 
     if (alwaysAllowed.any((p) => location.startsWith(p))) {

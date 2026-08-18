@@ -18,7 +18,7 @@ import 'package:provider/provider.dart';
 import 'package:heavy_duty/core/navigation/app_router.dart';
 import 'package:heavy_duty/core/services/notification_service.dart';
 import 'package:heavy_duty/core/services/connectivity_service.dart';
-import 'package:heavy_duty/core/services/deep_link_service.dart';
+import 'package:heavy_duty/core/widgets/deep_link_handler.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:alarm/alarm.dart';
 
@@ -65,7 +65,9 @@ void main() async {
         ChangeNotifierProvider(create: (_) => UiProvider()),
         ChangeNotifierProvider(create: (_) => AffirmationProvider()),
       ],
-      child: const AuthWrapper(child: MyApp()),
+      child: const DeepLinkHandler(
+        child: AuthWrapper(child: MyApp()),
+      ),
     ),
   );
 }
@@ -147,20 +149,8 @@ class _AuthWrapperState extends State<AuthWrapper> {
   Widget build(BuildContext context) => widget.child;
 }
 
-class MyApp extends StatefulWidget {
+class MyApp extends StatelessWidget {
   const MyApp({super.key});
-
-  @override
-  State<MyApp> createState() => _MyAppState();
-}
-
-class _MyAppState extends State<MyApp> {
-  @override
-  void initState() {
-    super.initState();
-    // Initialize Deep Link handling after router exists
-    DeepLinkService().init(appRouter);
-  }
 
   @override
   Widget build(BuildContext context) {

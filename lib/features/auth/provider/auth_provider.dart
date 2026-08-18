@@ -177,7 +177,7 @@ class AuthProvider with ChangeNotifier {
     try {
       await _supabase.auth.updateUser(
         UserAttributes(email: email.trim()),
-        emailRedirectTo: kIsWeb ? null : 'https://heavydutyapp.org/auth/callback?type=email_change',
+        emailRedirectTo: kIsWeb ? null : 'heavyduty://manage-email',
       );
     } catch (e) {
       debugPrint("Supabase email save failed: $e");
@@ -251,7 +251,7 @@ class AuthProvider with ChangeNotifier {
         email: email,
         password: password,
         data: username != null ? {'username': username} : null,
-        emailRedirectTo: kIsWeb ? null : 'https://heavydutyapp.org/auth/callback?type=signup',
+        emailRedirectTo: kIsWeb ? null : 'heavyduty://confirm-email',
       );
     } catch (e) {
       _setLoading(false);
@@ -341,7 +341,7 @@ class AuthProvider with ChangeNotifier {
       await _supabase.auth.resend(
         type: isRecovery ? OtpType.recovery : OtpType.signup,
         email: email,
-        emailRedirectTo: kIsWeb ? null : 'https://heavydutyapp.org/auth/callback?type=${isRecovery ? 'recovery' : 'signup'}',
+        emailRedirectTo: kIsWeb ? null : (isRecovery ? 'heavyduty://change-password' : 'heavyduty://confirm-email'),
       );
     } catch (e) {
       _setLoading(false);
@@ -374,7 +374,7 @@ class AuthProvider with ChangeNotifier {
     try {
       await _supabase.auth.resetPasswordForEmail(
         email, 
-        redirectTo: kIsWeb ? null : 'https://heavydutyapp.org/auth/callback?type=recovery',
+        redirectTo: kIsWeb ? null : 'heavyduty://change-password',
       );
     } catch (e) {
       _setLoading(false);
