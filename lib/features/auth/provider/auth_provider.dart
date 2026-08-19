@@ -120,7 +120,17 @@ class AuthProvider with ChangeNotifier {
       }
     }
 
-    _userEmails = emailMap.values.toList();
+    // Ensure primary email is always first in the list
+    final List<UserEmail> sortedList = emailMap.values.toList();
+    sortedList.sort((a, b) {
+      final bool aIsPrimary = a.email.toLowerCase() == _currentUser?.email?.toLowerCase();
+      final bool bIsPrimary = b.email.toLowerCase() == _currentUser?.email?.toLowerCase();
+      if (aIsPrimary) return -1;
+      if (bIsPrimary) return 1;
+      return 0;
+    });
+
+    _userEmails = sortedList;
     notifyListeners();
   }
 
