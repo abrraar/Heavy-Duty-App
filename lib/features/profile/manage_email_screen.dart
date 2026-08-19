@@ -51,15 +51,14 @@ class _ManageEmailScreenState extends State<ManageEmailScreen> {
             // ELITE REFINEMENT: If the message mentions the "other email" but 
             // the user has disabled secure change, we show a success message instead.
             if (rawMessage.toLowerCase().contains('other email')) {
-              EliteSnackbar.show(context, "IDENTITY UPDATED SUCCESSFULLY");
+              EliteSnackbar.show(context, "PRIMARY EMAIL SWITCHED");
             } else {
               EliteSnackbar.show(context, rawMessage.toUpperCase());
             }
           } else if (verifiedEmail != null) {
-            EliteSnackbar.show(context, 'EMAIL "$verifiedEmail" VERIFIED');
+            EliteSnackbar.show(context, "PRIMARY EMAIL SWITCHED");
           } else {
-            final String currentEmail = authProv.currentUser?.email ?? "";
-            EliteSnackbar.show(context, 'EMAIL "$currentEmail" VERIFIED');
+            EliteSnackbar.show(context, "PRIMARY EMAIL SWITCHED");
           }
         }
       } else {
@@ -308,17 +307,16 @@ class _ManageEmailScreenState extends State<ManageEmailScreen> {
     );
 
     if (confirmed == true && mounted) {
-      try {
-        await context.read<AuthProvider>().promoteToPrimaryEmail(email);
-        _startCooldown();
-        if (mounted) {
-          EliteSnackbar.show(context, "PROMOTION INITIATED. CHECK YOUR NEW INBOX.");
-        }
-      } catch (e) {
+      // INSTANT UI FEEDBACK
+      EliteSnackbar.show(context, "PROMOTION INITIATED. CHECK YOUR NEW INBOX.");
+      _startCooldown();
+      
+      // Perform the actual network request in the background
+      context.read<AuthProvider>().promoteToPrimaryEmail(email).catchError((e) {
         if (mounted) {
           EliteSnackbar.show(context, "PROMOTION FAILED: ${e.toString().toUpperCase()}", isError: true);
         }
-      }
+      });
     }
   }
 
