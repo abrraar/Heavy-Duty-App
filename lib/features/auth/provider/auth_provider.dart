@@ -138,9 +138,25 @@ class AuthProvider with ChangeNotifier {
           .eq('user_id', _currentUser!.id);
 
       if (cloudData != null) {
-        for (var data in cloudData) {
-          final emailObj = UserEmail.fromMap(data);
+        // ELITE SYNC: To ensure deleted items are removed, we perform a clean sync.
+        // We will collect the cloud IDs and remove any local records not present in the cloud.
+        final List<UserEmail> cloudEmails = cloudData.map((d) => UserEmail.fromMap(d)).toList();
+        final cloudIds = cloudEmails.map((e) => e.id).toSet();
+        
+        final localEmails = await _profileRepo!.getEmails();
+        
+        // Remove locals that aren't in cloud (except perhaps the primary if handled differently)
+        for (var local in localEmails) {
+          if (!cloudIds.contains(local.id)) {
+            // If it's not the primary auth email, delete it locally as it's gone from cloud
+            if (local.email.toLowerCase() != _currentUser!.email?.toLowerCase()) {
+              await _profileRepo!.deleteEmail(local.id);
+            }
+          }
+        }
 
+        // Upsert cloud records into local
+        for (var emailObj in cloudEmails) {
           // AUTO-SYNC: If this email matches the current auth email and we are verified 
           // in the auth session, update our custom table.
           if (emailObj.email.toLowerCase() == _currentUser!.email?.toLowerCase() && isEmailVerified) {
@@ -148,6 +164,8 @@ class AuthProvider with ChangeNotifier {
               final verifiedObj = emailObj.copyWith(isVerified: true);
               await _profileRepo!.insertEmail(verifiedObj);
               await _supabase.from('user_emails').update({'is_verified': true}).eq('id', emailObj.id);
+            } else {
+              await _profileRepo!.insertEmail(emailObj);
             }
           } else {
             await _profileRepo!.insertEmail(emailObj);
@@ -293,6 +311,23 @@ class AuthProvider with ChangeNotifier {
     }
 
     await _loadUserEmails();
+  }
+
+  Future<void> promoteToPrimaryEmail(String newEmail) async {
+    _setLoading(true);
+    try {
+      // This triggers Supabase's secure email change flow.
+      // Confirmation links will be sent to both old and new addresses.
+      await _supabase.auth.updateUser(
+        UserAttributes(email: newEmail.trim()),
+        emailRedirectTo: kIsWeb ? null : 'heavyduty://heavyduty/email_change',
+      );
+    } catch (e) {
+      debugPrint("Promotion failed: $e");
+      rethrow;
+    } finally {
+      _setLoading(false);
+    }
   }
 
   Future<void> verifyEmail(String id) async {
