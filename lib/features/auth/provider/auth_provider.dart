@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -19,21 +21,6 @@ class AuthProvider with ChangeNotifier {
       _initializeProfileRepo(_currentUser!.id);
     }
     _setupAuthListener();
-  }
-
-  Future<void> _initRecoveryState() async {
-    final prefs = await SharedPreferences.getInstance();
-    final bool wasInRecovery = prefs.getBool('is_in_recovery_lockdown') ?? false;
-    
-    if (wasInRecovery) {
-      debugPrint("AuthProvider: Unfinished Recovery Session detected. Sanitizing...");
-      // Security Invalidation: Clear session and flag immediately.
-      await signOut();
-      await prefs.remove('is_in_recovery_lockdown');
-    }
-    
-    _isInitializing = false;
-    notifyListeners();
   }
 
   final SupabaseClient _supabase = Supabase.instance.client;
@@ -76,6 +63,53 @@ class AuthProvider with ChangeNotifier {
       _isPasswordRecoveryMode = false;
       notifyListeners();
     }
+  }
+
+  void _startGlobalCooldown() async {
+    final expiryTime = DateTime.now().add(const Duration(minutes: 2)).millisecondsSinceEpoch;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt('global_email_cooldown_expiry', expiryTime);
+    
+    _emailCooldownSeconds = 120;
+    _resumeGlobalCooldown();
+  }
+
+  void _resumeGlobalCooldown() {
+    _globalCooldownTimer?.cancel();
+    _globalCooldownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (_emailCooldownSeconds <= 0) {
+        _emailCooldownSeconds = 0;
+        timer.cancel();
+      } else {
+        _emailCooldownSeconds--;
+      }
+      notifyListeners();
+    });
+  }
+
+  Future<void> _initRecoveryState() async {
+    final prefs = await SharedPreferences.getInstance();
+    
+    // 1. Check Global Cooldown
+    final expiryTime = prefs.getInt('global_email_cooldown_expiry') ?? 0;
+    final now = DateTime.now().millisecondsSinceEpoch;
+    if (expiryTime > now) {
+      _emailCooldownSeconds = (expiryTime - now) ~/ 1000;
+      _resumeGlobalCooldown();
+    }
+
+    // 2. Check Recovery Lockdown
+    final bool wasInRecovery = prefs.getBool('is_in_recovery_lockdown') ?? false;
+    
+    if (wasInRecovery) {
+      debugPrint("AuthProvider: Unfinished Recovery Session detected. Sanitizing...");
+      // Security Invalidation: Clear session and flag immediately.
+      await signOut();
+      await prefs.remove('is_in_recovery_lockdown');
+    }
+    
+    _isInitializing = false;
+    notifyListeners();
   }
 
   void _setupAuthListener() {
@@ -203,8 +237,6 @@ class AuthProvider with ChangeNotifier {
               final verifiedObj = emailObj.copyWith(isVerified: true);
               await _profileRepo!.insertEmail(verifiedObj);
               await _supabase.from('user_emails').update({'is_verified': true}).eq('id', emailObj.id);
-            } else {
-              await _profileRepo!.insertEmail(emailObj);
             }
           } else {
             await _profileRepo!.insertEmail(emailObj);
