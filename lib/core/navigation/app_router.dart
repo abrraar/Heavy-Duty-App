@@ -75,6 +75,14 @@ final appRouter = GoRouter(
   },
   redirect: (context, state) {
     final authProvider = AuthProvider();
+    
+    // 0. INITIALIZATION LOCK: Block all navigation decisions until the 
+    // AuthProvider has finished its security checks (like cleaning up recovery sessions).
+    if (authProvider.isInitializing) {
+      debugPrint("Router: Auth initialization in progress. Holding navigation.");
+      return null; // Stay on Splash/Current screen until ready
+    }
+
     final isAuthenticated = authProvider.isAuthenticated;
     final isProfileComplete = authProvider.isProfileComplete;
     final location = state.uri.path;

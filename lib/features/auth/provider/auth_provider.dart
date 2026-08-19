@@ -26,11 +26,14 @@ class AuthProvider with ChangeNotifier {
     final bool wasInRecovery = prefs.getBool('is_in_recovery_lockdown') ?? false;
     
     if (wasInRecovery) {
-      debugPrint("AuthProvider: Unfinished Recovery Session detected on app start. Wiping for security.");
-      // Security Invalidation: If the user killed the app during reset, log them out 
-      // and clear the flag to ensure they start fresh at the Login screen.
+      debugPrint("AuthProvider: Unfinished Recovery Session detected. Sanitizing...");
+      // Security Invalidation: Clear session and flag immediately.
       await signOut();
+      await prefs.remove('is_in_recovery_lockdown');
     }
+    
+    _isInitializing = false;
+    notifyListeners();
   }
 
   final SupabaseClient _supabase = Supabase.instance.client;
@@ -43,9 +46,11 @@ class AuthProvider with ChangeNotifier {
   List<UserEmail> _userEmails = [];
   UserProfile? _userProfile;
   bool _isPasswordRecoveryMode = false;
+  bool _isInitializing = true;
 
   User? get currentUser => _currentUser;
   bool get isLoading => _isLoading;
+  bool get isInitializing => _isInitializing;
   bool get isAuthenticated => _currentUser != null;
   bool get isEmailVerified => _currentUser?.emailConfirmedAt != null;
   bool get isProfileComplete => _currentUser?.userMetadata?['full_name'] != null;
