@@ -23,41 +23,10 @@ class OtpScreen extends StatefulWidget {
 class _OtpScreenState extends State<OtpScreen> {
   final List<TextEditingController> _controllers = List.generate(6, (_) => TextEditingController());
   final List<FocusNode> _focusNodes = List.generate(6, (_) => FocusNode());
-  
-  Timer? _resendTimer;
-  int _secondsRemaining = 60;
-  bool _canResend = false;
   bool _isVerifying = false;
 
   @override
-  void initState() {
-    super.initState();
-    _startResendTimer();
-  }
-
-  void _startResendTimer() {
-    setState(() {
-      _canResend = false;
-      _secondsRemaining = 60;
-    });
-    _resendTimer?.cancel();
-    _resendTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (_secondsRemaining == 0) {
-        setState(() {
-          _canResend = true;
-          timer.cancel();
-        });
-      } else {
-        setState(() {
-          _secondsRemaining--;
-        });
-      }
-    });
-  }
-
-  @override
   void dispose() {
-    _resendTimer?.cancel();
     for (final c in _controllers) {
       c.dispose();
     }
@@ -206,6 +175,9 @@ class _OtpScreenState extends State<OtpScreen> {
   }
 
   Widget _buildOtpForm(bool isLoading, {bool isWideLayout = false}) {
+    final authProv = context.watch<AuthProvider>();
+    final int cooldown = authProv.emailCooldownSeconds;
+
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -233,7 +205,7 @@ class _OtpScreenState extends State<OtpScreen> {
                 style: AppTextStyles.caption.copyWith(fontSize: isWideLayout ? 14 : 13.sp),
               ),
               TextButton(
-                onPressed: (isLoading || !_canResend)
+                onPressed: (isLoading || cooldown > 0)
                     ? null
                     : () async {
                         final authProvider = context.read<AuthProvider>();
@@ -242,7 +214,6 @@ class _OtpScreenState extends State<OtpScreen> {
                           try {
                             await authProvider.resendOTP(email);
                             if (!mounted) return;
-                            _startResendTimer();
                             EliteSnackbar.show(context, 'CODE RESENT SUCCESSFULLY!');
                           } catch (e) {
                             if (!mounted) return;
@@ -259,9 +230,9 @@ class _OtpScreenState extends State<OtpScreen> {
                         }
                       },
                 child: Text(
-                  _canResend ? 'RESEND OTP' : 'RESEND OTP IN ${_secondsRemaining}S',
+                  cooldown == 0 ? 'RESEND OTP' : 'RESEND OTP IN ${cooldown}S',
                   style: AppTextStyles.link.copyWith(
-                    color: _canResend ? AppColors.crimson : AppColors.textSecondary.withOpacity(0.5),
+                    color: cooldown == 0 ? AppColors.crimson : AppColors.textSecondary.withOpacity(0.5),
                     fontWeight: FontWeight.w500,
                     fontSize: isWideLayout ? 14 : 13.sp,
                   ),

@@ -9,7 +9,6 @@ import 'package:heavy_duty/core/widgets/elite_snackbar.dart';
 import 'package:heavy_duty/features/auth/provider/auth_provider.dart';
 import 'package:heavy_duty/core/widgets/elite_settings_app_bar.dart';
 import 'package:provider/provider.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../core/navigation/app_routes.dart';
 
@@ -27,13 +26,9 @@ class _ManageEmailScreenState extends State<ManageEmailScreen> {
   bool _isVerifying = false;
   String? _pendingEmail;
 
-  Timer? _cooldownTimer;
-  int _secondsRemaining = 0;
-
   @override
   void initState() {
     super.initState();
-    _loadCooldown();
     // Auto-refresh when entering the screen to catch any verification updates from deep links
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       final authProv = context.read<AuthProvider>();
@@ -70,41 +65,9 @@ class _ManageEmailScreenState extends State<ManageEmailScreen> {
 
   @override
   void dispose() {
-    _cooldownTimer?.cancel();
     _emailController.dispose();
     _otpController.dispose();
     super.dispose();
-  }
-
-  Future<void> _loadCooldown() async {
-    final prefs = await SharedPreferences.getInstance();
-    final expiryTime = prefs.getInt('email_cooldown_expiry') ?? 0;
-    final now = DateTime.now().millisecondsSinceEpoch;
-    
-    if (expiryTime > now) {
-      setState(() => _secondsRemaining = (expiryTime - now) ~/ 1000);
-      _resumeCooldown();
-    }
-  }
-
-  void _resumeCooldown() {
-    _cooldownTimer?.cancel();
-    _cooldownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (_secondsRemaining == 0) {
-        timer.cancel();
-      } else {
-        setState(() => _secondsRemaining--);
-      }
-    });
-  }
-
-  void _startCooldown() async {
-    final expiryTime = DateTime.now().add(const Duration(minutes: 2)).millisecondsSinceEpoch;
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setInt('email_cooldown_expiry', expiryTime);
-    
-    setState(() => _secondsRemaining = 120); // 2 minutes
-    _resumeCooldown();
   }
 
   void _showAddEmailSheet() {
@@ -118,6 +81,7 @@ class _ManageEmailScreenState extends State<ManageEmailScreen> {
           final authProv = context.read<AuthProvider>();
           final emailInput = _emailController.text.trim().toLowerCase();
           final bool isDuplicate = authProv.userEmails.any((e) => e.email.toLowerCase() == emailInput);
+          final int cooldown = authProv.emailCooldownSeconds;
           
           return Padding(
             padding: EdgeInsets.only(
@@ -155,7 +119,7 @@ class _ManageEmailScreenState extends State<ManageEmailScreen> {
                   TextField(
                     controller: _emailController,
                     keyboardType: TextInputType.emailAddress,
-                    enabled: !_isSending,
+                    enabled: !_isSending && cooldown == 0,
                     onChanged: (_) => setSheetState(() {}),
                     style: const TextStyle(color: Colors.white),
                     decoration: InputDecoration(
@@ -188,17 +152,16 @@ class _ManageEmailScreenState extends State<ManageEmailScreen> {
                 _PrimaryButton(
                   label: _pendingEmail != null 
                     ? "VERIFY & ADD EMAIL" 
-                    : (isDuplicate ? "EMAIL ALREADY EXISTS" : "SEND VERIFICATION CODE"),
+                    : (cooldown > 0 ? "WAIT ${cooldown}S" : (isDuplicate ? "EMAIL ALREADY EXISTS" : "SEND VERIFICATION CODE")),
                   isLoading: _isSending || _isVerifying,
-                  enabled: !(isDuplicate && _pendingEmail == null),
+                  enabled: _pendingEmail != null || (cooldown == 0 && !isDuplicate),
                   onTap: () async {
                     if (_pendingEmail == null) {
                       final email = _emailController.text.trim();
-                      if (email.isNotEmpty && !isDuplicate) {
+                      if (email.isNotEmpty && !isDuplicate && cooldown == 0) {
                         setSheetState(() => _isSending = true);
                         try {
                           await context.read<AuthProvider>().addEmail(email);
-                          _startCooldown();
                           setSheetState(() {
                             _pendingEmail = email;
                             _isSending = false;
@@ -228,11 +191,10 @@ class _ManageEmailScreenState extends State<ManageEmailScreen> {
               if (_pendingEmail != null) ...[
                 Center(
                   child: TextButton(
-                    onPressed: (_isSending || _isVerifying || _secondsRemaining > 0) ? null : () async {
+                    onPressed: (_isSending || _isVerifying || cooldown > 0) ? null : () async {
                       setSheetState(() => _isSending = true);
                       try {
                         await context.read<AuthProvider>().resendSecondaryOTP(_pendingEmail!);
-                        _startCooldown();
                         EliteSnackbar.show(context, "FRESH CODE SENT");
                       } catch (e) {
                         EliteSnackbar.show(context, "RESEND FAILED", isError: true);
@@ -243,12 +205,12 @@ class _ManageEmailScreenState extends State<ManageEmailScreen> {
                     child: Text(
                       _isSending 
                         ? "SENDING..." 
-                        : (_secondsRemaining > 0 
-                            ? "RESEND IN ${_secondsRemaining}S" 
+                        : (cooldown > 0 
+                            ? "RESEND IN ${cooldown}S" 
                             : "RESEND VERIFICATION CODE"), 
                       style: AppTextStyles.labelSmall.copyWith(
-                        color: _secondsRemaining > 0 ? Colors.white12 : AppColors.crimson, 
-                        decoration: _secondsRemaining > 0 ? TextDecoration.none : TextDecoration.underline
+                        color: cooldown > 0 ? Colors.white12 : AppColors.crimson, 
+                        decoration: cooldown > 0 ? TextDecoration.none : TextDecoration.underline
                       )
                     ),
                   ),
@@ -297,7 +259,8 @@ class _ManageEmailScreenState extends State<ManageEmailScreen> {
   }
 
   Future<void> _confirmPromotion(String email) async {
-    if (_secondsRemaining > 0) return;
+    final authProv = context.read<AuthProvider>();
+    if (authProv.emailCooldownSeconds > 0) return;
 
     final confirmed = await EliteConfirmDialog.show(
       context,
@@ -309,10 +272,9 @@ class _ManageEmailScreenState extends State<ManageEmailScreen> {
     if (confirmed == true && mounted) {
       // INSTANT UI FEEDBACK
       EliteSnackbar.show(context, "PROMOTION INITIATED. CHECK YOUR NEW INBOX.");
-      _startCooldown();
       
       // Perform the actual network request in the background
-      context.read<AuthProvider>().promoteToPrimaryEmail(email).catchError((e) {
+      authProv.promoteToPrimaryEmail(email).catchError((e) {
         if (mounted) {
           EliteSnackbar.show(context, "PROMOTION FAILED: ${e.toString().toUpperCase()}", isError: true);
         }
@@ -326,6 +288,7 @@ class _ManageEmailScreenState extends State<ManageEmailScreen> {
     final emails = authProv.userEmails;
     final canDelete = emails.length > 1;
     final bool limitReached = emails.length >= 3;
+    final int cooldown = authProv.emailCooldownSeconds;
 
     return PopScope(
       canPop: Navigator.of(context).canPop(),
@@ -393,7 +356,7 @@ class _ManageEmailScreenState extends State<ManageEmailScreen> {
                         child: Icon(Icons.delete_outline_rounded, color: AppColors.crimson, size: 28.r),
                       ),
                       child: GestureDetector(
-                        onTap: (email.isVerified && !isPrimary && _secondsRemaining == 0) ? () => _confirmPromotion(email.email) : null,
+                        onTap: (email.isVerified && !isPrimary && cooldown == 0) ? () => _confirmPromotion(email.email) : null,
                         child: Container(
                           margin: EdgeInsets.only(bottom: 16.h),
                           padding: EdgeInsets.all(16.r),
@@ -479,11 +442,11 @@ class _ManageEmailScreenState extends State<ManageEmailScreen> {
                                         ] else if (!isPrimary) ...[
                                           const Spacer(),
                                           Text(
-                                            _secondsRemaining > 0 
-                                              ? "WAIT ${_secondsRemaining}S" 
+                                            cooldown > 0 
+                                              ? "WAIT ${cooldown}S" 
                                               : "TAP TO PROMOTE",
                                             style: AppTextStyles.labelSmall.copyWith(
-                                              color: _secondsRemaining > 0 ? Colors.white12 : AppColors.crimson.withOpacity(0.5), 
+                                              color: cooldown > 0 ? Colors.white12 : AppColors.crimson.withOpacity(0.5), 
                                               fontSize: 8.sp, 
                                               fontWeight: FontWeight.w900
                                             ),
@@ -508,11 +471,11 @@ class _ManageEmailScreenState extends State<ManageEmailScreen> {
               child: _PrimaryButton(
                 label: limitReached 
                     ? "MAXIMUM EMAILS REACHED" 
-                    : (_secondsRemaining > 0 
-                        ? "WAIT ${_secondsRemaining}S" 
+                    : (cooldown > 0 
+                        ? "WAIT ${cooldown}S" 
                         : "ADD EMAIL ADDRESS"),
-                onTap: (limitReached || _secondsRemaining > 0) ? () {} : _showAddEmailSheet,
-                enabled: !limitReached && _secondsRemaining == 0,
+                onTap: (limitReached || cooldown > 0) ? () {} : _showAddEmailSheet,
+                enabled: !limitReached && cooldown == 0,
               ),
             ),
             SizedBox(height: 20.h),

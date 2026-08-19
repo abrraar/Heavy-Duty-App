@@ -48,6 +48,9 @@ class AuthProvider with ChangeNotifier {
   bool _isPasswordRecoveryMode = false;
   bool _isInitializing = true;
 
+  Timer? _globalCooldownTimer;
+  int _emailCooldownSeconds = 0;
+
   User? get currentUser => _currentUser;
   bool get isLoading => _isLoading;
   bool get isInitializing => _isInitializing;
@@ -55,6 +58,7 @@ class AuthProvider with ChangeNotifier {
   bool get isEmailVerified => _currentUser?.emailConfirmedAt != null;
   bool get isProfileComplete => _currentUser?.userMetadata?['full_name'] != null;
   bool get isPasswordRecoveryMode => _isPasswordRecoveryMode;
+  int get emailCooldownSeconds => _emailCooldownSeconds;
   String? get pendingEmail => _pendingEmail;
   String? get pendingUsername => _pendingUsername;
 
@@ -249,7 +253,6 @@ class AuthProvider with ChangeNotifier {
     }
 
     // 3. DIRECT INVOCATION: Trigger the email sender immediately
-    // This allows us to catch errors and confirm the send-request was successful
     try {
       debugPrint("AuthProvider: Invoking Edge Function 'secondary-email-otp'...");
       final response = await _supabase.functions.invoke(
@@ -257,6 +260,9 @@ class AuthProvider with ChangeNotifier {
         body: {'email': email.trim(), 'otp': otp}
       );
       debugPrint("AuthProvider: Edge Function Response Status: ${response.status}");
+      
+      // SUCCESS: Start global cooldown
+      _startGlobalCooldown();
     } catch (e) {
       debugPrint("AuthProvider: DIRECT Edge Function trigger failed: $e");
     }
@@ -265,6 +271,7 @@ class AuthProvider with ChangeNotifier {
   }
 
   Future<void> resendSecondaryOTP(String email) async {
+    if (_emailCooldownSeconds > 0) throw "COOLDOWN ACTIVE";
     _setLoading(true);
     try {
       // 1. Generate new OTP
@@ -277,6 +284,7 @@ class AuthProvider with ChangeNotifier {
       await _supabase.functions.invoke('secondary-email-otp', body: {'email': email.trim(), 'otp': otp});
       
       debugPrint("AuthProvider: OTP Resent to $email: $otp");
+      _startGlobalCooldown();
     } catch (e) {
       debugPrint("AuthProvider: Resend failed: $e");
       rethrow;
@@ -349,6 +357,7 @@ class AuthProvider with ChangeNotifier {
   }
 
   Future<void> promoteToPrimaryEmail(String newEmail) async {
+    if (_emailCooldownSeconds > 0) throw "COOLDOWN ACTIVE";
     _setLoading(true);
     try {
       // This triggers Supabase's secure email change flow.
@@ -357,6 +366,7 @@ class AuthProvider with ChangeNotifier {
         UserAttributes(email: newEmail.trim()),
         emailRedirectTo: kIsWeb ? null : 'heavyduty://heavyduty/email_change',
       );
+      _startGlobalCooldown();
     } catch (e) {
       debugPrint("Promotion failed: $e");
       rethrow;
@@ -409,6 +419,7 @@ class AuthProvider with ChangeNotifier {
   // SIGN UP METHOD
   // ==========================================
   Future<void> signUp(String email, String password, {String? username}) async {
+    if (_emailCooldownSeconds > 0) throw "COOLDOWN ACTIVE";
     _setLoading(true);
     _pendingEmail = email;
     _pendingUsername = username;
@@ -419,6 +430,7 @@ class AuthProvider with ChangeNotifier {
         data: username != null ? {'username': username} : null,
         emailRedirectTo: kIsWeb ? null : 'heavyduty://heavyduty/signup',
       );
+      _startGlobalCooldown();
     } catch (e) {
       _setLoading(false);
       rethrow;
@@ -502,6 +514,7 @@ class AuthProvider with ChangeNotifier {
   }
 
   Future<void> resendOTP(String email, {bool isRecovery = false}) async {
+    if (_emailCooldownSeconds > 0) throw "COOLDOWN ACTIVE";
     _setLoading(true);
     try {
       await _supabase.auth.resend(
@@ -509,6 +522,7 @@ class AuthProvider with ChangeNotifier {
         email: email,
         emailRedirectTo: kIsWeb ? null : (isRecovery ? 'heavyduty://change-password' : 'heavyduty://confirm-email'),
       );
+      _startGlobalCooldown();
     } catch (e) {
       _setLoading(false);
       rethrow;
@@ -536,6 +550,7 @@ class AuthProvider with ChangeNotifier {
   }
 
   Future<void> sendPasswordResetEmail(String email, {String? source}) async {
+    if (_emailCooldownSeconds > 0) throw "COOLDOWN ACTIVE";
     _setLoading(true);
     debugPrint("AuthProvider: Checking if email $email is registered before reset...");
     try {
@@ -563,6 +578,8 @@ class AuthProvider with ChangeNotifier {
         email.trim(), 
         redirectTo: kIsWeb ? null : redirectUrl,
       );
+      
+      _startGlobalCooldown();
     } catch (e) {
       debugPrint("AuthProvider: Password reset request failed: $e");
       _setLoading(false);

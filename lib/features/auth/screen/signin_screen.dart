@@ -174,6 +174,9 @@ class _SignInScreenState extends State<SignInScreen> {
   }
 
   Widget _buildSignUpForm(bool isLoading, {bool isWideLayout = false}) {
+    final authProv = context.watch<AuthProvider>();
+    final int cooldown = authProv.emailCooldownSeconds;
+
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -240,9 +243,9 @@ class _SignInScreenState extends State<SignInScreen> {
         ),
         SizedBox(height: 32.h.clamp(24, 48)),
         AuthPrimaryButton(
-          label: 'CREATE ACCOUNT',
+          label: cooldown > 0 ? 'WAIT ${cooldown}S' : 'CREATE ACCOUNT',
           isLoading: isLoading,
-          onTap: _handleSignUp,
+          onTap: cooldown > 0 ? () {} : _handleSignUp,
           isWideLayout: isWideLayout,
         ),
         SizedBox(height: 24.h.clamp(16, 40)),

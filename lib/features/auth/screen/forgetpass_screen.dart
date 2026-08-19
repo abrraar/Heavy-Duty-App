@@ -22,35 +22,10 @@ class ForgotPassScreen extends StatefulWidget {
 class _ForgotPassScreenState extends State<ForgotPassScreen> {
   final _emailController = TextEditingController();
   
-  Timer? _resendTimer;
-  int _secondsRemaining = 0;
-  bool _canSend = true;
-
   @override
   void dispose() {
-    _resendTimer?.cancel();
     _emailController.dispose();
     super.dispose();
-  }
-
-  void _startResendTimer() {
-    setState(() {
-      _canSend = false;
-      _secondsRemaining = 60;
-    });
-    _resendTimer?.cancel();
-    _resendTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (_secondsRemaining == 0) {
-        setState(() {
-          _canSend = true;
-          timer.cancel();
-        });
-      } else {
-        setState(() {
-          _secondsRemaining--;
-        });
-      }
-    });
   }
 
   Future<void> _handleSendOtp() async {
@@ -65,7 +40,6 @@ class _ForgotPassScreenState extends State<ForgotPassScreen> {
       await context.read<AuthProvider>().sendPasswordResetEmail(email, source: 'auth');
       
       if (!mounted) return;
-      _startResendTimer();
       EliteSnackbar.show(context, 'RESET LINK SENT SUCCESSFULLY!');
     } catch (e) {
       if (!mounted) return;
@@ -89,7 +63,8 @@ class _ForgotPassScreenState extends State<ForgotPassScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isLoading = context.watch<AuthProvider>().isLoading;
+    final authProv = context.watch<AuthProvider>();
+    final isLoading = authProv.isLoading;
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -100,16 +75,16 @@ class _ForgotPassScreenState extends State<ForgotPassScreen> {
           final double formMaxWidth = isLargeScreen ? 480 : 420;
 
           if (isSmallScreen) {
-            return _buildMobileLayout(isLoading);
+            return _buildMobileLayout(authProv);
           } else {
-            return _buildWideLayout(isLoading, constraints, formMaxWidth);
+            return _buildWideLayout(authProv, constraints, formMaxWidth);
           }
         },
       ),
     );
   }
 
-  Widget _buildMobileLayout(bool isLoading) {
+  Widget _buildMobileLayout(AuthProvider authProv) {
     return SafeArea(
       child: Center(
         child: ConstrainedBox(
@@ -125,7 +100,7 @@ class _ForgotPassScreenState extends State<ForgotPassScreen> {
                   subtitle: 'GET BACK TO YOUR TRAINING',
                 ),
                 SizedBox(height: 60.h),
-                _buildForgotPassForm(isLoading),
+                _buildForgotPassForm(authProv),
               ],
             ),
           ),
@@ -134,7 +109,7 @@ class _ForgotPassScreenState extends State<ForgotPassScreen> {
     );
   }
 
-  Widget _buildWideLayout(bool isLoading, BoxConstraints constraints, double formMaxWidth) {
+  Widget _buildWideLayout(AuthProvider authProv, BoxConstraints constraints, double formMaxWidth) {
     return Row(
       children: [
         Expanded(
@@ -158,7 +133,7 @@ class _ForgotPassScreenState extends State<ForgotPassScreen> {
               constraints: BoxConstraints(maxWidth: formMaxWidth),
               child: SingleChildScrollView(
                 padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 32),
-                child: _buildForgotPassForm(isLoading, isWideLayout: true),
+                child: _buildForgotPassForm(authProv, isWideLayout: true),
               ),
             ),
           ),
@@ -167,7 +142,10 @@ class _ForgotPassScreenState extends State<ForgotPassScreen> {
     );
   }
 
-  Widget _buildForgotPassForm(bool isLoading, {bool isWideLayout = false}) {
+  Widget _buildForgotPassForm(AuthProvider authProv, {bool isWideLayout = false}) {
+    final int cooldown = authProv.emailCooldownSeconds;
+    final bool isLoading = authProv.isLoading;
+
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -179,14 +157,14 @@ class _ForgotPassScreenState extends State<ForgotPassScreen> {
           hint: 'EMAIL ADDRESS',
           icon: Icons.email_outlined,
           keyboardType: TextInputType.emailAddress,
-          enabled: !isLoading,
+          enabled: !isLoading && cooldown == 0,
           isWideLayout: isWideLayout,
         ),
         SizedBox(height: 32.h.clamp(24, 48)),
         AuthPrimaryButton(
-          label: _canSend ? 'SEND RESET LINK' : 'RESEND IN ${_secondsRemaining}S',
+          label: cooldown > 0 ? 'RESEND IN ${cooldown}S' : 'SEND RESET LINK',
           isLoading: isLoading,
-          onTap: _canSend ? _handleSendOtp : () {},
+          onTap: cooldown > 0 ? () {} : _handleSendOtp,
           isWideLayout: isWideLayout,
         ),
         SizedBox(height: 48.h.clamp(32, 80)),

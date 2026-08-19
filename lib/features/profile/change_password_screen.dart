@@ -27,13 +27,8 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
   bool _obscureNew = true;
   bool _obscureConfirm = true;
 
-  Timer? _resendTimer;
-  int _secondsRemaining = 0;
-  bool _canSendReset = true;
-
   @override
   void dispose() {
-    _resendTimer?.cancel();
     _currentPasswordController.dispose();
     _newPasswordController.dispose();
     _confirmPasswordController.dispose();
@@ -180,13 +175,15 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                         SizedBox(height: 32.h),
                         Center(
                           child: TextButton(
-                            onPressed: (isLoading || !_canSendReset) ? null : _sendResetEmail,
+                            onPressed: (isLoading || authProv.emailCooldownSeconds > 0) ? null : _sendResetEmail,
                             child: Text(
-                              _canSendReset ? "FORGOT CURRENT PASSWORD?" : "RESEND RESET LINK IN ${_secondsRemaining}S",
+                              authProv.emailCooldownSeconds > 0 
+                                  ? "RESEND RESET LINK IN ${authProv.emailCooldownSeconds}S" 
+                                  : "FORGOT CURRENT PASSWORD?",
                               style: AppTextStyles.labelSmall.copyWith(
-                                color: _canSendReset ? AppColors.crimson : AppColors.textSecondary.withOpacity(0.5),
+                                color: authProv.emailCooldownSeconds > 0 ? AppColors.textSecondary.withOpacity(0.5) : AppColors.crimson,
                                 fontWeight: FontWeight.w500,
-                                decoration: _canSendReset ? TextDecoration.underline : TextDecoration.none,
+                                decoration: authProv.emailCooldownSeconds > 0 ? TextDecoration.none : TextDecoration.underline,
                               ),
                             ),
                           ),
