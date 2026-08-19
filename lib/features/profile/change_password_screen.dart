@@ -35,26 +35,6 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
     super.dispose();
   }
 
-  void _startResendTimer() {
-    setState(() {
-      _canSendReset = false;
-      _secondsRemaining = 60;
-    });
-    _resendTimer?.cancel();
-    _resendTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (_secondsRemaining == 0) {
-        setState(() {
-          _canSendReset = true;
-          timer.cancel();
-        });
-      } else {
-        setState(() {
-          _secondsRemaining--;
-        });
-      }
-    });
-  }
-
   bool get _canSave =>
       _newPasswordController.text.isNotEmpty &&
           _newPasswordController.text == _confirmPasswordController.text &&
@@ -102,7 +82,6 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
     try {
       await authProv.sendPasswordResetEmail(email, source: 'settings');
       if (!mounted) return;
-      _startResendTimer();
       EliteSnackbar.show(context, "RESET EMAIL SENT SUCCESSFULLY");
     } catch (e) {
       if (!mounted) return;
