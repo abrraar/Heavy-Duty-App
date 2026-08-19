@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:heavy_duty/core/navigation/app_routes.dart';
+import 'package:heavy_duty/core/theme/app_colors.dart';
 import 'package:heavy_duty/core/theme/app_text_styles.dart';
 import 'package:heavy_duty/features/auth/provider/auth_provider.dart';
 import 'package:provider/provider.dart';
@@ -38,15 +39,15 @@ class _FadeSplashScreenState extends State<FadeSplashScreen>
 
     _controller.addStatusListener((status) {
       if (status == AnimationStatus.completed) {
-        // SMALL PAUSE TO SHOW THE BRANDING BEFORE HERO FLIGHT
+        debugPrint("Splash: Animation completed. Preparing Hero flight...");
         Future.delayed(const Duration(milliseconds: 500), () {
           if (mounted) {
             final authProv = context.read<AuthProvider>();
-            // Direct landing logic to preserve Hero flight
+            // Using go() is fine as long as tags and hierarchy match exactly
             if (authProv.isAuthenticated && authProv.isProfileComplete) {
               context.go(AppRoutes.home);
             } else {
-              // NAVIGATION TO LOGIN TRIGGERS HERO FLIGHT
+              debugPrint("Splash: Navigating to LOGIN (Hero Takeoff)");
               context.go(AppRoutes.login);
             }
           }
@@ -68,20 +69,23 @@ class _FadeSplashScreenState extends State<FadeSplashScreen>
       body: Center(
         child: FadeTransition(
           opacity: _fadeInAnimation,
+          // HIERARCHY MATCH: Hero -> Material -> FittedBox -> Text
           child: Hero(
             tag: 'branding_title',
-            // Material wrapper is essential for Hero typography during flight
             child: Material(
               type: MaterialType.transparency,
-              child: Text(
-                'HEAVY\nDUTY',
-                textAlign: TextAlign.center,
-                style: AppTextStyles.h1.copyWith(
-                  fontSize: 80.sp, 
-                  color: Colors.white,
-                  fontWeight: FontWeight.w500, // Matched with Login weight
-                  height: 0.9,
-                  letterSpacing: -2,
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  'HEAVY\nDUTY',
+                  textAlign: TextAlign.center,
+                  style: AppTextStyles.h1.copyWith(
+                    fontSize: 80.sp, 
+                    color: AppColors.white,
+                    fontWeight: FontWeight.w500,
+                    height: 0.9,
+                    letterSpacing: -2,
+                  ),
                 ),
               ),
             ),

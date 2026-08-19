@@ -195,15 +195,7 @@ final appRouter = GoRouter(
     GoRoute(
       path: AppRoutes.login,
       parentNavigatorKey: _rootNavigatorKey,
-      pageBuilder: (context, state) => CustomTransitionPage(
-        key: state.pageKey,
-        child: const LoginScreen(),
-        transitionDuration: const Duration(milliseconds: 800),
-        transitionsBuilder: (context, animation, secondaryAnimation, child) {
-          // Fade the rest of the login screen in, but let Hero handle the text
-          return FadeTransition(opacity: animation, child: child);
-        },
-      ),
+      builder: (context, state) => const LoginScreen(),
     ),
     GoRoute(
       path: AppRoutes.signin,

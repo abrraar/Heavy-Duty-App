@@ -30,6 +30,7 @@ class AppTextStyles {
         fontSize: 32.sp,
         color: AppColors.textPrimary,
         letterSpacing: 0.8,
+        fontWeight: FontWeight.w500,
       );
 
   static TextStyle get h2 => TextStyle(

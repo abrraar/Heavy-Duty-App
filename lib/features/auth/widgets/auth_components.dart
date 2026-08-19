@@ -187,16 +187,17 @@ class AuthBrandingSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    debugPrint("AuthBranding: Rendering Hero destination for '$title'");
     return Column(
       crossAxisAlignment: isWideLayout ? CrossAxisAlignment.center : CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
-        FittedBox(
-          fit: BoxFit.scaleDown,
-          child: Hero(
-            tag: 'branding_title',
-            child: Material(
-              type: MaterialType.transparency,
+        Hero(
+          tag: 'branding_title',
+          child: Material(
+            type: MaterialType.transparency,
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
               child: Text(
                 title,
                 textAlign: isWideLayout ? TextAlign.center : TextAlign.start,

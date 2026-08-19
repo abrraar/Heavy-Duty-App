@@ -50,12 +50,11 @@ flutter_launcher_icons:
 
 flutter_native_splash:
   color: "#000000"
-  # Using the tiny background.png as icon to prevent default large icon
+  # Base image set to tiny background to minimize footprint
   image: "android/app/src/main/res/drawable/background.png"
   android_12:
-    image: "android/app/src/main/res/drawable/background.png"
     color: "#000000"
-    icon_background_color: "#000000"
+    # No image here to force pure color on API 31+
 
 flutter:
   uses-material-design: true
