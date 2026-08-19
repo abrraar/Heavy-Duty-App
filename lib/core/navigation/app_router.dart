@@ -195,7 +195,15 @@ final appRouter = GoRouter(
     GoRoute(
       path: AppRoutes.login,
       parentNavigatorKey: _rootNavigatorKey,
-      builder: (context, state) => const LoginScreen(),
+      pageBuilder: (context, state) => CustomTransitionPage(
+        key: state.pageKey,
+        child: const LoginScreen(),
+        opaque: false, // Allows splash to be visible underneath for Hero
+        transitionDuration: const Duration(milliseconds: 800),
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          return FadeTransition(opacity: animation, child: child);
+        },
+      ),
     ),
     GoRoute(
       path: AppRoutes.signin,

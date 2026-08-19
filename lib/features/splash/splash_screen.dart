@@ -39,16 +39,16 @@ class _FadeSplashScreenState extends State<FadeSplashScreen>
 
     _controller.addStatusListener((status) {
       if (status == AnimationStatus.completed) {
-        debugPrint("Splash: Animation completed. Preparing Hero flight...");
+        debugPrint("Splash: Animation completed. Initiating Hero flight...");
         Future.delayed(const Duration(milliseconds: 500), () {
           if (mounted) {
             final authProv = context.read<AuthProvider>();
-            // Using go() is fine as long as tags and hierarchy match exactly
             if (authProv.isAuthenticated && authProv.isProfileComplete) {
               context.go(AppRoutes.home);
             } else {
               debugPrint("Splash: Navigating to LOGIN (Hero Takeoff)");
-              context.go(AppRoutes.login);
+              // push() is essential for Hero to have a source screen to fly from
+              context.push(AppRoutes.login);
             }
           }
         });
@@ -69,26 +69,31 @@ class _FadeSplashScreenState extends State<FadeSplashScreen>
       body: Center(
         child: FadeTransition(
           opacity: _fadeInAnimation,
-          // HIERARCHY MATCH: Hero -> Material -> FittedBox -> Text
-          child: Hero(
-            tag: 'branding_title',
-            child: Material(
-              type: MaterialType.transparency,
-              child: FittedBox(
-                fit: BoxFit.scaleDown,
-                child: Text(
-                  'HEAVY\nDUTY',
-                  textAlign: TextAlign.center,
-                  style: AppTextStyles.h1.copyWith(
-                    fontSize: 80.sp, 
-                    color: AppColors.white,
-                    fontWeight: FontWeight.w500,
-                    height: 0.9,
-                    letterSpacing: -2,
+          // MATCHING HIERARCHY: Column -> Hero -> Material -> FittedBox -> Text
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Hero(
+                tag: 'branding_title',
+                child: Material(
+                  type: MaterialType.transparency,
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      'HEAVY\nDUTY',
+                      textAlign: TextAlign.center,
+                      style: AppTextStyles.h1.copyWith(
+                        fontSize: 80.sp, 
+                        color: AppColors.white,
+                        fontWeight: FontWeight.w500,
+                        height: 0.9,
+                        letterSpacing: -2,
+                      ),
+                    ),
                   ),
                 ),
               ),
-            ),
+            ],
           ),
         ),
       ),
