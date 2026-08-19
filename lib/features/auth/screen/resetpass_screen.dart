@@ -4,7 +4,6 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:heavy_duty/core/theme/app_colors.dart';
-import 'package:heavy_duty/core/theme/app_text_styles.dart';
 import 'package:heavy_duty/core/navigation/app_routes.dart';
 import 'package:heavy_duty/core/constants/dimensions.dart';
 import 'package:heavy_duty/core/widgets/elite_snackbar.dart';

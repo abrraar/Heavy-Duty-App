@@ -150,7 +150,7 @@ class _ForgotPassScreenState extends State<ForgotPassScreen> {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        AuthDividerWithText(text: 'RECEIVE OTP VIA EMAIL', isWideLayout: isWideLayout),
+        AuthDividerWithText(text: 'RECEIVE LINK VIA EMAIL TO RESET PASSWORD', isWideLayout: isWideLayout),
         SizedBox(height: 28.h.clamp(20, 40)),
         AuthInputField(
           controller: _emailController,

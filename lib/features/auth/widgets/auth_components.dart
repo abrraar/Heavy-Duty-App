@@ -193,14 +193,20 @@ class AuthBrandingSection extends StatelessWidget {
       children: [
         FittedBox(
           fit: BoxFit.scaleDown,
-          child: Text(
-            title,
-            textAlign: isWideLayout ? TextAlign.center : TextAlign.start,
-            style: AppTextStyles.h1.copyWith(
-              fontSize: isWideLayout ? 64.sp.clamp(60, 100) : 48.sp,
-              height: 0.9,
-              color: AppColors.white,
-              letterSpacing: -2,
+          child: Hero(
+            tag: 'branding_title',
+            child: Material(
+              type: MaterialType.transparency,
+              child: Text(
+                title,
+                textAlign: isWideLayout ? TextAlign.center : TextAlign.start,
+                style: AppTextStyles.h1.copyWith(
+                  fontSize: isWideLayout ? 64.sp.clamp(60, 100) : 48.sp,
+                  height: 0.9,
+                  color: AppColors.white,
+                  letterSpacing: -2,
+                ),
+              ),
             ),
           ),
         ),
