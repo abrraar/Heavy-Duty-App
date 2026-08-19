@@ -199,9 +199,15 @@ final appRouter = GoRouter(
         key: state.pageKey,
         child: const LoginScreen(),
         opaque: false, // Allows splash to be visible underneath for Hero
-        transitionDuration: const Duration(milliseconds: 1500), // Slower, cinematic flight
+        transitionDuration: const Duration(milliseconds: 2500), // Ultra-smooth cinematic flight
+        reverseTransitionDuration: const Duration(milliseconds: 500),
         transitionsBuilder: (context, animation, secondaryAnimation, child) {
-          return FadeTransition(opacity: animation, child: child);
+          // Use a curve that starts fast and decelerates very smoothly
+          final curveAnimation = CurvedAnimation(
+            parent: animation,
+            curve: Curves.fastLinearToSlowEaseIn,
+          );
+          return FadeTransition(opacity: curveAnimation, child: child);
         },
       ),
     ),
