@@ -199,7 +199,7 @@ final appRouter = GoRouter(
         key: state.pageKey,
         child: const LoginScreen(),
         opaque: false, // Allows splash to be visible underneath for Hero
-        transitionDuration: const Duration(milliseconds: 800),
+        transitionDuration: const Duration(milliseconds: 1500), // Slower, cinematic flight
         transitionsBuilder: (context, animation, secondaryAnimation, child) {
           return FadeTransition(opacity: animation, child: child);
         },
