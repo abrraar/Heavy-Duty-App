@@ -196,7 +196,7 @@ class CycleDetailViewScreen extends StatelessWidget {
               "SHARE CYCLE",
               style: AppTextStyles.labelMedium.copyWith(
                 color: Colors.blueAccent,
-                fontWeight: FontWeight.bold,
+                fontWeight: FontWeight.w500,
                 letterSpacing: 1.5,
               ),
             ),
@@ -264,7 +264,7 @@ else {
                               padding: EdgeInsets.symmetric(vertical: 12.h),
                               decoration: BoxDecoration(color: Colors.transparent, borderRadius: BorderRadius.circular(12.r), border: Border.all(color: AppColors.white.withOpacity(0.1))),
                               alignment: Alignment.center,
-                              child: Text("CANCEL", style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary, fontWeight: FontWeight.bold)),
+                              child: Text("CANCEL", style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary, fontWeight: FontWeight.w500)),
                             ),
                           ),
                         ),
@@ -276,7 +276,7 @@ else {
                               padding: EdgeInsets.symmetric(vertical: 12.h),
                               decoration: BoxDecoration(color: Colors.greenAccent.withOpacity(0.1), borderRadius: BorderRadius.circular(12.r), border: Border.all(color: Colors.greenAccent.withOpacity(0.5))),
                               alignment: Alignment.center,
-                              child: Text("ACTIVATE", style: AppTextStyles.labelSmall.copyWith(color: Colors.greenAccent, fontWeight: FontWeight.bold)),
+                              child: Text("ACTIVATE", style: AppTextStyles.labelSmall.copyWith(color: Colors.greenAccent, fontWeight: FontWeight.w500)),
                             ),
                           ),
                         ),
@@ -319,7 +319,7 @@ else {
         child: Center(
           child: Text(
             "ACTIVATE THIS CYCLE",
-            style: AppTextStyles.labelMedium.copyWith(color: AppColors.white, fontWeight: FontWeight.bold, letterSpacing: 2),
+            style: AppTextStyles.labelMedium.copyWith(color: AppColors.white, fontWeight: FontWeight.w500, letterSpacing: 2),
           ),
         ),
       ),
@@ -334,7 +334,7 @@ else {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(label, style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary)),
-          Text(value, style: AppTextStyles.labelSmall.copyWith(color: AppColors.white, fontWeight: FontWeight.bold)),
+          Text(value, style: AppTextStyles.labelSmall.copyWith(color: AppColors.white, fontWeight: FontWeight.w500)),
         ],
       ),
     );
@@ -354,7 +354,7 @@ else {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(workout.name, style: AppTextStyles.labelSmall.copyWith(color: AppColors.white, fontWeight: FontWeight.bold)),
+          Text(workout.name, style: AppTextStyles.labelSmall.copyWith(color: AppColors.white, fontWeight: FontWeight.w500)),
           SizedBox(height: 12.h),
           const Divider(color: Colors.white10),
           SizedBox(height: 8.h),

@@ -48,7 +48,7 @@ class WorkoutActionCard extends StatelessWidget {
                       style: AppTextStyles.h3.copyWith(
                         fontSize: 22.sp,
                         color: Colors.white,
-                        fontWeight: FontWeight.w900,
+                        fontWeight: FontWeight.w500,
                         letterSpacing: 0.5,
                       ),
                     ),
@@ -59,7 +59,7 @@ class WorkoutActionCard extends StatelessWidget {
                     style: AppTextStyles.labelSmall.copyWith(
                       color: Colors.white.withOpacity(0.9),
                       fontSize: 12.sp,
-                      fontWeight: FontWeight.w600,
+                      fontWeight: FontWeight.w500,
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,

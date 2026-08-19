@@ -171,7 +171,7 @@ class _AffirmationScreenState extends State<AffirmationScreen> with SingleTicker
                     "ADD CUSTOM AFFIRMATION",
                     style: AppTextStyles.labelSmall.copyWith(
                       color: AppColors.crimson,
-                      fontWeight: FontWeight.bold,
+                      fontWeight: FontWeight.w500,
                       letterSpacing: 1.2,
                     ),
                   ),
@@ -202,7 +202,7 @@ class _AffirmationScreenState extends State<AffirmationScreen> with SingleTicker
               style: AppTextStyles.displayMedium.copyWith(
                 fontSize: 15.sp,
                 height: 1.3,
-                fontWeight: FontWeight.w900,
+                fontWeight: FontWeight.w500,
                 fontStyle: FontStyle.italic,
                 color: Colors.white,
                 letterSpacing: 0.5,

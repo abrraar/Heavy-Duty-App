@@ -43,7 +43,7 @@ class CycleMetricTile extends StatelessWidget {
                   fontSize: 9.sp,
                   color: AppColors.textSecondary,
                   letterSpacing: 1.5,
-                  fontWeight: FontWeight.w900,
+                  fontWeight: FontWeight.w500,
                 ),
               ),
               SizedBox(height: 4.r),
@@ -53,7 +53,7 @@ class CycleMetricTile extends StatelessWidget {
                 overflow: TextOverflow.ellipsis,
                 style: AppTextStyles.labelMedium.copyWith(
                   fontSize: 14.sp,
-                  fontWeight: FontWeight.w900,
+                  fontWeight: FontWeight.w500,
                   color: Colors.white,
                   height: 1.2,
                 ),
@@ -69,7 +69,7 @@ class CycleMetricTile extends StatelessWidget {
                 style: AppTextStyles.labelSmall.copyWith(
                   fontSize: 9.sp,
                   color: AppColors.textSecondary.withOpacity(0.6),
-                  fontWeight: FontWeight.w600,
+                  fontWeight: FontWeight.w500,
                 ),
               ),
             ),

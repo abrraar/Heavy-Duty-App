@@ -52,7 +52,7 @@ class EliteSettingsAppBar extends StatelessWidget {
                 textAlign: TextAlign.center,
                 style: AppTextStyles.h2.copyWith(
                   color: AppColors.white,
-                  fontWeight: FontWeight.bold,
+                  fontWeight: FontWeight.w500,
                 ),
               ),
             ),

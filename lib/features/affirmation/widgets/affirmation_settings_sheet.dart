@@ -200,7 +200,7 @@ class _AffirmationSettingsSheetState extends State<AffirmationSettingsSheet> {
                                   _units[index],
                                   style: AppTextStyles.labelMedium.copyWith(
                                     color: AppColors.crimson,
-                                    fontWeight: FontWeight.bold,
+                                    fontWeight: FontWeight.w500,
                                     letterSpacing: 1.5,
                                   ),
                                 ),
@@ -257,7 +257,7 @@ class _AffirmationSettingsSheetState extends State<AffirmationSettingsSheet> {
                     "SAVE & CLOSE",
                     style: AppTextStyles.labelMedium.copyWith(
                       color: Colors.white,
-                      fontWeight: FontWeight.w900,
+                      fontWeight: FontWeight.w500,
                       letterSpacing: 1.5,
                     ),
                   ),
@@ -292,7 +292,7 @@ class _AffirmationSettingsSheetState extends State<AffirmationSettingsSheet> {
           labelStyle: TextStyle(
             color: isSelected ? Colors.white : AppColors.textSecondary,
             fontSize: 10.sp,
-            fontWeight: FontWeight.bold,
+            fontWeight: FontWeight.w500,
           ),
         ),
       ),
@@ -336,7 +336,7 @@ class _AffirmationSettingsSheetState extends State<AffirmationSettingsSheet> {
         style: AppTextStyles.labelSmall.copyWith(
           color: AppColors.textSecondary,
           letterSpacing: 1.2,
-          fontWeight: FontWeight.bold,
+          fontWeight: FontWeight.w500,
         ),
       ),
     );

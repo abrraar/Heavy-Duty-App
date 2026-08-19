@@ -170,7 +170,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               label,
               style: AppTextStyles.labelSmall.copyWith(
                 color: Colors.white,
-                fontWeight: FontWeight.bold,
+                fontWeight: FontWeight.w500,
                 letterSpacing: 1.0,
               ),
             ),
@@ -189,7 +189,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         style: AppTextStyles.labelSmall.copyWith(
           color: AppColors.textSecondary,
           letterSpacing: 1.5,
-          fontWeight: FontWeight.bold,
+          fontWeight: FontWeight.w500,
         ),
       ),
     );

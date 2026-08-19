@@ -49,7 +49,7 @@ class CycleStatusCard extends StatelessWidget {
                     style: AppTextStyles.labelSmall.copyWith(
                       letterSpacing: 1.5,
                       fontSize: 11.sp,
-                      fontWeight: FontWeight.w900,
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
                 ],
@@ -66,7 +66,7 @@ class CycleStatusCard extends StatelessWidget {
                     style: AppTextStyles.labelSmall.copyWith(
                       color: workOutputGrowth > 0 ? Colors.greenAccent : AppColors.crimson,
                       fontSize: 9.sp,
-                      fontWeight: FontWeight.w900,
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
                 ),
@@ -109,7 +109,7 @@ class CycleStatusCard extends StatelessWidget {
           style: AppTextStyles.labelSmall.copyWith(
             color: AppColors.textSecondary,
             fontSize: 10.sp,
-            fontWeight: FontWeight.w600,
+            fontWeight: FontWeight.w500,
           ),
         ),
         Text(
@@ -117,7 +117,7 @@ class CycleStatusCard extends StatelessWidget {
           style: AppTextStyles.labelMedium.copyWith(
             color: AppColors.white,
             fontSize: 12.sp,
-            fontWeight: FontWeight.w900,
+            fontWeight: FontWeight.w500,
           ),
         ),
       ],

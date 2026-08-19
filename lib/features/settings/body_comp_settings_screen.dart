@@ -163,7 +163,7 @@ class _BodyCompConfigScreenState extends State<BodyCompConfigScreen> {
         title,
         style: AppTextStyles.labelSmall.copyWith(
           color: AppColors.crimson,
-          fontWeight: FontWeight.w900,
+          fontWeight: FontWeight.w500,
           letterSpacing: 1.5,
         ),
       ),
@@ -194,7 +194,7 @@ class _BodyCompConfigScreenState extends State<BodyCompConfigScreen> {
                     style: AppTextStyles.labelSmall.copyWith(
                       color: isEnabled ? AppColors.crimson : AppColors.textSecondary,
                       fontSize: 10.sp,
-                      fontWeight: FontWeight.bold,
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
                 ],

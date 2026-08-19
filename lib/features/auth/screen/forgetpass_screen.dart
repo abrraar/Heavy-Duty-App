@@ -207,7 +207,7 @@ class _ForgotPassScreenState extends State<ForgotPassScreen> {
                   'LOG IN',
                   style: AppTextStyles.link.copyWith(
                     color: AppColors.crimson,
-                    fontWeight: FontWeight.bold,
+                    fontWeight: FontWeight.w500,
                     fontSize: isWideLayout ? 14 : 13.sp,
                   ),
                 ),

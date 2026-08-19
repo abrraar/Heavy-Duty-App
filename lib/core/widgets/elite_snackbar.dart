@@ -137,7 +137,7 @@ class _EliteSnackbarState extends State<EliteSnackbar> with SingleTickerProvider
                       style: AppTextStyles.labelSmall.copyWith(
                         color: Colors.white,
                         fontSize: 13.sp,
-                        fontWeight: FontWeight.w900,
+                        fontWeight: FontWeight.w500,
                         letterSpacing: 0.5,
                       ),
                     ),
@@ -159,7 +159,7 @@ class _EliteSnackbarState extends State<EliteSnackbar> with SingleTickerProvider
                           style: AppTextStyles.labelSmall.copyWith(
                             color: AppColors.crimson,
                             fontSize: 13.sp,
-                            fontWeight: FontWeight.w900,
+                            fontWeight: FontWeight.w500,
                           ),
                         ),
                       ),

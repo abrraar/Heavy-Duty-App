@@ -107,7 +107,7 @@ class AuthPrimaryButton extends StatelessWidget {
                 label,
                 style: AppTextStyles.labelMedium.copyWith(
                   color: Colors.white,
-                  fontWeight: FontWeight.w900,
+                  fontWeight: FontWeight.w500,
                   fontSize: isWideLayout ? 18 : 16.sp,
                 ),
               ),
@@ -212,7 +212,7 @@ class AuthBrandingSection extends StatelessWidget {
             color: AppColors.textSecondary,
             letterSpacing: isWideLayout ? 4 : 2,
             fontSize: isWideLayout ? 14.sp.clamp(12, 18) : 12.sp,
-            fontWeight: FontWeight.bold,
+            fontWeight: FontWeight.w500,
           ),
         ),
       ],

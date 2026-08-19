@@ -41,7 +41,7 @@ class EliteUnitToggleCard extends StatelessWidget {
                   title,
                   style: AppTextStyles.labelSmall.copyWith(
                     color: Colors.white,
-                    fontWeight: FontWeight.bold,
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
                 SizedBox(height: 4.h),
@@ -115,7 +115,7 @@ class _EliteToggle extends StatelessWidget {
                 options[index],
                 style: AppTextStyles.labelSmall.copyWith(
                   color: isSelected ? Colors.white : AppColors.textSecondary.withValues(alpha: 0.4),
-                  fontWeight: isSelected ? FontWeight.w900 : FontWeight.bold,
+                  fontWeight: isSelected ? FontWeight.w500 : FontWeight.w500,
                   fontSize: 11.sp,
                   letterSpacing: 1.0,
                 ),

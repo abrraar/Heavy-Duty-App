@@ -45,7 +45,7 @@ class MealQuickLogCard extends StatelessWidget {
                   "LOG MEAL",
                   style: AppTextStyles.labelSmall.copyWith(
                     fontSize: 10.sp,
-                    fontWeight: FontWeight.w900,
+                    fontWeight: FontWeight.w500,
                     color: Colors.greenAccent,
                   ),
                 ),
@@ -58,7 +58,7 @@ class MealQuickLogCard extends StatelessWidget {
                     meal.name.toUpperCase(),
                     style: AppTextStyles.labelSmall.copyWith(
                       fontSize: 14.sp,
-                      fontWeight: FontWeight.w900,
+                      fontWeight: FontWeight.w500,
                       color: Colors.white,
                     ),
                     maxLines: 1,
@@ -111,7 +111,7 @@ class MealQuickLogCard extends StatelessWidget {
       style: AppTextStyles.labelSmall.copyWith(
         fontSize: 10.sp,
         color: color,
-        fontWeight: FontWeight.w900,
+        fontWeight: FontWeight.w500,
       ),
     );
   }

@@ -427,7 +427,7 @@ class _ManageEmailScreenState extends State<ManageEmailScreen> {
                                               style: AppTextStyles.labelSmall.copyWith(
                                                 color: AppColors.crimson,
                                                 fontSize: 8.sp,
-                                                fontWeight: FontWeight.w900,
+                                                fontWeight: FontWeight.w500,
                                                 letterSpacing: 0.5,
                                               ),
                                             ),
@@ -445,7 +445,7 @@ class _ManageEmailScreenState extends State<ManageEmailScreen> {
                                               style: AppTextStyles.labelSmall.copyWith(
                                                 color: Colors.white38,
                                                 fontSize: 8.sp,
-                                                fontWeight: FontWeight.w900,
+                                                fontWeight: FontWeight.w500,
                                                 letterSpacing: 0.5,
                                               ),
                                             ),
@@ -467,7 +467,7 @@ class _ManageEmailScreenState extends State<ManageEmailScreen> {
                                           style: AppTextStyles.labelSmall.copyWith(
                                             color: email.isVerified ? Colors.greenAccent : Colors.orangeAccent,
                                             fontSize: 10.sp,
-                                            fontWeight: FontWeight.bold,
+                                            fontWeight: FontWeight.w500,
                                           ),
                                         ),
                                         if (!email.isVerified) ...[

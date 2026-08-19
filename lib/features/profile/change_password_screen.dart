@@ -181,7 +181,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                               _canSendReset ? "FORGOT CURRENT PASSWORD?" : "RESEND RESET LINK IN ${_secondsRemaining}S",
                               style: AppTextStyles.labelSmall.copyWith(
                                 color: _canSendReset ? AppColors.crimson : AppColors.textSecondary.withOpacity(0.5),
-                                fontWeight: FontWeight.bold,
+                                fontWeight: FontWeight.w500,
                                 decoration: _canSendReset ? TextDecoration.underline : TextDecoration.none,
                               ),
                             ),
@@ -237,7 +237,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                                 "CANCEL RECOVERY",
                                 style: AppTextStyles.labelSmall.copyWith(
                                   color: Colors.white38,
-                                  fontWeight: FontWeight.bold,
+                                  fontWeight: FontWeight.w500,
                                   decoration: TextDecoration.underline,
                                 ),
                               ),

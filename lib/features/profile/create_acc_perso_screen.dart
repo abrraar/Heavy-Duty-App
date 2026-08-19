@@ -163,7 +163,7 @@ class _CreateAccPersoScreenState extends State<CreateAccPersoScreen> {
                           style: AppTextStyles.labelSmall.copyWith(
                             color: AppColors.textSecondary,
                             letterSpacing: 2,
-                            fontWeight: FontWeight.bold,
+                            fontWeight: FontWeight.w500,
                           ),
                         ),
 
@@ -437,7 +437,7 @@ class _PrimaryButton extends StatelessWidget {
                 label,
                 style: AppTextStyles.labelMedium.copyWith(
                   color: Colors.white,
-                  fontWeight: FontWeight.w900,
+                  fontWeight: FontWeight.w500,
                 ),
               ),
       ),

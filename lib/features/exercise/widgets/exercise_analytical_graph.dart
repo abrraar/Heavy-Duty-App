@@ -125,7 +125,7 @@ class _ExerciseAnalyticalGraphState extends State<ExerciseAnalyticalGraph> {
           DateFormat('MMMM dd, yyyy').format(widget.logs[_currentIndex].timestamp).toUpperCase(),
           style: AppTextStyles.labelSmall.copyWith(
             color: Colors.white,
-            fontWeight: FontWeight.w900,
+            fontWeight: FontWeight.w500,
             letterSpacing: 1.5,
           ),
         ),
@@ -356,7 +356,7 @@ class _ExerciseAnalyticalGraphState extends State<ExerciseAnalyticalGraph> {
           style: AppTextStyles.labelSmall.copyWith(
             color: AppColors.textSecondary.withValues(alpha: 0.4),
             fontSize: 7.sp,
-            fontWeight: FontWeight.w900,
+            fontWeight: FontWeight.w500,
             letterSpacing: 1.5,
           ),
         ),
@@ -371,7 +371,7 @@ class _ExerciseAnalyticalGraphState extends State<ExerciseAnalyticalGraph> {
               style: AppTextStyles.h2.copyWith(
                 color: displayValueColor,
                 fontSize: 24.sp,
-                fontWeight: FontWeight.w900,
+                fontWeight: FontWeight.w500,
                 height: 1, 
               ),
             ),
@@ -381,7 +381,7 @@ class _ExerciseAnalyticalGraphState extends State<ExerciseAnalyticalGraph> {
                 style: AppTextStyles.labelSmall.copyWith(
                   color: color,
                   fontSize: 10.sp,
-                  fontWeight: FontWeight.w900,
+                  fontWeight: FontWeight.w500,
                   height: 1, 
                 ),
               ),
@@ -707,7 +707,7 @@ class ExerciseComparisonWidget extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(label, style: AppTextStyles.labelSmall.copyWith(color: color, fontWeight: FontWeight.w900, fontSize: 13.sp, letterSpacing: 1)),
+              Text(label, style: AppTextStyles.labelSmall.copyWith(color: color, fontWeight: FontWeight.w500, fontSize: 13.sp, letterSpacing: 1)),
               Row(
                 children: [
                   if (trendIcon != null) ...[
@@ -716,7 +716,7 @@ class ExerciseComparisonWidget extends StatelessWidget {
                   ],
                   Text(
                     isNeutral ? "0%" : "${delta > 0 ? '+' : ''}${percent.toStringAsFixed(1)}%", 
-                    style: AppTextStyles.labelSmall.copyWith(color: trendColor, fontWeight: FontWeight.w900, fontSize: 14.sp),
+                    style: AppTextStyles.labelSmall.copyWith(color: trendColor, fontWeight: FontWeight.w500, fontSize: 14.sp),
                   ),
                 ],
               ),
@@ -751,7 +751,7 @@ class ExerciseComparisonWidget extends StatelessWidget {
         SizedBox(height: 4.h),
         Text(
           "$text$u", 
-          style: AppTextStyles.labelMedium.copyWith(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 16.sp),
+          style: AppTextStyles.labelMedium.copyWith(color: Colors.white, fontWeight: FontWeight.w500, fontSize: 16.sp),
         ),
       ],
     );

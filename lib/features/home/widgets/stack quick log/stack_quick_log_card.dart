@@ -50,7 +50,7 @@ class StackQuickLogCard extends StatelessWidget {
                     style: AppTextStyles.labelSmall.copyWith(
                       fontSize: 10.sp,
                       color: AppColors.crimson,
-                      fontWeight: FontWeight.w900,
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
                 ),
@@ -60,7 +60,7 @@ class StackQuickLogCard extends StatelessWidget {
                   maxLines: 2,
                   style: AppTextStyles.labelSmall.copyWith(
                     fontSize: 13.sp,
-                    fontWeight: FontWeight.w900,
+                    fontWeight: FontWeight.w500,
                     color: Colors.white,
                   ),
                   overflow: TextOverflow.ellipsis,
@@ -79,7 +79,7 @@ class StackQuickLogCard extends StatelessWidget {
                         style: AppTextStyles.labelSmall.copyWith(
                           fontSize: 10.sp,
                           color: AppColors.textSecondary,
-                          fontWeight: FontWeight.w800,
+                          fontWeight: FontWeight.w500,
                         ),
                       ),
                       SizedBox(width: 12.w),

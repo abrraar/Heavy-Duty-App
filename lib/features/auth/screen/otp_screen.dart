@@ -262,7 +262,7 @@ class _OtpScreenState extends State<OtpScreen> {
                   _canResend ? 'RESEND OTP' : 'RESEND OTP IN ${_secondsRemaining}S',
                   style: AppTextStyles.link.copyWith(
                     color: _canResend ? AppColors.crimson : AppColors.textSecondary.withOpacity(0.5),
-                    fontWeight: FontWeight.bold,
+                    fontWeight: FontWeight.w500,
                     fontSize: isWideLayout ? 14 : 13.sp,
                   ),
                 ),

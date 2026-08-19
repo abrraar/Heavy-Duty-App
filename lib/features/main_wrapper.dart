@@ -159,7 +159,7 @@ class _AdaptiveTopAppBar extends StatelessWidget {
                       color: AppColors.textSecondary,
                       letterSpacing: 1.5,
                       fontSize: (isCompact ? 10.sp : 12.sp).clamp(9, 14),
-                      fontWeight: FontWeight.w600,
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
                 ],
@@ -170,7 +170,7 @@ class _AdaptiveTopAppBar extends StatelessWidget {
                 style: AppTextStyles.displayMedium.copyWith(
                   fontSize: (isCompact ? 26.sp : 36.sp).clamp(24, 42),
                   letterSpacing: -0.5,
-                  fontWeight: FontWeight.w900,
+                  fontWeight: FontWeight.w500,
                 ),
               ),
             ],

@@ -60,7 +60,7 @@ class WaterTrackerCard extends StatelessWidget {
                           style: AppTextStyles.labelSmall.copyWith(
                             fontSize: 12.sp,
                             letterSpacing: 1.5,
-                            fontWeight: FontWeight.w900,
+                            fontWeight: FontWeight.w500,
                           ),
                         ),
                       ],
@@ -71,7 +71,7 @@ class WaterTrackerCard extends StatelessWidget {
                       style: AppTextStyles.labelSmall.copyWith(
                         color: Colors.white,
                         fontSize: 14.sp,
-                        fontWeight: FontWeight.bold,
+                        fontWeight: FontWeight.w500,
                       ),
                     ),
                     Text(
@@ -79,7 +79,7 @@ class WaterTrackerCard extends StatelessWidget {
                       style: AppTextStyles.labelSmall.copyWith(
                         color: progress >= 1.0 ? Colors.greenAccent : Colors.blueAccent,
                         fontSize: 10.sp,
-                        fontWeight: FontWeight.bold,
+                        fontWeight: FontWeight.w500,
                       ),
                     ),
                   ],
@@ -93,7 +93,7 @@ class WaterTrackerCard extends StatelessWidget {
                     "${(progress * 100).toInt()}%",
                     style: AppTextStyles.labelSmall.copyWith(
                       color: progress >= 1.0 ? Colors.greenAccent : Colors.blueAccent,
-                      fontWeight: FontWeight.w900,
+                      fontWeight: FontWeight.w500,
                       fontSize: 10.sp,
                     ),
                   ),
@@ -141,7 +141,7 @@ class WaterTrackerCard extends StatelessWidget {
           style: AppTextStyles.labelSmall.copyWith(
             color: isSub ? AppColors.error : AppColors.white,
             fontSize: 11.sp,
-            fontWeight: FontWeight.w900,
+            fontWeight: FontWeight.w500,
           ),
         ),
       ),

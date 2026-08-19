@@ -95,7 +95,7 @@ class _ImportExerciseScreenState extends State<ImportExerciseScreen> {
       child: Center(
         child: Text(
           "SHARED EXERCISE",
-          style: AppTextStyles.h2.copyWith(color: AppColors.white, fontWeight: FontWeight.w900, letterSpacing: 2),
+          style: AppTextStyles.h2.copyWith(color: AppColors.white, fontWeight: FontWeight.w500, letterSpacing: 2),
         ),
       ),
     );

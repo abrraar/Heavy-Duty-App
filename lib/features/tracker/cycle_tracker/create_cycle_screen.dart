@@ -127,7 +127,7 @@ class _CreateCycleScreenState extends State<CreateCycleScreen> {
                         "CANCEL",
                         style: AppTextStyles.labelSmall.copyWith(
                           color: AppColors.textSecondary,
-                          fontWeight: FontWeight.bold,
+                          fontWeight: FontWeight.w500,
                         ),
                       ),
                     ),
@@ -159,7 +159,7 @@ class _CreateCycleScreenState extends State<CreateCycleScreen> {
                         "ADD",
                         style: AppTextStyles.labelSmall.copyWith(
                           color: AppColors.crimson,
-                          fontWeight: FontWeight.bold,
+                          fontWeight: FontWeight.w500,
                         ),
                       ),
                     ),
@@ -273,7 +273,7 @@ class _CreateCycleScreenState extends State<CreateCycleScreen> {
         children: [
           Row(
             children: [
-              Expanded(child: Text(workout['name'], style: AppTextStyles.labelSmall.copyWith(color: Colors.white, fontWeight: FontWeight.bold))),
+              Expanded(child: Text(workout['name'], style: AppTextStyles.labelSmall.copyWith(color: Colors.white, fontWeight: FontWeight.w500))),
               IconButton(onPressed: () => setState(() => _workouts.remove(workout)), icon: const Icon(Icons.delete_outline, color: AppColors.crimson, size: 20)),
             ],
           ),
@@ -401,7 +401,7 @@ class _CreateCycleScreenState extends State<CreateCycleScreen> {
               style: AppTextStyles.buttonPrimary.copyWith(
                 color: isValid ? Colors.white : AppColors.textSecondary.withOpacity(0.3),
                 fontSize: 12.sp,
-                fontWeight: isValid ? FontWeight.bold : FontWeight.normal,
+                fontWeight: isValid ? FontWeight.w500 : FontWeight.normal,
               ),
             ),
           ),
@@ -475,7 +475,7 @@ class _CreateCycleScreenState extends State<CreateCycleScreen> {
                           padding: EdgeInsets.symmetric(vertical: 12.h),
                           decoration: BoxDecoration(color: Colors.transparent, borderRadius: BorderRadius.circular(12.r), border: Border.all(color: AppColors.white.withOpacity(0.1))),
                           alignment: Alignment.center,
-                          child: Text("CANCEL", style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary, fontWeight: FontWeight.bold)),
+                          child: Text("CANCEL", style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary, fontWeight: FontWeight.w500)),
                         ),
                       ),
                     ),
@@ -487,7 +487,7 @@ class _CreateCycleScreenState extends State<CreateCycleScreen> {
                           padding: EdgeInsets.symmetric(vertical: 12.h),
                           decoration: BoxDecoration(color: Colors.greenAccent.withOpacity(0.1), borderRadius: BorderRadius.circular(12.r), border: Border.all(color: Colors.greenAccent.withOpacity(0.5))),
                           alignment: Alignment.center,
-                          child: Text("ACTIVATE", style: AppTextStyles.labelSmall.copyWith(color: Colors.greenAccent, fontWeight: FontWeight.bold)),
+                          child: Text("ACTIVATE", style: AppTextStyles.labelSmall.copyWith(color: Colors.greenAccent, fontWeight: FontWeight.w500)),
                         ),
                       ),
                     ),

@@ -112,7 +112,7 @@ class _ExerciseScreenState extends State<ExerciseScreen> with SingleTickerProvid
                 ),
                 labelColor: AppColors.white,
                 unselectedLabelColor: AppColors.textSecondary,
-                labelStyle: AppTextStyles.labelMedium.copyWith(fontWeight: FontWeight.w800, letterSpacing: 1.2),
+                labelStyle: AppTextStyles.labelMedium.copyWith(fontWeight: FontWeight.w500, letterSpacing: 1.2),
                 tabs: const [
                   Tab(text: 'DEFAULT EXERCISES'),
                   Tab(text: 'MY EXERCISES'),
@@ -283,7 +283,7 @@ class _ExerciseScreenState extends State<ExerciseScreen> with SingleTickerProvid
                                 style: AppTextStyles.labelSmall.copyWith(
                                   color: Colors.blueAccent,
                                   fontSize: 8.sp,
-                                  fontWeight: FontWeight.w900,
+                                  fontWeight: FontWeight.w500,
                                 ),
                               ),
                             ],
@@ -305,7 +305,7 @@ class _ExerciseScreenState extends State<ExerciseScreen> with SingleTickerProvid
                             style: AppTextStyles.labelSmall.copyWith(
                               fontSize: 8.sp, 
                               color: exercise.type == ExerciseType.compound ? AppColors.crimson : AppColors.textSecondary,
-                              fontWeight: FontWeight.bold,
+                              fontWeight: FontWeight.w500,
                             ),
                           ),
                         ),

@@ -337,7 +337,7 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
                                       calculatedType.name.toUpperCase(),
                                       style: AppTextStyles.labelSmall.copyWith(
                                         color: calculatedType == ExerciseType.compound ? AppColors.crimson : AppColors.textSecondary,
-                                        fontWeight: FontWeight.bold,
+                                        fontWeight: FontWeight.w500,
                                       ),
                                     ),
                                   ),
@@ -389,7 +389,7 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
                               buttonText,
                               style: AppTextStyles.labelMedium.copyWith(
                                 color: isReady ? Colors.white : AppColors.textSecondary.withOpacity(0.5),
-                                fontWeight: FontWeight.bold,
+                                fontWeight: FontWeight.w500,
                                 letterSpacing: 1.2,
                               ),
                             ),
@@ -447,7 +447,7 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
               ),
               child: Text(
                 "DATA TRENDS",
-                style: AppTextStyles.labelSmall.copyWith(color: AppColors.crimson, fontSize: 8.sp, fontWeight: FontWeight.bold),
+                style: AppTextStyles.labelSmall.copyWith(color: AppColors.crimson, fontSize: 8.sp, fontWeight: FontWeight.w500),
               ),
             ),
           ],
@@ -525,14 +525,14 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(DateFormat('MMM dd').format(log.timestamp).toUpperCase(), style: AppTextStyles.labelMedium),
-                  Text(note, style: AppTextStyles.labelSmall.copyWith(color: AppColors.crimson, fontSize: 9.sp, fontWeight: FontWeight.bold)),
+                  Text(note, style: AppTextStyles.labelSmall.copyWith(color: AppColors.crimson, fontSize: 9.sp, fontWeight: FontWeight.w500)),
                 ],
               ),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   Text('${double.parse(log.weightKg.toStringAsFixed(3)).toString()} KG', style: AppTextStyles.h3.copyWith(fontSize: 16.sp)),
-                  Text('${log.positiveReps} POS REPS', style: AppTextStyles.labelSmall.copyWith(color: Colors.blueAccent, fontSize: 10.sp, fontWeight: FontWeight.bold)),
+                  Text('${log.positiveReps} POS REPS', style: AppTextStyles.labelSmall.copyWith(color: Colors.blueAccent, fontSize: 10.sp, fontWeight: FontWeight.w500)),
                 ],
               ),
             ],
@@ -559,7 +559,7 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
   Widget _miniSpec(String val, String label, Color color) {
     return Column(
       children: [
-        Text(val, style: AppTextStyles.labelSmall.copyWith(color: Colors.white, fontWeight: FontWeight.bold)),
+        Text(val, style: AppTextStyles.labelSmall.copyWith(color: Colors.white, fontWeight: FontWeight.w500)),
         Text(label, style: AppTextStyles.labelSmall.copyWith(color: color, fontSize: 8.sp, fontWeight: FontWeight.w900)),
       ],
     );

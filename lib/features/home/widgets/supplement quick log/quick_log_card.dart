@@ -64,7 +64,7 @@ class QuickLogCard extends StatelessWidget {
                     actionLabel,
                     style: AppTextStyles.labelSmall.copyWith(
                       fontSize: 10.sp,
-                      fontWeight: FontWeight.w900,
+                      fontWeight: FontWeight.w500,
                       color: themeColor,
                     ),
                   ),
@@ -77,7 +77,7 @@ class QuickLogCard extends StatelessWidget {
                       item.name.toUpperCase(),
                       style: AppTextStyles.labelSmall.copyWith(
                         fontSize: 14.sp,
-                        fontWeight: FontWeight.w900,
+                        fontWeight: FontWeight.w500,
                         color: Colors.white,
                       ),
                       maxLines: 1,
@@ -122,7 +122,7 @@ class QuickLogCard extends StatelessWidget {
                         style: AppTextStyles.labelSmall.copyWith(
                           fontSize: 10.sp,
                           color: provider.getStockColor(item),
-                          fontWeight: FontWeight.w900,
+                          fontWeight: FontWeight.w500,
                         ),
                       ),
                     ],

@@ -271,7 +271,7 @@ class _MealLogSection extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text("MEAL QUICK LOG", style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary, letterSpacing: 2.0, fontSize: 12.sp, fontWeight: FontWeight.bold)),
+              Text("MEAL QUICK LOG", style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary, letterSpacing: 2.0, fontSize: 12.sp, fontWeight: FontWeight.w500)),
               SizedBox(height: 12.r),
               SizedBox(
                 height: 155.r,
@@ -385,7 +385,7 @@ class _SupplementLogSection extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text("SUPPLEMENT QUICK LOG", style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary, letterSpacing: 2.0, fontSize: 12.sp, fontWeight: FontWeight.bold)),
+              Text("SUPPLEMENT QUICK LOG", style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary, letterSpacing: 2.0, fontSize: 12.sp, fontWeight: FontWeight.w500)),
               SizedBox(height: 12.r),
               SizedBox(
                 height: 160.r, 
@@ -416,7 +416,7 @@ class _StackLogSection extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text("STACK QUICK LOG", style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary, letterSpacing: 2.0, fontSize: 12.sp, fontWeight: FontWeight.bold)),
+              Text("STACK QUICK LOG", style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary, letterSpacing: 2.0, fontSize: 12.sp, fontWeight: FontWeight.w500)),
               SizedBox(height: 12.r),
               SizedBox(
                 height: 165.r,

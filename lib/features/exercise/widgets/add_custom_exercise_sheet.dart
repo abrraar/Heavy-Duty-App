@@ -161,7 +161,7 @@ class _AddCustomExerciseSheetState extends State<AddCustomExerciseSheet> {
                   _calculatedType.name.toUpperCase(),
                   style: AppTextStyles.labelSmall.copyWith(
                     color: _calculatedType == ExerciseType.compound ? AppColors.crimson : AppColors.textSecondary,
-                    fontWeight: FontWeight.bold,
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
               ),
@@ -233,7 +233,7 @@ class _AddCustomExerciseSheetState extends State<AddCustomExerciseSheet> {
           _buttonText,
           style: AppTextStyles.labelMedium.copyWith(
             color: _isReady ? Colors.white : AppColors.textSecondary.withOpacity(0.5),
-            fontWeight: FontWeight.bold,
+            fontWeight: FontWeight.w500,
             letterSpacing: 1.2,
           ),
         ),

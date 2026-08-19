@@ -101,7 +101,7 @@ class EliteConfirmDialog {
                         confirmText.toUpperCase(),
                         style: AppTextStyles.labelMedium.copyWith(
                           color: confirmColor,
-                          fontWeight: FontWeight.bold,
+                          fontWeight: FontWeight.w500,
                         ),
                       ),
                     ),

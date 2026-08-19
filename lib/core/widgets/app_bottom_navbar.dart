@@ -73,7 +73,7 @@ class AppBottomNavbar extends StatelessWidget {
                           style: AppTextStyles.buttonPrimary.copyWith(
                             color: AppColors.white,
                             fontSize: 14.sp,
-                            fontWeight: FontWeight.bold,
+                            fontWeight: FontWeight.w500,
                           ),
                         ),
                       ],
