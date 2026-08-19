@@ -53,17 +53,24 @@ final appRouter = GoRouter(
   initialLocation: AppRoutes.splash, // Start at Splash
   refreshListenable: AuthProvider(),
   errorBuilder: (context, state) {
-    // If the error location contains our deep link keywords, try to redirect one more time 
-    // before showing the Home fallback. This catches raw URIs that GoRouter fails to parse.
     final uriStr = state.uri.toString().toLowerCase();
+    final source = state.uri.queryParameters['source'];
+
     if (uriStr.contains('email_change') || uriStr.contains('verify-secondary-email')) {
-      return const ManageEmailScreen(); // Render directly to avoid the blank screen race
-    }
-    if (uriStr.contains('recovery') || uriStr.contains('reset-password')) {
-      return const ChangePasswordScreen();
+      return const ManageEmailScreen(); 
     }
 
-    debugPrint("Router Catch-All: ${state.error}");
+    if (uriStr.contains('recovery') || uriStr.contains('reset-password')) {
+      // FIX: Respect the source parameter even in the error fallback
+      if (source == 'settings') {
+        debugPrint("Router Error Fallback: Source is 'settings'. Showing ChangePasswordScreen.");
+        return const ChangePasswordScreen();
+      }
+      debugPrint("Router Error Fallback: Source is 'auth' or missing. Showing ResetPassScreen.");
+      return const ResetPassScreen();
+    }
+
+    debugPrint("Router Catch-All Error: ${state.error}");
     return const HomeScreen();
   },
   redirect: (context, state) {
@@ -91,8 +98,27 @@ final appRouter = GoRouter(
       }
       
       if (fullUri.contains('recovery') || fullUri.contains('reset-password')) {
-        debugPrint("Router Match: Mapping external recovery deep link to /settings/change-password");
-        return AppRoutes.changePassword;
+        debugPrint("Router Match: RECOVERY LINK DETECTED. Analyzing source...");
+        
+        final source = state.uri.queryParameters['source'];
+        if (source == 'settings') {
+          debugPrint("Router Match: Source is 'settings'. Mapping to internal changePassword.");
+          return AppRoutes.changePassword;
+        }
+
+        debugPrint("Router Match: Source is 'auth' or missing. Mapping to ResetPassScreen solo.");
+        return AppRoutes.resetPass;
+      }
+    }
+
+    // 1. SECURITY LOCKDOWN: Password Recovery Guard
+    if (authProvider.isPasswordRecoveryMode) {
+      final bool isAtResetScreen = location == AppRoutes.resetPass || location == AppRoutes.changePassword;
+      final bool isAtEssential = [AppRoutes.splash, AppRoutes.root, AppRoutes.login].contains(location);
+      
+      if (!isAtResetScreen && !isAtEssential) {
+        debugPrint("Router SECURITY: Lockdown active. Bouncing $location -> Reset Screen.");
+        return AppRoutes.resetPass;
       }
     }
 

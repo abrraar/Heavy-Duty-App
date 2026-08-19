@@ -20,19 +20,27 @@ class ResetPassScreen extends StatefulWidget {
 
 class _ResetPassScreenState extends State<ResetPassScreen> {
   final _passwordController = TextEditingController();
+  final _confirmPasswordController = TextEditingController();
   bool _obscurePassword = true;
+  bool _obscureConfirm = true;
 
   @override
   void dispose() {
     _passwordController.dispose();
+    _confirmPasswordController.dispose();
     super.dispose();
   }
 
   Future<void> _handleReset() async {
     final pass = _passwordController.text.trim();
+    final confirm = _confirmPasswordController.text.trim();
 
-    if (pass.isEmpty) {
-      EliteSnackbar.show(context, 'PLEASE ENTER A NEW PASSWORD', isError: true);
+    if (pass.isEmpty || confirm.isEmpty) {
+      EliteSnackbar.show(context, 'PLEASE FILL IN BOTH FIELDS', isError: true);
+      return;
+    }
+    if (pass != confirm) {
+      EliteSnackbar.show(context, 'PASSWORDS DO NOT MATCH', isError: true);
       return;
     }
     if (pass.length < 6) {
@@ -72,9 +80,35 @@ class _ResetPassScreenState extends State<ResetPassScreen> {
   Widget build(BuildContext context) {
     final isLoading = context.watch<AuthProvider>().isLoading;
 
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      body: LayoutBuilder(
+    return PopScope(
+      canPop: false, // Lockdown: We handle the back navigation manually
+      onPopInvokedWithResult: (didPop, _) async {
+        if (didPop) return;
+        
+        debugPrint("ResetPass: Manual back detected. Cleaning up and returning to Forgot Password.");
+        final authProv = context.read<AuthProvider>();
+        authProv.cancelPasswordRecovery();
+        await authProv.signOut(); // Security: Exit the temporary recovery session
+        
+        if (mounted) {
+          context.go(AppRoutes.forgotPass);
+        }
+      },
+      child: Scaffold(
+        backgroundColor: AppColors.background,
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 20),
+            onPressed: () {
+              // Trigger the PopScope logic
+              Navigator.of(context).maybePop();
+            },
+          ),
+        ),
+        extendBodyBehindAppBar: true,
+        body: LayoutBuilder(
         builder: (context, constraints) {
           final isSmallScreen = constraints.maxWidth < kMobileBreakpoint;
           final isLargeScreen = constraints.maxWidth > kTabletBreakpoint;
@@ -87,7 +121,7 @@ class _ResetPassScreenState extends State<ResetPassScreen> {
           }
         },
       ),
-    );
+    ));
   }
 
   Widget _buildMobileLayout(bool isLoading) {
@@ -164,6 +198,23 @@ class _ResetPassScreenState extends State<ResetPassScreen> {
             onTap: () => setState(() => _obscurePassword = !_obscurePassword),
             child: Icon(
               _obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+              color: AppColors.inputHint,
+              size: isWideLayout ? 20 : 20.r,
+            ),
+          ),
+        ),
+        SizedBox(height: 16.h.clamp(12, 24)),
+        AuthInputField(
+          controller: _confirmPasswordController,
+          hint: 'RE-TYPE NEW PASSWORD',
+          icon: Icons.lock_reset_outlined,
+          obscure: _obscureConfirm,
+          enabled: !isLoading,
+          isWideLayout: isWideLayout,
+          suffixIcon: GestureDetector(
+            onTap: () => setState(() => _obscureConfirm = !_obscureConfirm),
+            child: Icon(
+              _obscureConfirm ? Icons.visibility_off_outlined : Icons.visibility_outlined,
               color: AppColors.inputHint,
               size: isWideLayout ? 20 : 20.r,
             ),

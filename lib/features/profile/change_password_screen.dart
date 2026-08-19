@@ -105,7 +105,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
     if (email == null) return;
 
     try {
-      await authProv.sendPasswordResetEmail(email);
+      await authProv.sendPasswordResetEmail(email, source: 'settings');
       if (!mounted) return;
       _startResendTimer();
       EliteSnackbar.show(context, "RESET EMAIL SENT SUCCESSFULLY");
@@ -122,16 +122,20 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
     final bool bypassVerification = authProv.isPasswordRecoveryMode;
 
     return PopScope(
-      canPop: Navigator.of(context).canPop(),
-      onPopInvokedWithResult: (didPop, _) {
-        if (didPop && bypassVerification) {
-          // If the user exits recovery mode without finishing, cancel the state
-          // to prevent being trapped in the recovery redirect loop.
-          context.read<AuthProvider>().cancelPasswordRecovery();
-        }
-        
-        if (!didPop) {
-          // Fallback for Cold Start: go to home if no stack
+      canPop: !bypassVerification, // Lockdown: Disable natural pop during recovery
+      onPopInvokedWithResult: (didPop, _) async {
+        if (!didPop && bypassVerification) {
+          debugPrint("ChangePassword: Back button detected during recovery. Initiating security logout.");
+          // If the user tries to back out of a recovery reset, sign them out 
+          // to prevent unauthorized access to the app's internal screens.
+          final authProv = context.read<AuthProvider>();
+          authProv.cancelPasswordRecovery();
+          await authProv.signOut();
+          if (mounted) {
+            context.go(AppRoutes.login);
+          }
+        } else if (!didPop && !bypassVerification) {
+          // Fallback for standard cold starts (if any)
           context.go(AppRoutes.home);
         }
       },

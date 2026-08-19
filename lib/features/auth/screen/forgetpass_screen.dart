@@ -62,7 +62,7 @@ class _ForgotPassScreenState extends State<ForgotPassScreen> {
     }
 
     try {
-      await context.read<AuthProvider>().sendPasswordResetEmail(email);
+      await context.read<AuthProvider>().sendPasswordResetEmail(email, source: 'auth');
       
       if (!mounted) return;
       _startResendTimer();

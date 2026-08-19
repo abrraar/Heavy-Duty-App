@@ -23,11 +23,14 @@ class AuthProvider with ChangeNotifier {
 
   Future<void> _initRecoveryState() async {
     final prefs = await SharedPreferences.getInstance();
-    _isPasswordRecoveryMode = prefs.getBool('is_in_recovery_lockdown') ?? false;
-    if (_isPasswordRecoveryMode) {
-      debugPrint("AuthProvider: PERSISTENT Recovery Lockdown detected on init.");
+    final bool wasInRecovery = prefs.getBool('is_in_recovery_lockdown') ?? false;
+    
+    if (wasInRecovery) {
+      debugPrint("AuthProvider: Unfinished Recovery Session detected on app start. Wiping for security.");
+      // Security Invalidation: If the user killed the app during reset, log them out 
+      // and clear the flag to ensure they start fresh at the Login screen.
+      await signOut();
     }
-    notifyListeners();
   }
 
   final SupabaseClient _supabase = Supabase.instance.client;
