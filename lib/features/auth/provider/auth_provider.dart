@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../profile/model/user_email.dart';
 import '../../profile/data/profile_local_repository.dart';
@@ -11,12 +12,22 @@ class AuthProvider with ChangeNotifier {
   factory AuthProvider() => _instance;
 
   AuthProvider._internal() {
+    _initRecoveryState();
     // Listen to auth changes automatically (e.g., sign in, sign out)
     _currentUser = _supabase.auth.currentUser;
     if (_currentUser != null) {
       _initializeProfileRepo(_currentUser!.id);
     }
     _setupAuthListener();
+  }
+
+  Future<void> _initRecoveryState() async {
+    final prefs = await SharedPreferences.getInstance();
+    _isPasswordRecoveryMode = prefs.getBool('is_in_recovery_lockdown') ?? false;
+    if (_isPasswordRecoveryMode) {
+      debugPrint("AuthProvider: PERSISTENT Recovery Lockdown detected on init.");
+    }
+    notifyListeners();
   }
 
   final SupabaseClient _supabase = Supabase.instance.client;
@@ -56,14 +67,20 @@ class AuthProvider with ChangeNotifier {
   }
 
   void _setupAuthListener() {
-    _supabase.auth.onAuthStateChange.listen((data) {
+    _supabase.auth.onAuthStateChange.listen((data) async {
       _currentUser = data.session?.user;
       
       if (data.event == AuthChangeEvent.passwordRecovery) {
         debugPrint("AuthProvider: Password recovery mode ACTIVATED");
         _isPasswordRecoveryMode = true;
+        
+        // PERSISTENCE FIX: Save recovery status to local storage so it survives app restarts
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setBool('is_in_recovery_lockdown', true);
       } else if (data.event == AuthChangeEvent.signedOut) {
         _isPasswordRecoveryMode = false;
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.remove('is_in_recovery_lockdown');
       }
 
       if (_currentUser != null) {
@@ -510,7 +527,7 @@ class AuthProvider with ChangeNotifier {
     }
   }
 
-  Future<void> sendPasswordResetEmail(String email) async {
+  Future<void> sendPasswordResetEmail(String email, {String? source}) async {
     _setLoading(true);
     debugPrint("AuthProvider: Checking if email $email is registered before reset...");
     try {
@@ -526,12 +543,17 @@ class AuthProvider with ChangeNotifier {
         throw "THIS EMAIL IS NOT REGISTERED AS A PRIMARY ACCOUNT";
       }
 
-      debugPrint("AuthProvider: Email verified. Sending reset link...");
+      debugPrint("AuthProvider: Email verified. Sending reset link with source: $source...");
 
       // 2. Proceed with Supabase Reset
+      // We append the source parameter to the redirectTo URL
+      final String redirectUrl = source != null 
+          ? 'heavyduty://heavyduty/recovery?source=$source'
+          : 'heavyduty://heavyduty/recovery';
+
       await _supabase.auth.resetPasswordForEmail(
         email.trim(), 
-        redirectTo: kIsWeb ? null : 'heavyduty://heavyduty/recovery',
+        redirectTo: kIsWeb ? null : redirectUrl,
       );
     } catch (e) {
       debugPrint("AuthProvider: Password reset request failed: $e");
