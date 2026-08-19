@@ -5,8 +5,8 @@
         <!-- Match app background exactly -->
         <item name="windowSplashScreenBackground">#0D0D0D</item>
 
-        <!-- Fully transparent icon to hide the stubborn logo -->
-        <item name="windowSplashScreenAnimatedIcon">@android:color/transparent</item>
+        <!-- Show the centered branding instantly -->
+        <item name="windowSplashScreenAnimatedIcon">@drawable/launch_branding</item>
 
         <!-- Post-splash theme (the normal theme for your app) -->
         <item name="postSplashScreenTheme">@style/NormalTheme</item>

@@ -17,7 +17,6 @@ class FadeSplashScreen extends StatefulWidget {
 class _FadeSplashScreenState extends State<FadeSplashScreen>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
-  late Animation<double> _fadeInAnimation;
 
   @override
   void initState() {
@@ -28,26 +27,19 @@ class _FadeSplashScreenState extends State<FadeSplashScreen>
       duration: const Duration(milliseconds: 1000), 
     );
 
-    _fadeInAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(
-        parent: _controller,
-        curve: Curves.easeIn,
-      ),
-    );
-
     _controller.forward();
 
     _controller.addStatusListener((status) {
       if (status == AnimationStatus.completed) {
-        debugPrint("Splash: Animation completed. Initiating Hero flight...");
-        Future.delayed(const Duration(milliseconds: 500), () {
+        debugPrint("Splash: Animation completed. Preparing Hero flight...");
+        // Wait briefly so the user sees the branding clearly
+        Future.delayed(const Duration(milliseconds: 800), () {
           if (mounted) {
             final authProv = context.read<AuthProvider>();
             if (authProv.isAuthenticated && authProv.isProfileComplete) {
               context.go(AppRoutes.home);
             } else {
               debugPrint("Splash: Navigating to LOGIN (Hero Takeoff)");
-              // push() is essential for Hero to have a source screen to fly from
               context.push(AppRoutes.login);
             }
           }
@@ -65,35 +57,26 @@ class _FadeSplashScreenState extends State<FadeSplashScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background, // Match native splash #0D0D0D
+      backgroundColor: AppColors.background, // Match native #0D0D0D exactly
       body: Center(
-        child: FadeTransition(
-          opacity: _fadeInAnimation,
-          // MATCHING HIERARCHY: Column -> Hero -> Material -> FittedBox -> Text
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Hero(
-                tag: 'branding_title',
-                child: Material(
-                  type: MaterialType.transparency,
-                  child: FittedBox(
-                    fit: BoxFit.scaleDown,
-                    child: Text(
-                      'HEAVY\nDUTY',
-                      textAlign: TextAlign.center,
-                      style: AppTextStyles.h1.copyWith(
-                        fontSize: 80.sp, 
-                        color: AppColors.white,
-                        fontWeight: FontWeight.w500,
-                        height: 0.9,
-                        letterSpacing: -2,
-                      ),
-                    ),
-                  ),
+        child: Hero(
+          tag: 'branding_title',
+          child: Material(
+            type: MaterialType.transparency,
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                'HEAVY\nDUTY',
+                textAlign: TextAlign.center,
+                style: AppTextStyles.h1.copyWith(
+                  fontSize: 80.sp, 
+                  color: AppColors.white,
+                  fontWeight: FontWeight.w500,
+                  height: 0.9,
+                  letterSpacing: -2,
                 ),
               ),
-            ],
+            ),
           ),
         ),
       ),
