@@ -512,12 +512,29 @@ class AuthProvider with ChangeNotifier {
 
   Future<void> sendPasswordResetEmail(String email) async {
     _setLoading(true);
+    debugPrint("AuthProvider: Checking if email $email is registered before reset...");
     try {
+      // 1. Verify the email exists in our records (Primary Email check)
+      final response = await _supabase
+          .from('profiles')
+          .select('email')
+          .eq('email', email.trim().toLowerCase())
+          .maybeSingle();
+
+      if (response == null) {
+        debugPrint("AuthProvider: RESET REJECTED. Email $email not found in profiles.");
+        throw "THIS EMAIL IS NOT REGISTERED AS A PRIMARY ACCOUNT";
+      }
+
+      debugPrint("AuthProvider: Email verified. Sending reset link...");
+
+      // 2. Proceed with Supabase Reset
       await _supabase.auth.resetPasswordForEmail(
-        email, 
+        email.trim(), 
         redirectTo: kIsWeb ? null : 'heavyduty://heavyduty/recovery',
       );
     } catch (e) {
+      debugPrint("AuthProvider: Password reset request failed: $e");
       _setLoading(false);
       rethrow;
     }
