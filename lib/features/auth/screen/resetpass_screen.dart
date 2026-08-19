@@ -20,27 +20,23 @@ class ResetPassScreen extends StatefulWidget {
 
 class _ResetPassScreenState extends State<ResetPassScreen> {
   final _passwordController = TextEditingController();
-  final _confirmPasswordController = TextEditingController();
   bool _obscurePassword = true;
-  bool _obscureConfirm = true;
 
   @override
   void dispose() {
     _passwordController.dispose();
-    _confirmPasswordController.dispose();
     super.dispose();
   }
 
   Future<void> _handleReset() async {
-    final pass = _passwordController.text;
-    final confirm = _confirmPasswordController.text;
+    final pass = _passwordController.text.trim();
 
-    if (pass.isEmpty || confirm.isEmpty) {
-      EliteSnackbar.show(context, 'PLEASE FILL IN BOTH FIELDS', isError: true);
+    if (pass.isEmpty) {
+      EliteSnackbar.show(context, 'PLEASE ENTER A NEW PASSWORD', isError: true);
       return;
     }
-    if (pass != confirm) {
-      EliteSnackbar.show(context, 'PASSWORDS DO NOT MATCH', isError: true);
+    if (pass.length < 6) {
+      EliteSnackbar.show(context, 'PASSWORD MUST BE AT LEAST 6 CHARACTERS', isError: true);
       return;
     }
 
@@ -50,7 +46,14 @@ class _ResetPassScreenState extends State<ResetPassScreen> {
       
       if (!mounted) return;
       EliteSnackbar.show(context, 'PASSWORD UPDATED SUCCESSFULLY!');
-      context.go(AppRoutes.login);
+      
+      // Cleanup recovery mode and sign out to force fresh login with new credentials
+      authProv.cancelPasswordRecovery();
+      await authProv.signOut();
+      
+      if (mounted) {
+        context.go(AppRoutes.login);
+      }
     } catch (e) {
       if (!mounted) return;
       
@@ -152,7 +155,7 @@ class _ResetPassScreenState extends State<ResetPassScreen> {
       children: [
         AuthInputField(
           controller: _passwordController,
-          hint: 'NEW PASSWORD',
+          hint: 'ENTER NEW PASSWORD',
           icon: Icons.lock_outline,
           obscure: _obscurePassword,
           enabled: !isLoading,
@@ -166,26 +169,9 @@ class _ResetPassScreenState extends State<ResetPassScreen> {
             ),
           ),
         ),
-        SizedBox(height: 16.h.clamp(12, 24)),
-        AuthInputField(
-          controller: _confirmPasswordController,
-          hint: 'CONFIRM NEW PASSWORD',
-          icon: Icons.lock_reset_outlined,
-          obscure: _obscureConfirm,
-          enabled: !isLoading,
-          isWideLayout: isWideLayout,
-          suffixIcon: GestureDetector(
-            onTap: () => setState(() => _obscureConfirm = !_obscureConfirm),
-            child: Icon(
-              _obscureConfirm ? Icons.visibility_off_outlined : Icons.visibility_outlined,
-              color: AppColors.inputHint,
-              size: isWideLayout ? 20 : 20.r,
-            ),
-          ),
-        ),
         SizedBox(height: 40.h.clamp(24, 64)),
         AuthPrimaryButton(
-          label: 'UPDATE PASSWORD',
+          label: 'CONFIRM NEW PASSWORD',
           isLoading: isLoading,
           onTap: _handleReset,
           isWideLayout: isWideLayout,
