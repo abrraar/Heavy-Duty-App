@@ -24,7 +24,7 @@ class _FadeSplashScreenState extends State<FadeSplashScreen>
 
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 1000), 
+      duration: const Duration(milliseconds: 500),
     );
 
     _controller.forward();
@@ -33,7 +33,7 @@ class _FadeSplashScreenState extends State<FadeSplashScreen>
       if (status == AnimationStatus.completed) {
         debugPrint("Splash: Animation completed. Preparing Hero flight...");
         // Wait briefly so the user sees the branding clearly
-        Future.delayed(const Duration(milliseconds: 800), () {
+        Future.delayed(const Duration(milliseconds: 2000), () {
           if (mounted) {
             final authProv = context.read<AuthProvider>();
             if (authProv.isAuthenticated && authProv.isProfileComplete) {

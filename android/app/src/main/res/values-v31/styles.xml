@@ -1,8 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <style name="LaunchTheme" parent="Theme.SplashScreen">
+    <!-- Official SplashScreen API Theme for Android 12+ -->
+    <style name="Theme.App.Starting" parent="Theme.SplashScreen">
+        <!-- Match app background -->
         <item name="windowSplashScreenBackground">#0D0D0D</item>
+
+        <!-- Use standard launcher icon -->
         <item name="windowSplashScreenAnimatedIcon">@mipmap/ic_launcher</item>
+
+        <!-- Theme to use after splash is gone -->
         <item name="postSplashScreenTheme">@style/NormalTheme</item>
     </style>
 
