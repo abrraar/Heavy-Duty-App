@@ -36,7 +36,6 @@ dependencies:
   share_plus: ^10.1.4
   app_links: ^6.3.2
   shared_preferences: ^2.5.2
-  flutter_native_splash: ^2.4.4
 
 dev_dependencies:
   flutter_test:
@@ -47,14 +46,6 @@ dev_dependencies:
 flutter_launcher_icons:
   android: true
   image_path: "lib/assets/images/heavy_duty_icon.png"
-
-flutter_native_splash:
-  color: "#000000"
-  # Base image set to tiny background to minimize footprint
-  image: "android/app/src/main/res/drawable/background.png"
-  android_12:
-    color: "#000000"
-    # No image here to force pure color on API 31+
 
 flutter:
   uses-material-design: true
