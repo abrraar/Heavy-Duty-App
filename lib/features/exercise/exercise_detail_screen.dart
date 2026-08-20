@@ -43,6 +43,10 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // ELITE DYNAMIC HEIGHT CALCULATION
+    final double screenWidth = MediaQuery.of(context).size.width;
+    final double standardHeight = 250.h;
+    
     return Scaffold(
       backgroundColor: AppColors.background,
       body: Consumer2<CycleProvider, ExerciseProvider>(
@@ -63,6 +67,12 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
             },
           );
 
+          // Calculate height: If image exists and is a valid URL, use 16:9 ratio, else fallback to 250
+          final bool hasImage = (template.imageUrl ?? "").isNotEmpty && template.imageUrl!.startsWith('http');
+          final double dynamicHeight = hasImage 
+              ? (screenWidth / 1.77).clamp(standardHeight, 350.h) 
+              : standardHeight;
+
           final cleanNameForLogs = template.name.trim().toUpperCase();
           final relevantLogs = cycleProv.logs.where((log) {
             try {
@@ -80,7 +90,7 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
             child: CustomScrollView(
               physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
               slivers: [
-                _buildSliverAppBar(context, template, exProvider),
+                _buildSliverAppBar(context, template, exProvider, dynamicHeight),
                 SliverToBoxAdapter(
                   child: Padding(
                     padding: EdgeInsets.all(20.w),
@@ -104,9 +114,9 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
     );
   }
 
-  Widget _buildSliverAppBar(BuildContext context, ExerciseTemplate template, ExerciseProvider exProvider) {
+  Widget _buildSliverAppBar(BuildContext context, ExerciseTemplate template, ExerciseProvider exProvider, double height) {
     return SliverAppBar(
-      expandedHeight: 250.h,
+      expandedHeight: height,
       backgroundColor: AppColors.background,
       elevation: 0,
       pinned: true,
@@ -174,16 +184,22 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
                 highlightColor: AppColors.surfaceLight.withOpacity(0.2),
                 child: Container(color: Colors.white),
               ),
-              errorWidget: (context, url, error) => Container(
-                color: AppColors.background,
-                child: Center(
-                  child: Text('IMAGE NOT FOUND PULL DOWN TO REFRESH',
+              errorWidget: (context, url, error) {
+                debugPrint("Detail Screen Image Error: $error | URL: $url");
+                return Container(
+                  color: AppColors.background,
+                  child: Center(
+                    child: Text(
+                      'IMAGE NOT FOUND PULL DOWN TO REFRESH',
+                      textAlign: TextAlign.center,
                       style: AppTextStyles.labelSmall.copyWith(
-                          color: AppColors.textSecondary
-                      )
+                        color: AppColors.textSecondary,
+                        fontSize: 10.sp,
+                      ),
+                    ),
                   ),
-                ),
-              ),
+                );
+              },
             ),
             Container(
               decoration: BoxDecoration(

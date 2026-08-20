@@ -15,11 +15,20 @@ class ExerciseProvider with ChangeNotifier {
 
   List<ExerciseTemplate> _templates = [];
   bool _isLoading = false;
+  
+  // ELITE CACHE BUSTER: Incremented on refresh to force image re-downloads
+  int _imageVersion = DateTime.now().millisecondsSinceEpoch;
 
-  List<ExerciseTemplate> get templates => _templates;
-  List<ExerciseTemplate> get defaultTemplates => _templates.where((t) => t.isDefault).toList();
-  List<ExerciseTemplate> get customTemplates => _templates.where((t) => !t.isDefault).toList();
+  List<ExerciseTemplate> get templates => _templates.map((t) => _applyCacheBuster(t)).toList();
+  List<ExerciseTemplate> get defaultTemplates => templates.where((t) => t.isDefault).toList();
+  List<ExerciseTemplate> get customTemplates => templates.where((t) => !t.isDefault).toList();
   bool get isLoading => _isLoading;
+
+  ExerciseTemplate _applyCacheBuster(ExerciseTemplate t) {
+    if (t.imageUrl == null || !t.imageUrl!.startsWith('http')) return t;
+    final separator = t.imageUrl!.contains('?') ? '&' : '?';
+    return t.copyWith(imageUrl: '${t.imageUrl}${separator}v=$_imageVersion');
+  }
 
   void initializeForUser(String userId) {
     _localRepo = ExerciseLocalRepository(userId: userId);
@@ -93,20 +102,21 @@ class ExerciseProvider with ChangeNotifier {
     try {
       _templates = await _localRepo!.getAllTemplates();
       
-      // Auto-initialize Mentzer library if missing OR if content is missing (PATCH: Check specific text)
+      await _runSelfHealingCheck();
+
+      // Auto-initialize Mentzer library if missing OR if content is missing
       final defaultCount = _templates.where((t) => t.isDefault).length;
       
-      // Check if 'Dumbbell Flyes' has the NEW extended coaching notes
       final flyes = _templates.firstWhere(
         (t) => t.name == 'Dumbbell Flyes', 
         orElse: () => ExerciseTemplate(name: 'Empty')
       );
       final hasUpdatedNotes = flyes.aboutTheMovement != null && flyes.aboutTheMovement!.contains('elbows pulled back');
 
-      if (defaultCount < 41 || !hasUpdatedNotes) {
-        debugPrint("ExerciseProvider: [FORCE UPDATE] Refreshing Mentzer coaching notes...");
+      if (defaultCount != 42 || !hasUpdatedNotes) {
+        debugPrint("ExerciseProvider: [UPDATE] Syncing Mentzer library versions...");
         await _initializeDefaults();
-        _templates = await _localRepo!.getAllTemplates(); // Refresh local list after init
+        _templates = await _localRepo!.getAllTemplates();
       }
       
       notifyListeners();
@@ -115,6 +125,25 @@ class ExerciseProvider with ChangeNotifier {
       debugPrint("ExerciseProvider Error: $e");
     } finally {
       _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  /// ELITE SELF-HEALING: Detects and fixes broken default exercise mappings (e.g. legacy local assets or wrong extensions)
+  Future<void> _runSelfHealingCheck() async {
+    final needsHealing = _templates.any((t) => 
+      t.isDefault && (
+        t.imageUrl == null || 
+        !t.imageUrl!.startsWith('http') || // If it doesn't start with http, it's likely a legacy path
+        t.imageUrl!.contains('lib/assets/') ||
+        t.imageUrl!.endsWith('.jpg') // Ensure we move to .webp
+      )
+    );
+
+    if (needsHealing) {
+      debugPrint("ExerciseProvider: [SELF-HEALING] Detected legacy/broken mappings. Restoring cloud URLs...");
+      await _initializeDefaults();
+      _templates = await _localRepo!.getAllTemplates();
       notifyListeners();
     }
   }
@@ -354,9 +383,18 @@ class ExerciseProvider with ChangeNotifier {
     
     try {
       debugPrint("ExerciseProvider: FORCE REFRESH TRIGGERED");
-      // 1. Sync any local changes first
+      
+      // Update Cache Buster to force re-download of all images
+      _imageVersion = DateTime.now().millisecondsSinceEpoch;
+      debugPrint("ExerciseProvider: Cache Buster updated to v=$_imageVersion");
+
+      // 1. Run self-healing to fix any broken default URLs
+      await _runSelfHealingCheck();
+      
+      // 2. Sync any local changes first
       await _syncWithCloud();
-      // 2. Perform a fresh load from local (which should now be synced via realtime or explicit sync)
+      
+      // 3. Perform a fresh load from local
       _templates = await _localRepo!.getAllTemplates();
       debugPrint("ExerciseProvider: Force Refresh Complete.");
     } catch (e) {
