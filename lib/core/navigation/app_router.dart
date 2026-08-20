@@ -44,13 +44,41 @@ import 'app_routes.dart';
 final GlobalKey<NavigatorState> _rootNavigatorKey = GlobalKey<NavigatorState>();
 
 bool _hasLoadedUserData = false;
-
-// Track if this is the first time the router is processing a request (to handle cold starts)
 bool _isFirstLoad = true;
+
+// ── Transition Helpers ────────────────────────────────
+
+Page<dynamic> _fadeTransitionPage({required Widget child, required GoRouterState state, int duration = 600}) {
+  return CustomTransitionPage(
+    key: state.pageKey,
+    child: child,
+    transitionDuration: Duration(milliseconds: duration),
+    transitionsBuilder: (context, animation, secondaryAnimation, child) {
+      return FadeTransition(opacity: animation, child: child);
+    },
+  );
+}
+
+Page<dynamic> _slideTransitionPage({required Widget child, required GoRouterState state, int duration = 400}) {
+  return CustomTransitionPage(
+    key: state.pageKey,
+    child: child,
+    transitionDuration: Duration(milliseconds: duration),
+    transitionsBuilder: (context, animation, secondaryAnimation, child) {
+      return SlideTransition(
+        position: Tween<Offset>(
+          begin: const Offset(1.0, 0.0),
+          end: Offset.zero,
+        ).animate(CurvedAnimation(parent: animation, curve: Curves.easeOutCubic)),
+        child: child,
+      );
+    },
+  );
+}
 
 final appRouter = GoRouter(
   navigatorKey: _rootNavigatorKey,
-  initialLocation: AppRoutes.splash, // Start at Splash
+  initialLocation: AppRoutes.splash,
   refreshListenable: AuthProvider(),
   errorBuilder: (context, state) {
     final uriStr = state.uri.toString().toLowerCase();
@@ -61,12 +89,9 @@ final appRouter = GoRouter(
     }
 
     if (uriStr.contains('recovery') || uriStr.contains('reset-password')) {
-      // FIX: Respect the source parameter even in the error fallback
       if (source == 'settings') {
-        debugPrint("Router Error Fallback: Source is 'settings'. Showing ChangePasswordScreen.");
         return const ChangePasswordScreen();
       }
-      debugPrint("Router Error Fallback: Source is 'auth' or missing. Showing ResetPassScreen.");
       return const ResetPassScreen();
     }
 
@@ -76,11 +101,8 @@ final appRouter = GoRouter(
   redirect: (context, state) {
     final authProvider = AuthProvider();
     
-    // 0. INITIALIZATION LOCK: Block all navigation decisions until the 
-    // AuthProvider has finished its security checks (like cleaning up recovery sessions).
     if (authProvider.isInitializing) {
-      debugPrint("Router: Auth initialization in progress. Holding navigation.");
-      return null; // Stay on Splash/Current screen until ready
+      return null;
     }
 
     final isAuthenticated = authProvider.isAuthenticated;
@@ -88,15 +110,12 @@ final appRouter = GoRouter(
     final location = state.uri.path;
     final fullUri = state.uri.toString().toLowerCase();
 
-    // 0. HIGH-PRIORITY DEEP LINK MAPPING
-    // Only intercept if we are coming from an EXTERNAL deep link (scheme starts with heavyduty://)
     final bool isExternalLink = fullUri.startsWith('heavyduty://');
     
     if (isExternalLink) {
       if (fullUri.contains('email_change') || fullUri.contains('verify-secondary-email')) {
-        debugPrint("Router Match: Mapping external email deep link to /settings/manage-email");
         final message = state.uri.queryParameters['message'];
-        final email = state.uri.queryParameters['email']; // Extract email if present
+        final email = state.uri.queryParameters['email'];
         
         String path = '${AppRoutes.manageEmail}?verified=true';
         if (message != null) path += '&message=${Uri.encodeComponent(message)}';
@@ -106,31 +125,21 @@ final appRouter = GoRouter(
       }
       
       if (fullUri.contains('recovery') || fullUri.contains('reset-password')) {
-        debugPrint("Router Match: RECOVERY LINK DETECTED. Analyzing source...");
-        
         final source = state.uri.queryParameters['source'];
-        if (source == 'settings') {
-          debugPrint("Router Match: Source is 'settings'. Mapping to internal changePassword.");
-          return AppRoutes.changePassword;
-        }
-
-        debugPrint("Router Match: Source is 'auth' or missing. Mapping to ResetPassScreen solo.");
+        if (source == 'settings') return AppRoutes.changePassword;
         return AppRoutes.resetPass;
       }
     }
 
-    // 1. SECURITY LOCKDOWN: Password Recovery Guard
     if (authProvider.isPasswordRecoveryMode) {
       final bool isAtResetScreen = location == AppRoutes.resetPass || location == AppRoutes.changePassword;
       final bool isAtEssential = [AppRoutes.splash, AppRoutes.root, AppRoutes.login].contains(location);
       
       if (!isAtResetScreen && !isAtEssential) {
-        debugPrint("Router SECURITY: Lockdown active. Bouncing $location -> Reset Screen.");
         return AppRoutes.resetPass;
       }
     }
 
-    // 1. ALLOWLIST: Exempt specific landing paths from standard redirects
     final List<String> alwaysAllowed = [
       AppRoutes.changePassword,
       AppRoutes.manageEmail,
@@ -152,7 +161,6 @@ final appRouter = GoRouter(
       AppRoutes.splash,
     ].contains(location);
 
-    // Standard Auth Logic
     if (!isAuthenticated) {
       if (!isAuthRoute && location != AppRoutes.root) {
         return '${AppRoutes.login}?from=${Uri.encodeComponent(location)}';
@@ -185,12 +193,12 @@ final appRouter = GoRouter(
     GoRoute(
       path: AppRoutes.root,
       parentNavigatorKey: _rootNavigatorKey,
-      builder: (context, state) => const SizedBox.shrink(), // Root is just a redirector
+      builder: (context, state) => const SizedBox.shrink(),
     ),
     GoRoute(
       path: AppRoutes.splash,
       parentNavigatorKey: _rootNavigatorKey,
-      builder: (context, state) => const FadeSplashScreen(),
+      pageBuilder: (context, state) => _fadeTransitionPage(child: const FadeSplashScreen(), state: state, duration: 800),
     ),
     GoRoute(
       path: AppRoutes.login,
@@ -198,89 +206,95 @@ final appRouter = GoRouter(
       pageBuilder: (context, state) => CustomTransitionPage(
         key: state.pageKey,
         child: const LoginScreen(),
+        opaque: false, // Essential for splash zoom handover
         transitionDuration: const Duration(milliseconds: 600),
         transitionsBuilder: (context, animation, secondaryAnimation, child) {
-          return FadeTransition(
-            opacity: animation,
-            child: child,
-          );
+          return FadeTransition(opacity: animation, child: child);
         },
       ),
     ),
     GoRoute(
       path: AppRoutes.signin,
       parentNavigatorKey: _rootNavigatorKey,
-      builder: (context, state) => const SignInScreen(),
+      pageBuilder: (context, state) => _fadeTransitionPage(child: const SignInScreen(), state: state),
     ),
     GoRoute(
       path: AppRoutes.forgotPass,
       parentNavigatorKey: _rootNavigatorKey,
-      builder: (context, state) => const ForgotPassScreen(),
+      pageBuilder: (context, state) => _fadeTransitionPage(child: const ForgotPassScreen(), state: state),
     ),
     GoRoute(
       path: AppRoutes.otp,
       parentNavigatorKey: _rootNavigatorKey,
-      builder: (context, state) => const OtpScreen(),
+      pageBuilder: (context, state) => _fadeTransitionPage(child: const OtpScreen(), state: state),
+    ),
+    GoRoute(
+      path: AppRoutes.resetPass,
+      parentNavigatorKey: _rootNavigatorKey,
+      pageBuilder: (context, state) => _fadeTransitionPage(child: const ResetPassScreen(), state: state),
     ),
     GoRoute(
       path: AppRoutes.createProfilePersonal,
       parentNavigatorKey: _rootNavigatorKey,
-      builder: (context, state) => const CreateAccPersoScreen(),
+      pageBuilder: (context, state) => _fadeTransitionPage(child: const CreateAccPersoScreen(), state: state),
     ),
     GoRoute(
       path: AppRoutes.alarmRinging,
       parentNavigatorKey: _rootNavigatorKey,
-      builder: (context, state) {
+      pageBuilder: (context, state) {
         final extras = state.extra as Map<String, dynamic>?;
-        return AlarmRingingScreen(
-          alarmId: extras?['id'] as int? ?? 0,
-          label: extras?['label'] as String? ?? "Recovery Alarm",
+        return _fadeTransitionPage(
+          child: AlarmRingingScreen(
+            alarmId: extras?['id'] as int? ?? 0,
+            label: extras?['label'] as String? ?? "Recovery Alarm",
+          ),
+          state: state,
         );
       },
     ),
     GoRoute(
       path: AppRoutes.shareCycle,
       parentNavigatorKey: _rootNavigatorKey,
-      builder: (context, state) {
+      pageBuilder: (context, state) {
         final shareId = state.uri.queryParameters['id'] ?? "";
         final from = state.uri.queryParameters['from'] ?? "A User";
-        return ImportCycleScreen(shareId: shareId, senderName: from);
+        return _fadeTransitionPage(child: ImportCycleScreen(shareId: shareId, senderName: from), state: state);
       },
     ),
     GoRoute(
       path: AppRoutes.shareMeal,
       parentNavigatorKey: _rootNavigatorKey,
-      builder: (context, state) {
+      pageBuilder: (context, state) {
         final shareId = state.uri.queryParameters['id'] ?? "";
         final from = state.uri.queryParameters['from'] ?? "A User";
-        return ImportMealScreen(shareId: shareId, senderName: from);
+        return _fadeTransitionPage(child: ImportMealScreen(shareId: shareId, senderName: from), state: state);
       },
     ),
     GoRoute(
       path: AppRoutes.shareSupplement,
       parentNavigatorKey: _rootNavigatorKey,
-      builder: (context, state) {
+      pageBuilder: (context, state) {
         final shareId = state.uri.queryParameters['id'] ?? "";
         final from = state.uri.queryParameters['from'] ?? "A User";
-        return ImportSupplementScreen(shareId: shareId, senderName: from);
+        return _fadeTransitionPage(child: ImportSupplementScreen(shareId: shareId, senderName: from), state: state);
       },
     ),
     GoRoute(
       path: AppRoutes.shareStack,
       parentNavigatorKey: _rootNavigatorKey,
-      builder: (context, state) {
+      pageBuilder: (context, state) {
         final shareId = state.uri.queryParameters['id'] ?? "";
         final from = state.uri.queryParameters['from'] ?? "A User";
-        return ImportStackScreen(shareId: shareId, senderName: from);
+        return _fadeTransitionPage(child: ImportStackScreen(shareId: shareId, senderName: from), state: state);
       },
     ),
     GoRoute(
       path: AppRoutes.shareExercise,
       parentNavigatorKey: _rootNavigatorKey,
-      builder: (context, state) {
+      pageBuilder: (context, state) {
         final shareId = state.uri.queryParameters['id'] ?? "";
         final from = state.uri.queryParameters['from'] ?? "A User";
-        return ImportExerciseScreen(shareId: shareId, senderName: from);
+        return _fadeTransitionPage(child: ImportExerciseScreen(shareId: shareId, senderName: from), state: state);
       },
     ),
     ShellRoute(
@@ -303,107 +317,109 @@ final appRouter = GoRouter(
       routes: [
         GoRoute(
           path: AppRoutes.home,
-          builder: (context, state) => const HomeScreen(),
+          pageBuilder: (context, state) => _fadeTransitionPage(child: const HomeScreen(), state: state, duration: 400),
         ),
         GoRoute(
           path: AppRoutes.exercises,
-          builder: (context, state) => const ExerciseScreen(),
+          pageBuilder: (context, state) => _fadeTransitionPage(child: const ExerciseScreen(), state: state, duration: 400),
         ),
         GoRoute(
           path: AppRoutes.tracker,
-          builder: (context, state) => const TrackerScreen(),
+          pageBuilder: (context, state) => _fadeTransitionPage(child: const TrackerScreen(), state: state, duration: 400),
           routes: [
             GoRoute(
               path: 'cycle',
-              builder: (context, state) {
+              pageBuilder: (context, state) {
                 final tab = int.tryParse(state.uri.queryParameters['tab'] ?? '0') ?? 0;
-                return CycleTrackingScreen(initialTabIndex: tab);
+                return _slideTransitionPage(child: CycleTrackingScreen(initialTabIndex: tab), state: state);
               },
             ),
             GoRoute(
               path: 'calorie',
-              builder: (context, state) {
+              pageBuilder: (context, state) {
                 final tab = int.tryParse(state.uri.queryParameters['tab'] ?? '0') ?? 0;
-                return CalorieScreen(initialTabIndex: tab);
+                return _slideTransitionPage(child: CalorieScreen(initialTabIndex: tab), state: state);
               },
             ),
             GoRoute(
               path: 'supplement',
-              builder: (context, state) {
+              pageBuilder: (context, state) {
                 final tab = int.tryParse(state.uri.queryParameters['tab'] ?? '0') ?? 0;
-                return SupplementScreen(initialTabIndex: tab);
+                return _slideTransitionPage(child: SupplementScreen(initialTabIndex: tab), state: state);
               },
             ),
           ],
         ),
         GoRoute(
           path: AppRoutes.profile,
-          builder: (context, state) => const ProfileScreen(),
+          pageBuilder: (context, state) => _fadeTransitionPage(child: const ProfileScreen(), state: state, duration: 400),
           routes: [
             GoRoute(
               path: 'edit',
               parentNavigatorKey: _rootNavigatorKey,
-              builder: (context, state) => const EditProfileScreen(),
+              pageBuilder: (context, state) => _slideTransitionPage(child: const EditProfileScreen(), state: state),
             ),
             GoRoute(
               path: 'change-username',
               parentNavigatorKey: _rootNavigatorKey,
-              builder: (context, state) => const ChangeUsernameScreen(),
+              pageBuilder: (context, state) => _slideTransitionPage(child: const ChangeUsernameScreen(), state: state),
             ),
           ],
         ),
       ],
     ),
-    // Move Settings outside the ShellRoute to avoid redundancy issues and clarify hierarchy
     GoRoute(
       path: AppRoutes.settings,
       parentNavigatorKey: _rootNavigatorKey,
-      builder: (context, state) => const SettingsScreen(),
+      pageBuilder: (context, state) => _slideTransitionPage(child: const SettingsScreen(), state: state),
       routes: [
         GoRoute(
           path: 'notifications',
-          builder: (context, state) => const NotificationSettingsScreen(),
+          pageBuilder: (context, state) => _slideTransitionPage(child: const NotificationSettingsScreen(), state: state),
         ),
         GoRoute(
           path: 'cycle',
-          builder: (context, state) => const CycleTrackingSettingsScreen(),
+          pageBuilder: (context, state) => _slideTransitionPage(child: const CycleTrackingSettingsScreen(), state: state),
         ),
         GoRoute(
           path: 'calorie',
-          builder: (context, state) => const CalorieSettingsScreen(),
+          pageBuilder: (context, state) => _slideTransitionPage(child: const CalorieSettingsScreen(), state: state),
           routes: [
              GoRoute(
                 path: 'import',
-                builder: (context, state) => ImportMealScreen(
-                  shareId: state.uri.queryParameters['id'] ?? "",
-                  senderName: state.uri.queryParameters['from'] ?? "A User",
+                pageBuilder: (context, state) => _slideTransitionPage(
+                  child: ImportMealScreen(
+                    shareId: state.uri.queryParameters['id'] ?? "",
+                    senderName: state.uri.queryParameters['from'] ?? "A User",
+                  ),
+                  state: state,
                 ),
              )
           ]
         ),
         GoRoute(
           path: 'hydration',
-          builder: (context, state) => const HydrationSettingsScreen(),
+          pageBuilder: (context, state) => _slideTransitionPage(child: const HydrationSettingsScreen(), state: state),
         ),
         GoRoute(
           path: 'supplement',
-          builder: (context, state) => const SupplementSettingsScreen(),
+          pageBuilder: (context, state) => _slideTransitionPage(child: const SupplementSettingsScreen(), state: state),
         ),
         GoRoute(
           path: 'sleep',
-          builder: (context, state) => const SleepSettingsScreen(),
+          pageBuilder: (context, state) => _slideTransitionPage(child: const SleepSettingsScreen(), state: state),
         ),
         GoRoute(
           path: 'body-comp',
-          builder: (context, state) => const BodyCompConfigScreen(),
+          pageBuilder: (context, state) => _slideTransitionPage(child: const BodyCompConfigScreen(), state: state),
         ),
         GoRoute(
           path: 'manage-email',
-          builder: (context, state) => const ManageEmailScreen(),
+          pageBuilder: (context, state) => _slideTransitionPage(child: const ManageEmailScreen(), state: state),
         ),
         GoRoute(
           path: 'change-password',
-          builder: (context, state) => const ChangePasswordScreen(),
+          pageBuilder: (context, state) => _slideTransitionPage(child: const ChangePasswordScreen(), state: state),
         ),
       ],
     ),

@@ -283,7 +283,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ),
         child: Center(
           child: Text(
-            "TERMINATE SESSION (LOGOUT)",
+            "LOGOUT",
             style: AppTextStyles.labelMedium.copyWith(color: AppColors.crimson, fontWeight: FontWeight.w900, letterSpacing: 2),
           ),
         ),

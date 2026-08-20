@@ -43,7 +43,7 @@ class AuthInputField extends StatelessWidget {
           fontSize: isWideLayout ? 12 : 10.sp,
         ),
         filled: true,
-        fillColor: AppColors.surfaceLight.withValues(alpha: 0.3),
+        fillColor: AppColors.surface,
         contentPadding: EdgeInsets.symmetric(
           horizontal: isWideLayout ? 24 : 20.w,
           vertical: isWideLayout ? 20 : 18.h,
@@ -137,7 +137,7 @@ class AuthSocialIconButton extends StatelessWidget {
       child: Container(
         height: isWideLayout ? 56 : 54.h,
         decoration: BoxDecoration(
-          color: AppColors.surfaceLight.withValues(alpha: 0.2),
+          color: AppColors.surface,
           borderRadius: BorderRadius.circular(12.r),
           border: Border.all(color: AppColors.white.withValues(alpha: 0.05)),
         ),
@@ -187,23 +187,26 @@ class AuthBrandingSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    debugPrint("AuthBranding: Rendering destination for '$title'");
+    debugPrint("AuthBranding: Rendering Hero destination for '$title'");
     return Column(
       crossAxisAlignment: isWideLayout ? CrossAxisAlignment.center : CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
-        FittedBox(
-          fit: BoxFit.scaleDown,
+        Hero(
+          tag: 'branding_title',
           child: Material(
             type: MaterialType.transparency,
-            child: Text(
-              title,
-              textAlign: isWideLayout ? TextAlign.center : TextAlign.start,
-              style: AppTextStyles.h1.copyWith(
-                fontSize: isWideLayout ? 64.sp.clamp(60, 100) : 48.sp,
-                height: 0.9,
-                color: AppColors.white,
-                letterSpacing: -2,
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                title,
+                textAlign: isWideLayout ? TextAlign.center : TextAlign.start,
+                style: AppTextStyles.h1.copyWith(
+                  fontSize: isWideLayout ? 64.sp.clamp(60, 100) : 48.sp,
+                  height: 0.9,
+                  color: AppColors.white,
+                  letterSpacing: -2,
+                ),
               ),
             ),
           ),

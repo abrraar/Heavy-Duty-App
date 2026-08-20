@@ -10,7 +10,7 @@ class AppColors {
  
   static const Color background     = Color(0xFF000000);
   static const Color surface        = Color(0xFF0D0D0D);
-  static const Color surfaceLight   = Color(0xFF1A1A1A);
+  static const Color surfaceLight   = Color(0xFF141414);
 
   // ── Primary Accent ────────────────────────────────────
   static const Color crimson        = Color(0xFF8B1A2F); // primary red
