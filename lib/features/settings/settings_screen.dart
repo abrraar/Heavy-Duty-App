@@ -40,18 +40,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
     setState(() => _isSyncing = true);
     try {
       // FORCE SYNC: Simultaneously trigger refresh/sync for all core modules
-      await Future.wait([
-        context.read<CycleProvider>().forceRefresh(),
-        context.read<HydrationProvider>().forceRefresh(),
-        context.read<BodyCompProvider>().forceRefresh(),
-        context.read<SleepProvider>().forceRefresh(),
-        context.read<CalorieProvider>().forceRefresh(),
-        context.read<SupplementProvider>().forceRefresh(),
-        context.read<ExerciseProvider>().forceRefresh(),
-        context.read<AffirmationProvider>().forceRefresh(),
-        context.read<UIProvider>().forceRefresh(),
-        context.read<AuthProvider>().refreshEmails(),
-      ]);
+        await Future.wait<void>([
+          context.read<CycleProvider>().forceRefresh(),
+          context.read<HydrationProvider>().forceRefresh(),
+          context.read<BodyCompProvider>().forceRefresh(),
+          context.read<SleepProvider>().forceRefresh(),
+          context.read<CalorieProvider>().forceRefresh(),
+          context.read<SupplementProvider>().forceRefresh(),
+          context.read<ExerciseProvider>().forceRefresh(),
+          context.read<AffirmationProvider>().forceRefresh(),
+          context.read<UiProvider>().forceRefresh(),
+          context.read<AuthProvider>().refreshEmails(),
+        ]);
       
       if (mounted) {
         EliteSnackbar.show(context, "CLOUD SYNC SUCCESSFUL");
