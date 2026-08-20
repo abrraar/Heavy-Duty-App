@@ -40,6 +40,13 @@ void main() async {
     ),
   );
 
+  // LOCK TO PORTRAIT MODE
+  // Ensures the app stays in portrait even if auto-rotate is enabled
+  await SystemChrome.setPreferredOrientations([
+    DeviceOrientation.portraitUp,
+    DeviceOrientation.portraitDown,
+  ]);
+
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
       systemNavigationBarColor: Colors.black,
