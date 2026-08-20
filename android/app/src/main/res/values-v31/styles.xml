@@ -1,18 +1,21 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Theme applied to the Android Window while the process is starting when the OS's Dark Mode setting is off -->
-    <style name="LaunchTheme" parent="Theme.AppCompat.Light.NoActionBar">
-        <item name="android:windowBackground">@drawable/launch_background</item>
-        <item name="android:forceDarkAllowed">false</item>
-        <item name="android:windowFullscreen">false</item>
-        <item name="android:windowDrawsSystemBarBackgrounds">false</item>
-        <item name="android:windowLayoutInDisplayCutoutMode">shortEdges</item>
+    <!-- Custom theme for Android 12+ to match Flutter splash size -->
+    <style name="Theme.App.Starting" parent="Theme.SplashScreen">
+        <!-- Match app background exactly (Pure Black) -->
+        <item name="windowSplashScreenBackground">#000000</item>
+
+        <!-- Use the SCALED icon to avoid the enlarged circular logo -->
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_splash_scaled</item>
+
+        <!-- Icon background matches the main background for seamless integration -->
+        <item name="windowSplashScreenIconBackgroundColor">#000000</item>
+
+        <!-- Theme to switch to after splash is gone -->
+        <item name="postSplashScreenTheme">@style/NormalTheme</item>
     </style>
-    <!-- Theme applied to the Android Window as soon as the process has started.
-         This theme determines the color of the Android Window while your
-         Flutter UI initializes, as well as behind your Flutter UI while its
-         running. -->
-    <style name="NormalTheme" parent="Theme.AppCompat.Light.NoActionBar">
+
+    <style name="NormalTheme" parent="@android:style/Theme.Light.NoTitleBar">
         <item name="android:windowBackground">?android:colorBackground</item>
     </style>
 </resources>

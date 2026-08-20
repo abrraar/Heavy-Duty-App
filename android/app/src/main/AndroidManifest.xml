@@ -23,7 +23,7 @@
             android:name=".MainActivity"
             android:exported="true"
             android:launchMode="singleTop"
-            android:theme="@style/LaunchTheme"
+            android:theme="@style/Theme.App.Starting"
             android:showWhenLocked="true"
             android:turnScreenOn="true"
             android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode"
@@ -54,8 +54,12 @@
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
-                <data android:scheme="https" android:host="heavydutyapp.org" android:pathPrefix="/auth/callback" />
-                <data android:scheme="https" android:host="heavydutyapp.org" android:pathPrefix="/share" />
+                <data android:scheme="https" />
+                <data android:host="heavydutyapp.org" />
+                <data android:pathPrefix="/auth/callback" />
+                <data android:scheme="https" />
+                <data android:host="heavydutyapp.org" />
+                <data android:pathPrefix="/share" />
             </intent-filter>
         </activity>
 
