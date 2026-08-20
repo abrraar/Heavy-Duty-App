@@ -15,6 +15,12 @@ import 'package:heavy_duty/features/tracker/body_composition/provider/body_comp_
 import 'package:heavy_duty/features/tracker/cycle_tracker/model/cycle_settings.dart';
 import 'package:heavy_duty/features/tracker/body_composition/model/body_comp_settings.dart';
 import 'package:heavy_duty/features/tracker/sleep/provider/sleep_provider.dart';
+import 'package:heavy_duty/features/tracker/calorie/provider/calorie_provider.dart';
+import 'package:heavy_duty/features/tracker/supplement/provider/supplement_provider.dart';
+import 'package:heavy_duty/features/exercise/provider/exercise_provider.dart';
+import 'package:heavy_duty/features/affirmation/provider/affirmation_provider.dart';
+import 'package:heavy_duty/core/providers/ui_provider.dart';
+import 'package:heavy_duty/core/widgets/elite_snackbar.dart';
 
 import '../tracker/hydration/model/hydration_settings.dart';
 
@@ -26,6 +32,39 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
+  bool _isSyncing = false;
+
+  Future<void> _handleGlobalSync() async {
+    if (_isSyncing) return;
+    
+    setState(() => _isSyncing = true);
+    try {
+      // FORCE SYNC: Simultaneously trigger refresh/sync for all core modules
+      await Future.wait([
+        context.read<CycleProvider>().forceRefresh(),
+        context.read<HydrationProvider>().forceRefresh(),
+        context.read<BodyCompProvider>().forceRefresh(),
+        context.read<SleepProvider>().forceRefresh(),
+        context.read<CalorieProvider>().forceRefresh(),
+        context.read<SupplementProvider>().forceRefresh(),
+        context.read<ExerciseProvider>().forceRefresh(),
+        context.read<AffirmationProvider>().forceRefresh(),
+        context.read<UIProvider>().forceRefresh(),
+        context.read<AuthProvider>().refreshEmails(),
+      ]);
+      
+      if (mounted) {
+        EliteSnackbar.show(context, "CLOUD SYNC SUCCESSFUL");
+      }
+    } catch (e) {
+      if (mounted) {
+        EliteSnackbar.show(context, "SYNC ERROR: ${e.toString().toUpperCase()}", isError: true);
+      }
+    } finally {
+      if (mounted) setState(() => _isSyncing = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Consumer4<CycleProvider, HydrationProvider, BodyCompProvider, SleepProvider>(
@@ -184,8 +223,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         _buildSettingTile(
                           icon: Icons.cloud_sync_rounded,
                           title: "BACKUP & CLOUD SYNC",
-                          subtitle: "Force database synchronization",
-                          onTap: () {},
+                          subtitle: _isSyncing ? "SYNCHRONIZING..." : "Force database synchronization",
+                          onTap: _handleGlobalSync,
+                          trailing: _isSyncing 
+                            ? SizedBox(
+                                width: 12.r, 
+                                height: 12.r, 
+                                child: const CircularProgressIndicator(color: AppColors.crimson, strokeWidth: 2)
+                              ) 
+                            : null,
                         ),
                         _buildSettingTile(
                           icon: Icons.info_outline_rounded,
