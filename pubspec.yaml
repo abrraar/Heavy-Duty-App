@@ -45,7 +45,8 @@ dev_dependencies:
 
 flutter_launcher_icons:
   android: true
-  image_path: "lib/assets/images/heavy_duty_icon.png"
+  ios: true
+  image_path: "lib/assets/images/heavy_duty_app_icon.png"
 
 flutter:
   uses-material-design: true
