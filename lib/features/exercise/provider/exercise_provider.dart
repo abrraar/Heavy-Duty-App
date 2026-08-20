@@ -235,6 +235,11 @@ class ExerciseProvider with ChangeNotifier {
   }
 
   ExerciseTemplate _create(String name, String muscles, ExerciseType type, int intensity, [String? about]) {
+    // ELITE ASSET MAPPING: Generate the path from the name
+    // Example: "Dumbbell Flyes" -> "lib/assets/images/exercises/dumbbell_flyes.jpg"
+    final String fileName = name.toLowerCase().replaceAll(' ', '_').replaceAll('-', '_').replaceAll('(', '').replaceAll(')', '');
+    final String assetPath = 'lib/assets/images/exercises/$fileName.jpg';
+
     return ExerciseTemplate(
       name: name,
       targetMuscles: muscles,
@@ -242,6 +247,7 @@ class ExerciseProvider with ChangeNotifier {
       intensity: intensity,
       isDefault: true,
       aboutTheMovement: about,
+      imageUrl: assetPath,
     );
   }
 

@@ -52,6 +52,9 @@ flutter_launcher_icons:
 
 flutter:
   uses-material-design: true
+  assets:
+    - lib/assets/images/heavy_duty_app_icon.png
+    - lib/assets/images/exercises/
   fonts:
     - family: Impact
       fonts:
