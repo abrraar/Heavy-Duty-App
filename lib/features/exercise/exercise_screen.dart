@@ -1,8 +1,10 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:heavy_duty/core/widgets/elite_confirm_dialog.dart';
 import 'package:heavy_duty/features/exercise/provider/exercise_provider.dart';
 import 'package:provider/provider.dart';
+import 'package:shimmer/shimmer.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../core/widgets/app_search_bar.dart';
@@ -243,10 +245,14 @@ class _ExerciseScreenState extends State<ExerciseScreen> with SingleTickerProvid
                       end: Alignment.centerRight,
                     ),
                   ),
-                  child: Image.network(
-                    exercise.imageUrl ?? 'https://via.placeholder.com/150x120/1A1A1A/FFFFFF?text=HIT',
+                  child: CachedNetworkImage(
+                    imageUrl: exercise.imageUrl ?? '',
                     fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) => Container(color: AppColors.surface),
+                    placeholder: (context, url) => Shimmer.fromColors(
+                      baseColor: AppColors.surfaceLight.withOpacity(0.1),
+                      highlightColor: AppColors.surfaceLight.withOpacity(0.2),
+                      child: Container(color: Colors.white),
+                    ),
                   ),
                 ),
               ),

@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:heavy_duty/core/theme/app_colors.dart';
@@ -13,6 +14,7 @@ import 'package:heavy_duty/core/widgets/elite_snackbar.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:shimmer/shimmer.dart';
 
 class ExerciseDetailScreen extends StatefulWidget {
   final String exerciseId;
@@ -71,26 +73,31 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
             }
           }).toList()..sort((a, b) => b.timestamp.compareTo(a.timestamp));
 
-          return CustomScrollView(
-            physics: const BouncingScrollPhysics(),
-            slivers: [
-              _buildSliverAppBar(context, template, exProvider),
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: EdgeInsets.all(20.w),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _buildIntensityAndAbout(template),
-                      SizedBox(height: 30.h),
-                      _buildProgressGraphSection(relevantLogs),
-                      SizedBox(height: 30.h),
-                      _buildHistoryLogs(relevantLogs),
-                    ],
+          return RefreshIndicator(
+            onRefresh: () => exProvider.forceRefresh(),
+            color: AppColors.crimson,
+            backgroundColor: AppColors.surface,
+            child: CustomScrollView(
+              physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+              slivers: [
+                _buildSliverAppBar(context, template, exProvider),
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: EdgeInsets.all(20.w),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildIntensityAndAbout(template),
+                        SizedBox(height: 30.h),
+                        _buildProgressGraphSection(relevantLogs),
+                        SizedBox(height: 30.h),
+                        _buildHistoryLogs(relevantLogs),
+                      ],
+                    ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           );
         },
       ),
@@ -159,9 +166,24 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
         background: Stack(
           fit: StackFit.expand,
           children: [
-            Image.network(
-              'https://via.placeholder.com/400x250/1A1A1A/FFFFFF?text=MIKE+MENTZER+HIT',
+            CachedNetworkImage(
+              imageUrl: template.imageUrl ?? '',
               fit: BoxFit.cover,
+              placeholder: (context, url) => Shimmer.fromColors(
+                baseColor: AppColors.surfaceLight.withOpacity(0.1),
+                highlightColor: AppColors.surfaceLight.withOpacity(0.2),
+                child: Container(color: Colors.white),
+              ),
+              errorWidget: (context, url, error) => Container(
+                color: AppColors.background,
+                child: Center(
+                  child: Text('IMAGE NOT FOUND PULL DOWN TO REFRESH',
+                      style: AppTextStyles.labelSmall.copyWith(
+                          color: AppColors.textSecondary
+                      )
+                  ),
+                ),
+              ),
             ),
             Container(
               decoration: BoxDecoration(
