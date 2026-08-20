@@ -159,19 +159,10 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
         background: Stack(
           fit: StackFit.expand,
           children: [
-            template.imageUrl != null && template.imageUrl!.startsWith('lib/assets/')
-              ? Image.asset(
-                  template.imageUrl!,
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) => Image.network(
-                    'https://via.placeholder.com/400x250/1A1A1A/FFFFFF?text=MIKE+MENTZER+HIT',
-                    fit: BoxFit.cover,
-                  ),
-                )
-              : Image.network(
-                  template.imageUrl ?? 'https://via.placeholder.com/400x250/1A1A1A/FFFFFF?text=MIKE+MENTZER+HIT',
-                  fit: BoxFit.cover,
-                ),
+            Image.network(
+              'https://via.placeholder.com/400x250/1A1A1A/FFFFFF?text=MIKE+MENTZER+HIT',
+              fit: BoxFit.cover,
+            ),
             Container(
               decoration: BoxDecoration(
                 gradient: LinearGradient(

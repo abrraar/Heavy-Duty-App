@@ -243,17 +243,11 @@ class _ExerciseScreenState extends State<ExerciseScreen> with SingleTickerProvid
                       end: Alignment.centerRight,
                     ),
                   ),
-                  child: exercise.imageUrl != null && exercise.imageUrl!.startsWith('lib/assets/')
-                    ? Image.asset(
-                        exercise.imageUrl!,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) => Container(color: AppColors.surface),
-                      )
-                    : Image.network(
-                        exercise.imageUrl ?? 'https://via.placeholder.com/150x120/1A1A1A/FFFFFF?text=HIT', 
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) => Container(color: AppColors.surface),
-                      ),
+                  child: Image.network(
+                    exercise.imageUrl ?? 'https://via.placeholder.com/150x120/1A1A1A/FFFFFF?text=HIT',
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) => Container(color: AppColors.surface),
+                  ),
                 ),
               ),
               

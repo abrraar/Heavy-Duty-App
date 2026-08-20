@@ -103,7 +103,7 @@ class ExerciseProvider with ChangeNotifier {
       );
       final hasUpdatedNotes = flyes.aboutTheMovement != null && flyes.aboutTheMovement!.contains('elbows pulled back');
 
-      if (defaultCount != 42 || !hasUpdatedNotes) { 
+      if (defaultCount < 41 || !hasUpdatedNotes) {
         debugPrint("ExerciseProvider: [FORCE UPDATE] Refreshing Mentzer coaching notes...");
         await _initializeDefaults();
         _templates = await _localRepo!.getAllTemplates(); // Refresh local list after init
@@ -225,6 +225,10 @@ class ExerciseProvider with ChangeNotifier {
       _create('French Presses', 'Triceps', ExerciseType.isolation, 2, 'Taking hold of a barbell, press it overhead to arms’ length. From this position, slowly lower the barbell to a point just behind your neck. Make sure that you keep your elbows stationary and as close to your ears as possible throughout the movement. Pause briefly in this fully stretched position and then press the bar back to the starting position.'),
       _create('Close-Grip Bench Presses', 'Chest, Triceps', ExerciseType.compound, 4, 'Lying down on a flat bench, take hold of a barbell with a close grip (your hands should be approximately four inches apart) and lower it slowly to the midpoint of your chest. Pause briefly in this position and then press the weight back to arms’ length.'),
       _create('Machine Incline Presses', 'Chest, Triceps', ExerciseType.compound, 3),
+      _create('Nautilus Rear Delt Raises', 'Shoulder', ExerciseType.isolation, 2),
+      _create('Hammer Rows', 'Back', ExerciseType.compound, 3),
+      _create('Hammer Shrugs', 'Back', ExerciseType.isolation, 2),
+      _create('Stiff-Legged Deadlifts', 'Back, Legs', ExerciseType.compound, 4),
     ];
 
     for (var t in defaults) {
@@ -235,11 +239,6 @@ class ExerciseProvider with ChangeNotifier {
   }
 
   ExerciseTemplate _create(String name, String muscles, ExerciseType type, int intensity, [String? about]) {
-    // ELITE ASSET MAPPING: Generate the path from the name
-    // Example: "Dumbbell Flyes" -> "lib/assets/images/exercises/dumbbell_flyes.jpg"
-    final String fileName = name.toLowerCase().replaceAll(' ', '_').replaceAll('-', '_').replaceAll('(', '').replaceAll(')', '');
-    final String assetPath = 'lib/assets/images/exercises/$fileName.jpg';
-
     return ExerciseTemplate(
       name: name,
       targetMuscles: muscles,
@@ -247,7 +246,6 @@ class ExerciseProvider with ChangeNotifier {
       intensity: intensity,
       isDefault: true,
       aboutTheMovement: about,
-      imageUrl: assetPath,
     );
   }
 

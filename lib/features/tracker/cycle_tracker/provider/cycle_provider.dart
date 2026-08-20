@@ -485,10 +485,8 @@ class CycleProvider with ChangeNotifier {
 
     try {
       await _localRepo!.insertCycle(localCycle);
-      // SYNC LOGIC: 
-      // 1. Custom cycles (!isDefault) always sync.
-      // 2. Active cycles (status == active) always sync, even if based on a default.
-      if (!cycle.isDefault || cycle.status == CycleStatus.active) {
+      // Only sync custom cycles to the cloud (Templates stay local)
+      if (!cycle.isDefault) {
         _syncCycle(localCycle);
       }
     } catch (e) {
@@ -555,13 +553,12 @@ class CycleProvider with ChangeNotifier {
     final template = _cycles.firstWhere((c) => c.id == templateId);
     
     // 3. Create a NEW instance of the cycle
-    // Note: We set isDefault to false for the ACTIVE COPY so it syncs and can be modified
     final newCycleId = Uuid().v4();
     final newActiveCycle = template.copyWith(
       id: newCycleId,
       status: CycleStatus.active,
       startedAt: DateTime.now(),
-      isDefault: false, 
+      isDefault: template.isDefault,
       isSynced: 0,
       workouts: template.workouts.map((tw) {
         final nwId = Uuid().v4();
