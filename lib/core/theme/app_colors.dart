@@ -9,7 +9,7 @@ class AppColors {
   // ── Backgrounds ──────────────────────────────────────
  
   static const Color background     = Color(0xFF000000);
-  static const Color surface        = Color(0xFF1A1A1A); 
+  static const Color surface        = Color(0xFF1A1A1A);
   static const Color surfaceLight   = Color(0xFF242424);
 
   // ── Primary Accent ────────────────────────────────────

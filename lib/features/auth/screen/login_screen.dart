@@ -18,13 +18,51 @@ class LoginScreen extends StatefulWidget {
   State<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> {
+class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStateMixin {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _obscurePassword = true;
 
+  late AnimationController _animController;
+  late Animation<double> _brandingOpacity;
+  late Animation<Offset> _formSlide;
+  late Animation<double> _buttonScale;
+
+  @override
+  void initState() {
+    super.initState();
+    _animController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1500),
+    );
+
+    _brandingOpacity = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _animController,
+        curve: const Interval(0.0, 0.4, curve: Curves.easeIn),
+      ),
+    );
+
+    _formSlide = Tween<Offset>(begin: const Offset(0, 0.05), end: Offset.zero).animate(
+      CurvedAnimation(
+        parent: _animController,
+        curve: const Interval(0.3, 0.7, curve: Curves.easeOutCubic),
+      ),
+    );
+
+    _buttonScale = Tween<double>(begin: 0.8, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _animController,
+        curve: const Interval(0.6, 1.0, curve: Curves.elasticOut),
+      ),
+    );
+
+    _animController.forward();
+  }
+
   @override
   void dispose() {
+    _animController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
@@ -98,12 +136,21 @@ class _LoginScreenState extends State<LoginScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const AuthBrandingSection(
-                  title: 'HEAVY\nDUTY',
-                  subtitle: 'INTENSE BRIEF INFREQUENT',
+                FadeTransition(
+                  opacity: _brandingOpacity,
+                  child: const AuthBrandingSection(
+                    title: 'HEAVY\nDUTY',
+                    subtitle: 'INTENSE BRIEF INFREQUENT',
+                  ),
                 ),
                 SizedBox(height: 40.h),
-                _buildLoginForm(isLoading),
+                SlideTransition(
+                  position: _formSlide,
+                  child: FadeTransition(
+                    opacity: _animController.drive(CurveTween(curve: const Interval(0.3, 0.7))),
+                    child: _buildLoginForm(isLoading),
+                  ),
+                ),
               ],
             ),
           ),
@@ -120,11 +167,14 @@ class _LoginScreenState extends State<LoginScreen> {
           child: Container(
             color: AppColors.surface.withValues(alpha: 0.1),
             padding: const EdgeInsets.all(64),
-            child: const Center(
-              child: AuthBrandingSection(
-                title: 'HEAVY\nDUTY',
-                subtitle: 'INTENSE BRIEF INFREQUENT',
-                isWideLayout: true,
+            child: Center(
+              child: FadeTransition(
+                opacity: _brandingOpacity,
+                child: const AuthBrandingSection(
+                  title: 'HEAVY\nDUTY',
+                  subtitle: 'INTENSE BRIEF INFREQUENT',
+                  isWideLayout: true,
+                ),
               ),
             ),
           ),
@@ -136,7 +186,13 @@ class _LoginScreenState extends State<LoginScreen> {
               constraints: BoxConstraints(maxWidth: formMaxWidth),
               child: SingleChildScrollView(
                 padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 32),
-                child: _buildLoginForm(isLoading, isWideLayout: true),
+                child: SlideTransition(
+                  position: _formSlide,
+                  child: FadeTransition(
+                    opacity: _animController.drive(CurveTween(curve: const Interval(0.3, 0.7))),
+                    child: _buildLoginForm(isLoading, isWideLayout: true),
+                  ),
+                ),
               ),
             ),
           ),
@@ -198,35 +254,45 @@ class _LoginScreenState extends State<LoginScreen> {
           ),
         ),
         SizedBox(height: 12.h.clamp(8, 20)),
-        AuthPrimaryButton(
-          label: 'LOG IN',
-          isLoading: isLoading,
-          onTap: _handleLogin,
-          isWideLayout: isWideLayout,
+        ScaleTransition(
+          scale: _buttonScale,
+          child: AuthPrimaryButton(
+            label: 'LOG IN',
+            isLoading: isLoading,
+            onTap: _handleLogin,
+            isWideLayout: isWideLayout,
+          ),
         ),
         SizedBox(height: 24.h.clamp(16, 40)),
-        AuthDividerWithText(text: 'OR LOG IN WITH', isWideLayout: isWideLayout),
-        SizedBox(height: 24.h.clamp(16, 40)),
-        Row(
-          children: [
-            Expanded(
-              child: AuthSocialIconButton(
-                icon: Icons.g_mobiledata_rounded,
-                color: AppColors.google,
-                onTap: () {},
-                isWideLayout: isWideLayout,
+        FadeTransition(
+          opacity: _animController.drive(CurveTween(curve: const Interval(0.7, 1.0))),
+          child: Column(
+            children: [
+              AuthDividerWithText(text: 'OR LOG IN WITH', isWideLayout: isWideLayout),
+              SizedBox(height: 24.h.clamp(16, 40)),
+              Row(
+                children: [
+                  Expanded(
+                    child: AuthSocialIconButton(
+                      icon: Icons.g_mobiledata_rounded,
+                      color: AppColors.google,
+                      onTap: () {},
+                      isWideLayout: isWideLayout,
+                    ),
+                  ),
+                  SizedBox(width: isWideLayout ? 16 : 16.w),
+                  Expanded(
+                    child: AuthSocialIconButton(
+                      icon: Icons.facebook_rounded,
+                      color: AppColors.facebook,
+                      onTap: () {},
+                      isWideLayout: isWideLayout,
+                    ),
+                  ),
+                ],
               ),
-            ),
-            SizedBox(width: isWideLayout ? 16 : 16.w),
-            Expanded(
-              child: AuthSocialIconButton(
-                icon: Icons.facebook_rounded,
-                color: AppColors.facebook,
-                onTap: () {},
-                isWideLayout: isWideLayout,
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
         SizedBox(height: 48.h.clamp(32, 80)),
         Center(
