@@ -205,6 +205,16 @@ class _ExerciseScreenState extends State<ExerciseScreen> with SingleTickerProvid
   }
 
   Widget _buildBaseExerciseCard(ExerciseTemplate exercise) {
+    // Resolve Aspect Ratio in background if not already known
+    if (exercise.aspectRatio == null && (exercise.imageUrl ?? "").startsWith('http')) {
+      final img = Image.network(exercise.imageUrl!);
+      img.image.resolve(const ImageConfiguration()).addListener(
+        ImageStreamListener((info, _) {
+          exercise.aspectRatio = info.image.width / info.image.height;
+        }),
+      );
+    }
+
     return GestureDetector(
       key: ValueKey(exercise.id),
       onTap: () {
@@ -217,6 +227,7 @@ class _ExerciseScreenState extends State<ExerciseScreen> with SingleTickerProvid
               intensity: exercise.intensity,
               imagePath: exercise.imageUrl ?? "",
               about: exercise.aboutTheMovement ?? "",
+              initialAspectRatio: exercise.aspectRatio,
             ),
           ),
         );
@@ -253,6 +264,7 @@ class _ExerciseScreenState extends State<ExerciseScreen> with SingleTickerProvid
                       highlightColor: AppColors.surfaceLight.withOpacity(0.2),
                       child: Container(color: Colors.white),
                     ),
+                    errorWidget: (context, url, error) => const SizedBox.shrink(),
                   ),
                 ),
               ),
