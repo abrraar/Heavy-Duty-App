@@ -252,26 +252,32 @@ class _ExerciseScreenState extends State<ExerciseScreen> with SingleTickerProvid
                   right: 0,
                   top: 0,
                   bottom: 0,
-                  width: 150.w,
                   child: Container(
                     foregroundDecoration: BoxDecoration(
                       gradient: LinearGradient(
-                        colors: [AppColors.surface, AppColors.surface.withOpacity(0.0)],
+                        colors: [
+                          AppColors.surface, // Solid color on the left
+                          AppColors.surface.withOpacity(0.0), // Transparent on the right
+                        ],
                         begin: Alignment.centerLeft,
                         end: Alignment.centerRight,
                       ),
                     ),
-                    child: CachedNetworkImage(
-                      imageUrl: exercise.imageUrl ?? '',
-                      fit: BoxFit.fitHeight,
-                      fadeInDuration: Duration.zero,
-                      fadeOutDuration: Duration.zero,
-                      placeholder: (context, url) => Shimmer.fromColors(
-                        baseColor: AppColors.surfaceLight.withOpacity(0.1),
-                        highlightColor: AppColors.surfaceLight.withOpacity(0.2),
-                        child: Container(color: Colors.white),
+                    child: Opacity(
+                      opacity: 0.6, // SUBTLE OPACITY: Prevents the image from being too distracting
+                      child: CachedNetworkImage(
+                        imageUrl: exercise.imageUrl ?? '',
+                        fit: BoxFit.fitHeight, // Fit to full height
+                        alignment: Alignment.centerRight, // Push to right
+                        fadeInDuration: Duration.zero,
+                        fadeOutDuration: Duration.zero,
+                        placeholder: (context, url) => Shimmer.fromColors(
+                          baseColor: AppColors.surfaceLight.withOpacity(0.1),
+                          highlightColor: AppColors.surfaceLight.withOpacity(0.2),
+                          child: Container(width: 150.w, color: Colors.white),
+                        ),
+                        errorWidget: (context, url, error) => const SizedBox.shrink(),
                       ),
-                      errorWidget: (context, url, error) => const SizedBox.shrink(),
                     ),
                   ),
                 ),
