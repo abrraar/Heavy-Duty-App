@@ -160,6 +160,7 @@ class _ExerciseScreenState extends State<ExerciseScreen> with SingleTickerProvid
             )
           : ListView.separated(
               physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+              cacheExtent: 3000, // Keeps many off-screen items in memory to prevent re-loading/shimmering
               padding: EdgeInsets.all(20.w),
               itemCount: exercises.length,
               separatorBuilder: (context, index) => SizedBox(height: 16.h),
@@ -240,7 +241,7 @@ class _ExerciseScreenState extends State<ExerciseScreen> with SingleTickerProvid
         decoration: BoxDecoration(
           color: AppColors.surface,
           borderRadius: BorderRadius.circular(20.r),
-          border: Border.all(color: AppColors.white.withOpacity(0.05)),
+          border: Border.all(color: AppColors.white.withOpacity(0.01)),
         ),
         child: ClipRRect(
           borderRadius: BorderRadius.circular(20.r),
@@ -253,9 +254,18 @@ class _ExerciseScreenState extends State<ExerciseScreen> with SingleTickerProvid
                   bottom: 0,
                   width: 150.w,
                   child: Container(
+                    foregroundDecoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [AppColors.surface, AppColors.surface.withOpacity(0.0)],
+                        begin: Alignment.centerLeft,
+                        end: Alignment.centerRight,
+                      ),
+                    ),
                     child: CachedNetworkImage(
                       imageUrl: exercise.imageUrl ?? '',
-                      fit: BoxFit.contain, // SHRINK TO FIT: Shows the entire image without cropping
+                      fit: BoxFit.fitHeight,
+                      fadeInDuration: Duration.zero,
+                      fadeOutDuration: Duration.zero,
                       placeholder: (context, url) => Shimmer.fromColors(
                         baseColor: AppColors.surfaceLight.withOpacity(0.1),
                         highlightColor: AppColors.surfaceLight.withOpacity(0.2),
