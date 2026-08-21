@@ -205,11 +205,14 @@ class _ExerciseScreenState extends State<ExerciseScreen> with SingleTickerProvid
   }
 
   Widget _buildBaseExerciseCard(ExerciseTemplate exercise) {
-    // Resolve Aspect Ratio in background if not already known
-    if (exercise.aspectRatio == null && (exercise.imageUrl ?? "").startsWith('http')) {
+    final bool hasImage = (exercise.imageUrl ?? "").isNotEmpty && (exercise.imageUrl ?? "").startsWith('http');
+
+    // Resolve Aspect Ratio in background for the Detail Screen (Method A)
+    if (hasImage && exercise.aspectRatio == null) {
       final img = Image.network(exercise.imageUrl!);
       img.image.resolve(const ImageConfiguration()).addListener(
         ImageStreamListener((info, _) {
+          // Store in memory without triggering list rebuild
           exercise.aspectRatio = info.image.width / info.image.height;
         }),
       );
@@ -243,108 +246,105 @@ class _ExerciseScreenState extends State<ExerciseScreen> with SingleTickerProvid
           borderRadius: BorderRadius.circular(20.r),
           child: Stack(
             children: [
-              Positioned(
-                right: 0,
-                top: 0,
-                bottom: 0,
-                width: 150.w,
-                child: Container(
-                  foregroundDecoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [AppColors.surface, AppColors.surface.withOpacity(0.0)],
-                      begin: Alignment.centerLeft,
-                      end: Alignment.centerRight,
+              if (hasImage)
+                Positioned(
+                  right: 0,
+                  top: 0,
+                  bottom: 0,
+                  width: 150.w,
+                  child: Container(
+                    child: CachedNetworkImage(
+                      imageUrl: exercise.imageUrl ?? '',
+                      fit: BoxFit.contain, // SHRINK TO FIT: Shows the entire image without cropping
+                      placeholder: (context, url) => Shimmer.fromColors(
+                        baseColor: AppColors.surfaceLight.withOpacity(0.1),
+                        highlightColor: AppColors.surfaceLight.withOpacity(0.2),
+                        child: Container(color: Colors.white),
+                      ),
+                      errorWidget: (context, url, error) => const SizedBox.shrink(),
                     ),
-                  ),
-                  child: CachedNetworkImage(
-                    imageUrl: exercise.imageUrl ?? '',
-                    fit: BoxFit.cover,
-                    placeholder: (context, url) => Shimmer.fromColors(
-                      baseColor: AppColors.surfaceLight.withOpacity(0.1),
-                      highlightColor: AppColors.surfaceLight.withOpacity(0.2),
-                      child: Container(color: Colors.white),
-                    ),
-                    errorWidget: (context, url, error) => const SizedBox.shrink(),
                   ),
                 ),
-              ),
               
               Padding(
                 padding: EdgeInsets.all(20.r),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      exercise.name.toUpperCase(),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: AppTextStyles.h3.copyWith(fontSize: 18.sp, letterSpacing: 0.5, color: AppColors.white),
-                    ),
-                    if (exercise.sharedBy != null)
-                      Padding(
-                        padding: EdgeInsets.only(top: 4.h),
-                        child: Container(
-                          padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
-                          decoration: BoxDecoration(
-                            color: Colors.blueAccent.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(6.r),
-                            border: Border.all(color: Colors.blueAccent.withOpacity(0.2)),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(Icons.share_rounded, color: Colors.blueAccent, size: 10.r),
-                              SizedBox(width: 4.w),
-                              Text(
-                                "SHARED BY ${exercise.sharedBy!.toUpperCase()}",
-                                style: AppTextStyles.labelSmall.copyWith(
-                                  color: Colors.blueAccent,
-                                  fontSize: 8.sp,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
+                child: SizedBox(
+                  width: hasImage ? 200.w : double.infinity, // Guard text from overlapping image
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        exercise.name.toUpperCase(),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppTextStyles.h3.copyWith(fontSize: 18.sp, letterSpacing: 0.5, color: AppColors.white),
                       ),
-                    SizedBox(height: 4.h),
-                    Row(
-                      children: [
-                        Container(
-                          padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 2.h),
-                          decoration: BoxDecoration(
-                            color: exercise.type == ExerciseType.compound ? AppColors.crimson.withOpacity(0.2) : AppColors.white.withOpacity(0.05),
-                            borderRadius: BorderRadius.circular(4.r),
-                            border: Border.all(color: exercise.type == ExerciseType.compound ? AppColors.crimson.withOpacity(0.3) : AppColors.white.withOpacity(0.1)),
-                          ),
-                          child: Text(
-                            exercise.type.name.toUpperCase(),
-                            style: AppTextStyles.labelSmall.copyWith(
-                              fontSize: 8.sp, 
-                              color: exercise.type == ExerciseType.compound ? AppColors.crimson : AppColors.textSecondary,
-                              fontWeight: FontWeight.w500,
+                      if (exercise.sharedBy != null)
+                        Padding(
+                          padding: EdgeInsets.only(top: 4.h),
+                          child: Container(
+                            padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
+                            decoration: BoxDecoration(
+                              color: Colors.blueAccent.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(6.r),
+                              border: Border.all(color: Colors.blueAccent.withOpacity(0.2)),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.share_rounded, color: Colors.blueAccent, size: 10.r),
+                                SizedBox(width: 4.w),
+                                Text(
+                                  "SHARED BY ${exercise.sharedBy!.toUpperCase()}",
+                                  style: AppTextStyles.labelSmall.copyWith(
+                                    color: Colors.blueAccent,
+                                    fontSize: 8.sp,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                         ),
-                        SizedBox(width: 8.w),
-                        Expanded(
-                          child: Text(
-                            exercise.targetMuscles?.toUpperCase() ?? "",
-                            overflow: TextOverflow.ellipsis,
-                            style: AppTextStyles.bodySmall.copyWith(color: AppColors.textSecondary, fontSize: 11.sp),
+                      SizedBox(height: 4.h),
+                      Row(
+                        children: [
+                          Container(
+                            padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 2.h),
+                            decoration: BoxDecoration(
+                              color: exercise.type == ExerciseType.compound ? AppColors.crimson.withOpacity(0.2) : AppColors.white.withOpacity(0.05),
+                              borderRadius: BorderRadius.circular(4.r),
+                              border: Border.all(color: exercise.type == ExerciseType.compound ? AppColors.crimson.withOpacity(0.3) : AppColors.white.withOpacity(0.1)),
+                            ),
+                            child: Text(
+                              exercise.type.name.toUpperCase(),
+                              style: AppTextStyles.labelSmall.copyWith(
+                                fontSize: 8.sp, 
+                                color: exercise.type == ExerciseType.compound ? AppColors.crimson : AppColors.textSecondary,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
                           ),
-                        ),
-                      ],
-                    ),
-                    SizedBox(height: 8.h),
-                    Row(
-                      children: [
-                        Text('DEMAND: ', style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary, fontSize: 9.sp, fontWeight: FontWeight.bold)),
-                        _buildFireRating(exercise.intensity),
-                      ],
-                    ),
-                  ],
+                          SizedBox(width: 8.w),
+                          Expanded(
+                            child: Text(
+                              exercise.targetMuscles?.toUpperCase() ?? "",
+                              overflow: TextOverflow.ellipsis,
+                              style: AppTextStyles.bodySmall.copyWith(color: AppColors.textSecondary, fontSize: 11.sp),
+                            ),
+                          ),
+                        ],
+                      ),
+                      SizedBox(height: 8.h),
+                      Row(
+                        children: [
+                          Text('DEMAND: ', style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary, fontSize: 9.sp, fontWeight: FontWeight.bold)),
+                          _buildFireRating(exercise.intensity),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
               ),
               
@@ -551,4 +551,5 @@ class _ExerciseScreenState extends State<ExerciseScreen> with SingleTickerProvid
         decoration: BoxDecoration(color: AppColors.textSecondary.withOpacity(0.2), borderRadius: BorderRadius.circular(2.r)),
       ),
     );
-  }}
+  }
+}
