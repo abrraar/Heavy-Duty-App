@@ -22,6 +22,7 @@ class ExerciseDetailScreen extends StatefulWidget {
   final int intensity;
   final String imagePath;
   final String about;
+  final double? initialAspectRatio;
 
   const ExerciseDetailScreen({
     super.key,
@@ -30,6 +31,7 @@ class ExerciseDetailScreen extends StatefulWidget {
     required this.intensity,
     required this.imagePath,
     this.about = "",
+    this.initialAspectRatio,
   });
 
   @override
@@ -41,12 +43,44 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
     'Chest', 'Back', 'Legs', 'Calf', 'Abdominals', 'Shoulder', 'Biceps', 'Triceps'
   ];
 
+  double? _calculatedHeight;
+
+  @override
+  void initState() {
+    super.initState();
+    // If we passed a ratio from the list, set the height immediately
+    if (widget.initialAspectRatio != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        final double screenWidth = MediaQuery.of(context).size.width;
+        setState(() {
+          _calculatedHeight = (screenWidth / widget.initialAspectRatio!).clamp(250.h, 450.h);
+        });
+      });
+    }
+  }
+
+  void _updateImageHeight(String url) {
+    if (url.isEmpty || !url.startsWith('http')) return;
+    
+    final image = Image.network(url);
+    image.image.resolve(const ImageConfiguration()).addListener(
+      ImageStreamListener((ImageInfo info, bool _) {
+        if (mounted) {
+          final double screenWidth = MediaQuery.of(context).size.width;
+          final double aspectRatio = info.image.width / info.image.height;
+          setState(() {
+            _calculatedHeight = (screenWidth / aspectRatio).clamp(250.h, 450.h);
+          });
+        }
+      }),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    // ELITE DYNAMIC HEIGHT CALCULATION
-    final double screenWidth = MediaQuery.of(context).size.width;
     final double standardHeight = 250.h;
-    
+    final double screenWidth = MediaQuery.of(context).size.width;
+
     return Scaffold(
       backgroundColor: AppColors.background,
       body: Consumer2<CycleProvider, ExerciseProvider>(
@@ -67,11 +101,21 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
             },
           );
 
-          // Calculate height: If image exists and is a valid URL, use 16:9 ratio, else fallback to 250
-          final bool hasImage = (template.imageUrl ?? "").isNotEmpty && template.imageUrl!.startsWith('http');
-          final double dynamicHeight = hasImage 
-              ? (screenWidth / 1.77).clamp(standardHeight, 350.h) 
-              : standardHeight;
+          // ELITE INSTANT HEIGHT LOGIC (METHOD A)
+          // Priority 1: Use the height already calculated (State persistence)
+          // Priority 2: Calculate from the passed initialAspectRatio (Instant navigation)
+          // Priority 3: Fallback to standard 250.h
+          double dynamicHeight = standardHeight;
+          if (_calculatedHeight != null) {
+            dynamicHeight = _calculatedHeight!;
+          } else if (widget.initialAspectRatio != null) {
+            dynamicHeight = (screenWidth / widget.initialAspectRatio!).clamp(250.h, 450.h);
+          }
+
+          // Trigger dimension resolution if we don't have a value yet
+          if (_calculatedHeight == null && (template.imageUrl ?? "").startsWith('http')) {
+            _updateImageHeight(template.imageUrl!);
+          }
 
           final cleanNameForLogs = template.name.trim().toUpperCase();
           final relevantLogs = cycleProv.logs.where((log) {
@@ -84,7 +128,10 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
           }).toList()..sort((a, b) => b.timestamp.compareTo(a.timestamp));
 
           return RefreshIndicator(
-            onRefresh: () => exProvider.forceRefresh(),
+            onRefresh: () async {
+              setState(() => _calculatedHeight = null); // Reset for re-calculation
+              await exProvider.forceRefresh();
+            },
             color: AppColors.crimson,
             backgroundColor: AppColors.surface,
             child: CustomScrollView(

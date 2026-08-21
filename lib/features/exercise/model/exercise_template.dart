@@ -13,6 +13,9 @@ class ExerciseTemplate {
   final String? aboutTheMovement;
   final String? sharedBy;
   final int isSynced;
+  
+  // IN-MEMORY CACHE: For dynamic UI adjustments
+  double? aspectRatio;
 
   ExerciseTemplate({
     String? id,

@@ -253,7 +253,6 @@ class ExerciseProvider with ChangeNotifier {
       _create('Nautilus Triceps Extensions', 'Triceps', ExerciseType.isolation, 2, 'Sit down in the Nautilus triceps machine so that your back is against the pad. Place your hands and elbows on the pads provided. Slowly extend both arms forward until full contraction. Pause in this position and then lower the handles back to the starting position.'),
       _create('French Presses', 'Triceps', ExerciseType.isolation, 2, 'Taking hold of a barbell, press it overhead to arms’ length. From this position, slowly lower the barbell to a point just behind your neck. Make sure that you keep your elbows stationary and as close to your ears as possible throughout the movement. Pause briefly in this fully stretched position and then press the bar back to the starting position.'),
       _create('Close-Grip Bench Presses', 'Chest, Triceps', ExerciseType.compound, 4, 'Lying down on a flat bench, take hold of a barbell with a close grip (your hands should be approximately four inches apart) and lower it slowly to the midpoint of your chest. Pause briefly in this position and then press the weight back to arms’ length.'),
-      _create('Machine Incline Presses', 'Chest, Triceps', ExerciseType.compound, 3),
     ];
 
     for (var t in defaults) {

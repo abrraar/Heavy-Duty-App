@@ -204,30 +204,6 @@ class _LoginScreenState extends State<LoginScreen> {
           onTap: _handleLogin,
           isWideLayout: isWideLayout,
         ),
-        SizedBox(height: 24.h.clamp(16, 40)),
-        AuthDividerWithText(text: 'OR LOG IN WITH', isWideLayout: isWideLayout),
-        SizedBox(height: 24.h.clamp(16, 40)),
-        Row(
-          children: [
-            Expanded(
-              child: AuthSocialIconButton(
-                icon: Icons.g_mobiledata_rounded,
-                color: AppColors.google,
-                onTap: () {},
-                isWideLayout: isWideLayout,
-              ),
-            ),
-            SizedBox(width: isWideLayout ? 16 : 16.w),
-            Expanded(
-              child: AuthSocialIconButton(
-                icon: Icons.facebook_rounded,
-                color: AppColors.facebook,
-                onTap: () {},
-                isWideLayout: isWideLayout,
-              ),
-            ),
-          ],
-        ),
         SizedBox(height: 48.h.clamp(32, 80)),
         Center(
           child: Wrap(
