@@ -243,9 +243,18 @@ class _AffirmationScreenState extends State<AffirmationScreen> with SingleTicker
           ),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text("CANCEL")),
+          TextButton(
+            onPressed: () => Navigator.pop(context), 
+            child: Text(
+              "CANCEL", 
+              style: AppTextStyles.labelSmall.copyWith(color: AppColors.crimson, fontWeight: FontWeight.bold)
+            )
+          ),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.crimson),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.crimson,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.r)),
+            ),
             onPressed: () {
               if (_addController.text.trim().isNotEmpty) {
                 context.read<AffirmationProvider>().addAffirmation(_addController.text.trim());
@@ -253,7 +262,10 @@ class _AffirmationScreenState extends State<AffirmationScreen> with SingleTicker
                 Navigator.pop(context);
               }
             },
-            child: const Text("SAVE"),
+            child: Text(
+              "ADD", 
+              style: AppTextStyles.labelSmall.copyWith(color: Colors.white, fontWeight: FontWeight.w900)
+            ),
           ),
         ],
       ),
