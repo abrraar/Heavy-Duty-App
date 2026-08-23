@@ -8,6 +8,7 @@ import 'package:collection/collection.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'package:uuid/uuid.dart';
+import '../../../../core/services/notification_service.dart';
 import '../data/supplement_local_repository.dart';
 import '../data/supplement_cloud_repository.dart';
 import 'package:heavy_duty/core/services/notification_service.dart';
