@@ -143,7 +143,6 @@ class NotificationService {
     );
 
     await _notificationsPlugin.show(id, title, body, details, payload: payload);
-  }
     debugPrint("NotificationService: Instant notification sent: $title");
   }
 
