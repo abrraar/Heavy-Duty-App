@@ -19,6 +19,7 @@ class _ChangeUsernameScreenState extends State<ChangeUsernameScreen> {
   bool _isChecking = false;
   bool? _isAvailable;
   String? _errorText;
+  List<String> _suggestions = [];
 
   @override
   void initState() {
@@ -30,6 +31,16 @@ class _ChangeUsernameScreenState extends State<ChangeUsernameScreen> {
   void dispose() {
     _usernameController.dispose();
     super.dispose();
+  }
+
+  void _generateSuggestions(String base) {
+    _suggestions = [
+      "${base}_HIT",
+      "${base}_ELITE",
+      "${base}7",
+      "PRO_$base",
+      "${base}_GAINS",
+    ];
   }
 
   Future<void> _handleVerifyAndSave() async {
@@ -44,6 +55,7 @@ class _ChangeUsernameScreenState extends State<ChangeUsernameScreen> {
       _isChecking = true;
       _isAvailable = null;
       _errorText = null;
+      _suggestions = [];
     });
 
     final authProv = context.read<AuthProvider>();
@@ -68,13 +80,18 @@ class _ChangeUsernameScreenState extends State<ChangeUsernameScreen> {
         _isChecking = false;
         _isAvailable = false;
         _errorText = "USERNAME IS ALREADY TAKEN";
+        _generateSuggestions(newUsername);
       });
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final isLoading = context.watch<AuthProvider>().isLoading || _isChecking;
+    final authProv = context.watch<AuthProvider>();
+    final isLoading = authProv.isLoading || _isChecking;
+    final currentUsername = authProv.username;
+    final enteredUsername = _usernameController.text.trim();
+    final isChanged = enteredUsername.isNotEmpty && enteredUsername != currentUsername;
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -83,7 +100,7 @@ class _ChangeUsernameScreenState extends State<ChangeUsernameScreen> {
           children: [
             const EliteSettingsAppBar(title: "IDENTITY"),
             Expanded(
-              child: Padding(
+              child: SingleChildScrollView(
                 padding: EdgeInsets.all(24.r),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -106,6 +123,7 @@ class _ChangeUsernameScreenState extends State<ChangeUsernameScreen> {
                       onChanged: (_) => setState(() {
                         _isAvailable = null;
                         _errorText = null;
+                        _suggestions = [];
                       }),
                       decoration: InputDecoration(
                         hintText: "ENTER USERNAME",
@@ -122,13 +140,57 @@ class _ChangeUsernameScreenState extends State<ChangeUsernameScreen> {
                     if (_errorText != null)
                       Padding(
                         padding: EdgeInsets.only(top: 8.h, left: 4.w),
-                        child: Text(_errorText!, style: TextStyle(color: AppColors.error, fontSize: 10.sp, fontWeight: FontWeight.bold)),
+                        child: Text(
+                          _errorText!, 
+                          style: AppTextStyles.labelSmall.copyWith(
+                            color: AppColors.error, 
+                            fontSize: 10.sp, 
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: 1.2,
+                          ),
+                        ),
                       ),
 
-                    const Spacer(),
+                    if (_suggestions.isNotEmpty) ...[
+                      SizedBox(height: 24.h),
+                      _buildLabel("SUGGESTIONS"),
+                      Wrap(
+                        spacing: 8.w,
+                        runSpacing: 10.h,
+                        children: _suggestions.map((s) => GestureDetector(
+                          onTap: () {
+                            _usernameController.text = s;
+                            setState(() {
+                              _suggestions = [];
+                              _errorText = null;
+                              _isAvailable = null;
+                            });
+                          },
+                          child: Container(
+                            padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
+                            decoration: BoxDecoration(
+                              color: AppColors.crimson.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(8.r),
+                              border: Border.all(color: AppColors.crimson.withOpacity(0.3)),
+                            ),
+                            child: Text(
+                              s, 
+                              style: AppTextStyles.labelSmall.copyWith(
+                                color: AppColors.crimson, 
+                                fontWeight: FontWeight.bold,
+                                fontSize: 10.sp,
+                              ),
+                            ),
+                          ),
+                        )).toList(),
+                      ),
+                    ],
+
+                    SizedBox(height: 60.h),
                     _PrimaryButton(
                       label: "VERIFY & SAVE",
                       isLoading: isLoading,
+                      enabled: isChanged,
                       onTap: _handleVerifyAndSave,
                     ),
                     SizedBox(height: 20.h),
@@ -157,24 +219,34 @@ class _PrimaryButton extends StatelessWidget {
   final String label;
   final VoidCallback onTap;
   final bool isLoading;
-  const _PrimaryButton({required this.label, required this.onTap, this.isLoading = false});
+  final bool enabled;
+  const _PrimaryButton({
+    required this.label, 
+    required this.onTap, 
+    this.isLoading = false,
+    this.enabled = true,
+  });
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: isLoading ? null : onTap,
-      child: Container(
-        width: double.infinity,
-        height: 56.h,
-        decoration: BoxDecoration(
-          color: AppColors.crimson,
-          borderRadius: BorderRadius.circular(12.r),
-          boxShadow: [BoxShadow(color: AppColors.crimson.withOpacity(0.3), blurRadius: 15, offset: const Offset(0, 8))],
+      onTap: (isLoading || !enabled) ? null : onTap,
+      child: AnimatedOpacity(
+        duration: const Duration(milliseconds: 200),
+        opacity: enabled ? 1.0 : 0.4,
+        child: Container(
+          width: double.infinity,
+          height: 56.h,
+          decoration: BoxDecoration(
+            color: AppColors.crimson,
+            borderRadius: BorderRadius.circular(12.r),
+            boxShadow: enabled ? [BoxShadow(color: AppColors.crimson.withOpacity(0.3), blurRadius: 15, offset: const Offset(0, 8))] : [],
+          ),
+          alignment: Alignment.center,
+          child: isLoading 
+            ? const CircularProgressIndicator(color: Colors.white)
+            : Text(label, style: AppTextStyles.labelMedium.copyWith(color: Colors.white, fontWeight: FontWeight.w900)),
         ),
-        alignment: Alignment.center,
-        child: isLoading 
-          ? const CircularProgressIndicator(color: Colors.white)
-          : Text(label, style: AppTextStyles.labelMedium.copyWith(color: Colors.white, fontWeight: FontWeight.w900)),
       ),
     );
   }

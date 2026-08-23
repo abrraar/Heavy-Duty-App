@@ -20,6 +20,7 @@ import 'package:heavy_duty/features/tracker/supplement/provider/supplement_provi
 import 'package:heavy_duty/features/exercise/provider/exercise_provider.dart';
 import 'package:heavy_duty/features/affirmation/provider/affirmation_provider.dart';
 import 'package:heavy_duty/core/providers/ui_provider.dart';
+import 'package:heavy_duty/core/providers/update_provider.dart';
 import 'package:heavy_duty/core/widgets/elite_snackbar.dart';
 
 import '../tracker/hydration/model/hydration_settings.dart';
@@ -51,6 +52,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           context.read<AffirmationProvider>().forceRefresh(),
           context.read<UiProvider>().forceRefresh(),
           context.read<AuthProvider>().refreshEmails(),
+          context.read<UpdateProvider>().checkForUpdates(showNotification: false),
         ]);
       
       if (mounted) {
@@ -233,11 +235,34 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               ) 
                             : null,
                         ),
-                        _buildSettingTile(
-                          icon: Icons.info_outline_rounded,
-                          title: "HEAVY DUTY v1.0.5",
-                          subtitle: "All systems operational",
-                          trailing: Text("UP TO DATE", style: AppTextStyles.labelSmall.copyWith(color: AppColors.success, fontSize: 9.sp, fontWeight: FontWeight.bold)),
+                        Consumer<UpdateProvider>(
+                          builder: (context, updateProv, _) {
+                            final bool update = updateProv.isUpdateAvailable;
+                            return _buildSettingTile(
+                              icon: Icons.info_outline_rounded,
+                              title: "HEAVY DUTY v${updateProv.currentVersion}",
+                              subtitle: update ? "New version available. Tap to upgrade." : "All systems operational",
+                              onTap: update ? updateProv.launchUpdateUrl : null,
+                              trailing: update 
+                                ? Text(
+                                    "NOT UP TO DATE", 
+                                    style: AppTextStyles.labelSmall.copyWith(
+                                      color: AppColors.crimson, 
+                                      fontSize: 9.sp, 
+                                      fontWeight: FontWeight.w900,
+                                      letterSpacing: 1,
+                                    ),
+                                  )
+                                : Text(
+                                    "UP TO DATE", 
+                                    style: AppTextStyles.labelSmall.copyWith(
+                                      color: AppColors.success, 
+                                      fontSize: 9.sp, 
+                                      fontWeight: FontWeight.bold
+                                    ),
+                                  ),
+                            );
+                          },
                         ),
 
                         SizedBox(height: 48.h),

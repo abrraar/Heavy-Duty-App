@@ -1408,7 +1408,7 @@ class _WorkoutListScreenState extends State<WorkoutListScreen> {
                                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                   children: [
                                     Text(
-                                      "TOTAL WORKOUT TONNAGE",
+                                      "TOTAL WORKOUT T",
                                       style: AppTextStyles.labelSmall.copyWith(
                                         color: AppColors.white,
                                         fontSize: 9.sp,

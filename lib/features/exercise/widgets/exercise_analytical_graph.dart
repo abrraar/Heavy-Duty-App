@@ -707,7 +707,7 @@ class ExerciseComparisonWidget extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(label, style: AppTextStyles.labelSmall.copyWith(color: color, fontWeight: FontWeight.w500, fontSize: 13.sp, letterSpacing: 1)),
+              Text(label, style: AppTextStyles.labelSmall.copyWith(color: color, fontWeight: FontWeight.w900, fontSize: 13.sp, letterSpacing: 1)),
               Row(
                 children: [
                   if (trendIcon != null) ...[
@@ -716,7 +716,7 @@ class ExerciseComparisonWidget extends StatelessWidget {
                   ],
                   Text(
                     isNeutral ? "0%" : "${delta > 0 ? '+' : ''}${percent.toStringAsFixed(1)}%", 
-                    style: AppTextStyles.labelSmall.copyWith(color: trendColor, fontWeight: FontWeight.w500, fontSize: 14.sp),
+                    style: AppTextStyles.labelSmall.copyWith(color: trendColor, fontWeight: FontWeight.w900, fontSize: 14.sp),
                   ),
                 ],
               ),
@@ -726,9 +726,9 @@ class ExerciseComparisonWidget extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              _valItem("Point A", v1, "", precision), // Simplified Point A/B
+              _valItem("Point A", v1, "", precision),
               _valItem("Point B", v2, "", precision),
-              _valItem("Delta", delta, unit, precision, isDelta: true, isNeutral: isNeutral),
+              _valItem("Difference", delta, unit, precision, isDelta: true, isNeutral: isNeutral),
             ],
           ),
         ],
@@ -751,7 +751,7 @@ class ExerciseComparisonWidget extends StatelessWidget {
         SizedBox(height: 4.h),
         Text(
           "$text$u", 
-          style: AppTextStyles.labelMedium.copyWith(color: Colors.white, fontWeight: FontWeight.w500, fontSize: 16.sp),
+          style: AppTextStyles.labelMedium.copyWith(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 16.sp),
         ),
       ],
     );

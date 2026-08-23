@@ -25,6 +25,7 @@ import 'features/tracker/body_composition/provider/body_comp_provider.dart';
 import 'features/affirmation/provider/affirmation_provider.dart';
 import 'core/providers/ui_provider.dart';
 import 'features/tracker/supplement/provider/supplement_provider.dart';
+import 'core/providers/update_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized(); // Ensure this is first
@@ -70,6 +71,7 @@ void main() async {
         ChangeNotifierProvider(create: (_) => ExerciseProvider()),
         ChangeNotifierProvider(create: (_) => UiProvider()),
         ChangeNotifierProvider(create: (_) => AffirmationProvider()),
+        ChangeNotifierProvider(create: (_) => UpdateProvider()),
       ],
       child: const AuthWrapper(child: MyApp()),
     ),
@@ -94,6 +96,9 @@ class _AuthWrapperState extends State<AuthWrapper> {
     
     // Initialize Alarms
     context.read<SleepAlarmProvider>().init();
+
+    // Check for Updates
+    context.read<UpdateProvider>().init();
     
     // Listen for Alarms
     _alarmSubscription = Alarm.ringStream.stream.listen((settings) {

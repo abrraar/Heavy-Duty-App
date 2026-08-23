@@ -648,8 +648,8 @@ class CycleComparisonWidget extends StatelessWidget {
     final List<Widget> items = [];
     
     final metrics = [
-      {'label': "STRENGTH", 'key': "strength", 'color': AppColors.crimson, 'unit': "kg"},
-      {'label': "VOLUME", 'key': "volume", 'color': Colors.orangeAccent, 'unit': "kg"},
+      {'label': "STRENGTH", 'key': "strength", 'color': AppColors.crimson, 'unit': "%"},
+      {'label': "VOLUME", 'key': "volume", 'color': Colors.orangeAccent, 'unit': " T"},
     ];
 
     for (var m in metrics) {

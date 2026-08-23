@@ -122,12 +122,17 @@ class NotificationService {
   }
 
   /// Simple instant notification for testing
-  Future<void> showInstantNotification(String title, String body) async {
+  Future<void> showInstantNotification({
+    int id = 0,
+    required String title,
+    required String body,
+    String? payload,
+  }) async {
     if (!_isInitialized) await init();
 
     const AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
       'heavy_duty_channel',
-      'Supplement Reminders',
+      'System Alerts',
       importance: Importance.max,
       priority: Priority.high,
     );
@@ -137,7 +142,8 @@ class NotificationService {
       iOS: DarwinNotificationDetails(),
     );
 
-    await _notificationsPlugin.show(0, title, body, details);
+    await _notificationsPlugin.show(id, title, body, details, payload: payload);
+  }
     debugPrint("NotificationService: Instant notification sent: $title");
   }
 

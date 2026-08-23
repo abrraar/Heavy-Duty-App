@@ -1019,7 +1019,7 @@ class _CycleTrackingScreenState extends State<CycleTrackingScreen>
               duration: const Duration(milliseconds: 300),
               curve: Curves.fastOutSlowIn,
               alignment: Alignment.topCenter,
-              child: isExpanded ? Container(padding: EdgeInsets.fromLTRB(24.w, 0, 24.w, 24.h), child: Container(padding: EdgeInsets.all(20.r), decoration: BoxDecoration(color: AppColors.surfaceLight.withOpacity(0.3), borderRadius: BorderRadius.circular(16.r)), child: Row(crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Column(crossAxisAlignment: CrossAxisAlignment.start, children: [if (volumeProg != 0) ...[Text("TONNAGE CHANGE", style: AppTextStyles.labelSmall.copyWith(color: AppColors.white, fontSize: 9.sp, fontWeight: FontWeight.w500, letterSpacing: 1)), SizedBox(height: 8.h), Text("${volumeProg > 0 ? '+' : ''}${(volumeProg * 100).toStringAsFixed(1)}%", style: AppTextStyles.labelMedium.copyWith(color: volumeProg > 0 ? AppColors.success : AppColors.crimson, fontWeight: FontWeight.w900, fontSize: 18.sp)), if (totalVolume != null && totalVolume > 0) SizedBox(height: 12.h)], if (totalVolume != null && totalVolume > 0) ...[Text("TOTAL TONNAGE", style: AppTextStyles.labelSmall.copyWith(color: AppColors.white, fontSize: 9.sp, fontWeight: FontWeight.w500, letterSpacing: 1)), SizedBox(height: 4.h), Text("${totalVolume.toStringAsFixed(1)} T", style: AppTextStyles.labelMedium.copyWith(color: AppColors.white.withOpacity(0.9), fontWeight: FontWeight.w900, fontSize: 16.sp))]]) , if (startDate != null) Column(crossAxisAlignment: CrossAxisAlignment.end, children: [_dateRow("STARTED", startDate), SizedBox(height: 8.h), _dateRow("ENDED", endDate ?? startDate)])]))) : const SizedBox(width: double.infinity, height: 0),
+              child: isExpanded ? Container(padding: EdgeInsets.fromLTRB(24.w, 0, 24.w, 24.h), child: Container(padding: EdgeInsets.all(20.r), decoration: BoxDecoration(color: AppColors.surfaceLight.withOpacity(0.3), borderRadius: BorderRadius.circular(16.r)), child: Row(crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Column(crossAxisAlignment: CrossAxisAlignment.start, children: [if (volumeProg != 0) ...[Text("T CHANGE", style: AppTextStyles.labelSmall.copyWith(color: AppColors.white, fontSize: 9.sp, fontWeight: FontWeight.w500, letterSpacing: 1)), SizedBox(height: 8.h), Text("${volumeProg > 0 ? '+' : ''}${(volumeProg * 100).toStringAsFixed(1)}%", style: AppTextStyles.labelMedium.copyWith(color: volumeProg > 0 ? AppColors.success : AppColors.crimson, fontWeight: FontWeight.w900, fontSize: 18.sp)), if (totalVolume != null && totalVolume > 0) SizedBox(height: 12.h)], if (totalVolume != null && totalVolume > 0) ...[Text("TOTAL T", style: AppTextStyles.labelSmall.copyWith(color: AppColors.white, fontSize: 9.sp, fontWeight: FontWeight.w500, letterSpacing: 1)), SizedBox(height: 4.h), Text("${totalVolume.toStringAsFixed(1)} T", style: AppTextStyles.labelMedium.copyWith(color: AppColors.white.withOpacity(0.9), fontWeight: FontWeight.w900, fontSize: 16.sp))]]) , if (startDate != null) Column(crossAxisAlignment: CrossAxisAlignment.end, children: [_dateRow("STARTED", startDate), SizedBox(height: 8.h), _dateRow("ENDED", endDate ?? startDate)])]))) : const SizedBox(width: double.infinity, height: 0),
             ),
           ],
         ],
@@ -1089,7 +1089,7 @@ class _CycleTrackingScreenState extends State<CycleTrackingScreen>
   Widget _buildSectionHeader(String title) { return Row(children: [Container(width: 2.5.w, height: 12.h, decoration: BoxDecoration(color: AppColors.crimson, borderRadius: BorderRadius.circular(2.r))), SizedBox(width: 8.w), Text(title, style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary.withValues(alpha: 0.8), fontSize: 12.sp))]); }
 
   String _getVolumeUnit(CycleProvider provider) {
-    return "TONNAGE";
+    return " T";
   }
 
   String _getStrengthUnit() {
@@ -1288,10 +1288,10 @@ class _CycleTrackingScreenState extends State<CycleTrackingScreen>
             final delta = v2 - v1;
             final percent = v1 != 0 ? (delta / v1.abs()) * 100 : 0.0;
             return Container(
-              margin: EdgeInsets.only(bottom: 12.h),
-              padding: EdgeInsets.all(12.r),
-              decoration: BoxDecoration(color: AppColors.surfaceLight.withOpacity(0.3), borderRadius: BorderRadius.circular(12.r)),
-              child: Column(children: [Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Text(meta.label, style: AppTextStyles.labelSmall.copyWith(color: meta.color, fontWeight: FontWeight.bold, letterSpacing: 1)), Row(children: [Icon(delta >= 0 ? Icons.trending_up_rounded : Icons.trending_down_rounded, color: delta >= 0 ? AppColors.success : AppColors.crimson, size: 14.r), SizedBox(width: 4.w), Text("${delta >= 0 ? '+' : ''}${percent.toStringAsFixed(1)}%", style: AppTextStyles.labelSmall.copyWith(color: delta >= 0 ? Colors.greenAccent : AppColors.crimson, fontWeight: FontWeight.bold))])]), SizedBox(height: 12.h), Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [_buildCompValue("A", v1, meta.unit), Container(width: 1.w, height: 20.h, color: AppColors.white.withOpacity(0.05)), _buildCompValue("B", v2, meta.unit), Container(width: 1.w, height: 20.h, color: AppColors.white.withOpacity(0.05)), _buildCompValue("Δ", delta, meta.unit, isDelta: true)])]),
+              margin: EdgeInsets.only(bottom: 16.h),
+              padding: EdgeInsets.all(20.r),
+              decoration: BoxDecoration(color: AppColors.surfaceLight.withOpacity(0.3), borderRadius: BorderRadius.circular(20.r)),
+              child: Column(children: [Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Text(meta.label, style: AppTextStyles.labelSmall.copyWith(color: meta.color, fontWeight: FontWeight.w900, fontSize: 13.sp, letterSpacing: 1)), Row(children: [Icon(delta >= 0 ? Icons.trending_up_rounded : Icons.trending_down_rounded, color: delta >= 0 ? Colors.greenAccent : Colors.redAccent, size: 18.r), SizedBox(width: 6.w), Text("${delta >= 0 ? '+' : ''}${percent.toStringAsFixed(1)}%", style: AppTextStyles.labelSmall.copyWith(color: delta >= 0 ? Colors.greenAccent : Colors.redAccent, fontWeight: FontWeight.w900, fontSize: 14.sp))])]), SizedBox(height: 20.h), Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [_buildCompValue("Point A", v1, meta.unit), _buildCompValue("Point B", v2, meta.unit), _buildCompValue("Difference", delta, meta.unit, isDelta: true)])]),
             );
         }),
       ],
@@ -1301,13 +1301,12 @@ class _CycleTrackingScreenState extends State<CycleTrackingScreen>
   Widget _buildCompValue(String label, double val, String unit, {bool isDelta = false}) {
     return Column(
       children: [
-        Text(label, style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary.withOpacity(0.3), fontSize: 7.sp, fontWeight: FontWeight.bold)),
-        SizedBox(height: 2.h),
+        Text(label, style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary.withOpacity(0.4), fontSize: 10.sp, fontWeight: FontWeight.bold)),
+        SizedBox(height: 4.h),
         Text(
-          "${isDelta && val > 0 ? '+' : ''}${val.toStringAsFixed(1)}",
-          style: AppTextStyles.labelSmall.copyWith(color: AppColors.white, fontWeight: FontWeight.bold, fontSize: 11.sp),
+          "${isDelta && val > 0 ? '+' : ''}${val.toStringAsFixed(1)}$unit",
+          style: AppTextStyles.labelMedium.copyWith(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 16.sp),
         ),
-        Text(unit.toUpperCase(), style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary.withOpacity(0.5), fontSize: 6.sp)),
       ],
     );
   }
@@ -1395,7 +1394,7 @@ class _CycleFilterSheetState extends State<_CycleFilterSheet> {
                   _buildSectionLabel("STRENGTH PROGRESSION (%)"),
                   Row(children: [Expanded(child: _buildTextField(_minStrengthController, "MIN", (val) => _updateFilter(_currentFilter.copyWith(minStrength: double.tryParse(val))))), SizedBox(width: 16.w), Expanded(child: _buildTextField(_maxStrengthController, "MAX", (val) => _updateFilter(_currentFilter.copyWith(maxStrength: double.tryParse(val)))))],),
                   SizedBox(height: 24.h),
-                  _buildSectionLabel("TOTAL TONNAGE"),
+                  _buildSectionLabel("TOTAL T"),
                   Row(children: [Expanded(child: _buildTextField(_minVolumeController, "MIN", (val) => _updateFilter(_currentFilter.copyWith(minVolume: double.tryParse(val))))), SizedBox(width: 16.w), Expanded(child: _buildTextField(_maxVolumeController, "MAX", (val) => _updateFilter(_currentFilter.copyWith(maxVolume: double.tryParse(val)))))],),
                   SizedBox(height: 32.h),
                 ],
