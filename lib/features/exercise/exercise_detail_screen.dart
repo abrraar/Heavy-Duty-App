@@ -233,15 +233,22 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
               ),
               errorWidget: (context, url, error) {
                 debugPrint("Detail Screen Image Error: $error | URL: $url");
+                final bool isDefault = template.isDefault;
                 return Container(
                   color: AppColors.background,
                   child: Center(
-                    child: Text(
-                      'IMAGE NOT FOUND PULL DOWN TO REFRESH',
-                      textAlign: TextAlign.center,
-                      style: AppTextStyles.labelSmall.copyWith(
-                        color: AppColors.textSecondary,
-                        fontSize: 10.sp,
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 40.w),
+                      child: Text(
+                        isDefault 
+                            ? 'IMAGE NOT FOUND PULL DOWN TO REFRESH'
+                            : 'IMAGE CAPTURE & UPLOAD FEATURE WILL BE AVAILABLE IN FUTURE UPDATES',
+                        textAlign: TextAlign.center,
+                        style: AppTextStyles.labelSmall.copyWith(
+                          color: AppColors.textSecondary.withValues(alpha: 0.4),
+                          fontSize: 10.sp,
+                          letterSpacing: 1.2,
+                        ),
                       ),
                     ),
                   ),
