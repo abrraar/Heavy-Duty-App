@@ -42,7 +42,7 @@ class _CycleTrackingScreenState extends State<CycleTrackingScreen>
   bool _isCustomExpanded = false;
   CycleFilter _historyFilter = CycleFilter();
   final Set<String> _expandedCycleIds = {}; 
-  bool _isBarChart = false;
+  final bool _isBarChart = false;
   int? _comparisonIdx1;
   int? _comparisonIdx2;
 
@@ -1129,7 +1129,7 @@ class _CycleTrackingScreenState extends State<CycleTrackingScreen>
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               _buildComparisonHeader("POINT A", _comparisonIdx1, (val) => setState(() => _comparisonIdx1 = val), labels, dates),
-              Padding(padding: EdgeInsets.only(top: 40.h), child: Icon(Icons.compare_arrows_rounded, color: AppColors.crimson.withOpacity(0.2), size: 24.r)),
+              SizedBox(width: 16.w),
               _buildComparisonHeader("POINT B", _comparisonIdx2, (val) => setState(() => _comparisonIdx2 = val), labels, dates),
             ],
           ),
@@ -1202,15 +1202,7 @@ class _CycleTrackingScreenState extends State<CycleTrackingScreen>
       firstDate: dates.first,
       lastDate: dates.last,
       selectableDayPredicate: (date) => daysMap.containsKey(DateTime(date.year, date.month, date.day)),
-      builder: (context, child) {
-        return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.dark(primary: AppColors.crimson, onPrimary: Colors.white, surface: AppColors.surface, onSurface: Colors.white),
-            dialogBackgroundColor: AppColors.surface,
-          ),
-          child: child!,
-        );
-      },
+      builder: (context, child) => child!,
     );
     if (pickedDay == null) return;
     if (!context.mounted) return;

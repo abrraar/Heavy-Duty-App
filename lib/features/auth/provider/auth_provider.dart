@@ -52,7 +52,7 @@ class AuthProvider with ChangeNotifier {
   String get username => _userProfile?.username ?? _currentUser?.userMetadata?['username'] ?? 'username';
   double? get height => _userProfile?.height ?? (_currentUser?.userMetadata?['height'] as num?)?.toDouble();
   String? get gender => _userProfile?.gender ?? _currentUser?.userMetadata?['gender']?.toString();
-  DateTime? get birthday => _userProfile?.birthday ?? (_currentUser?.userMetadata?['birthday'] != null ? DateTime.tryParse(_currentUser!.userMetadata!['birthday'].toString()) : null);
+  DateTime? get birthday => _userProfile?.birthday ?? (_currentUser?.userMetadata?['birthday'] != null ? DateTime.tryParse(_currentUser?.userMetadata?['birthday'].toString() ?? "") : null);
 
   List<UserEmail> get userEmails => _userEmails;
   UserProfile? get userProfile => _userProfile;
@@ -209,40 +209,38 @@ class AuthProvider with ChangeNotifier {
           .select()
           .eq('user_id', _currentUser!.id);
 
-      if (cloudData != null) {
-        // ELITE SYNC: To ensure deleted items are removed, we perform a clean sync.
-        // We will collect the cloud IDs and remove any local records not present in the cloud.
-        final List<UserEmail> cloudEmails = cloudData.map((d) => UserEmail.fromMap(d)).toList();
-        final cloudIds = cloudEmails.map((e) => e.id).toSet();
-        
-        final localEmails = await _profileRepo!.getEmails();
-        
-        // Remove locals that aren't in cloud (except perhaps the primary if handled differently)
-        for (var local in localEmails) {
-          if (!cloudIds.contains(local.id)) {
-            // If it's not the primary auth email, delete it locally as it's gone from cloud
-            if (local.email.toLowerCase() != _currentUser!.email?.toLowerCase()) {
-              await _profileRepo!.deleteEmail(local.id);
-            }
-          }
-        }
-
-        // Upsert cloud records into local
-        for (var emailObj in cloudEmails) {
-          // AUTO-SYNC: If this email matches the current auth email and we are verified 
-          // in the auth session, update our custom table.
-          if (emailObj.email.toLowerCase() == _currentUser!.email?.toLowerCase() && isEmailVerified) {
-            if (!emailObj.isVerified) {
-              final verifiedObj = emailObj.copyWith(isVerified: true);
-              await _profileRepo!.insertEmail(verifiedObj);
-              await _supabase.from('user_emails').update({'is_verified': true}).eq('id', emailObj.id);
-            }
-          } else {
-            await _profileRepo!.insertEmail(emailObj);
+      // ELITE SYNC: To ensure deleted items are removed, we perform a clean sync.
+      // We will collect the cloud IDs and remove any local records not present in the cloud.
+      final List<UserEmail> cloudEmails = cloudData.map((d) => UserEmail.fromMap(d)).toList();
+      final cloudIds = cloudEmails.map((e) => e.id).toSet();
+      
+      final localEmails = await _profileRepo!.getEmails();
+      
+      // Remove locals that aren't in cloud (except perhaps the primary if handled differently)
+      for (var local in localEmails) {
+        if (!cloudIds.contains(local.id)) {
+          // If it's not the primary auth email, delete it locally as it's gone from cloud
+          if (local.email.toLowerCase() != _currentUser!.email?.toLowerCase()) {
+            await _profileRepo!.deleteEmail(local.id);
           }
         }
       }
-    } catch (e) {
+
+      // Upsert cloud records into local
+      for (var emailObj in cloudEmails) {
+        // AUTO-SYNC: If this email matches the current auth email and we are verified 
+        // in the auth session, update our custom table.
+        if (emailObj.email.toLowerCase() == _currentUser!.email?.toLowerCase() && isEmailVerified) {
+          if (!emailObj.isVerified) {
+            final verifiedObj = emailObj.copyWith(isVerified: true);
+            await _profileRepo!.insertEmail(verifiedObj);
+            await _supabase.from('user_emails').update({'is_verified': true}).eq('id', emailObj.id);
+          }
+        } else {
+          await _profileRepo!.insertEmail(emailObj);
+        }
+      }
+        } catch (e) {
       debugPrint("AuthProvider: Email sync failed: $e");
     }
 
@@ -428,21 +426,22 @@ class AuthProvider with ChangeNotifier {
     if (username.isEmpty) return false;
 
     _setLoading(true);
+    debugPrint("AuthProvider: Checking availability for username: '$username'");
     try {
-      // Logic: Search for any user with this username in metadata or a profiles table
-      // This is a common pattern with Supabase auth
       final response = await _supabase
-          .from('profiles') // Assuming a public 'profiles' table exists
+          .from('profiles') 
           .select('username')
           .eq('username', username)
           .maybeSingle();
 
+      final isAvailable = response == null;
+      debugPrint("AuthProvider: Username '$username' availability: $isAvailable");
       _setLoading(false);
-      return response == null; // Available if no record found
+      return isAvailable;
     } catch (e) {
-      debugPrint("Username check failed: $e. Falling back to optimistic True.");
+      debugPrint("AuthProvider: Username check failed: $e. Falling back to optimistic True.");
       _setLoading(false);
-      return true; // Fallback
+      return true;
     }
   }
 
@@ -450,19 +449,47 @@ class AuthProvider with ChangeNotifier {
   // SIGN UP METHOD
   // ==========================================
   Future<void> signUp(String email, String password, {String? username}) async {
-    if (_emailCooldownSeconds > 0) throw "COOLDOWN ACTIVE";
+    if (_emailCooldownSeconds > 0) {
+      debugPrint("AuthProvider: Sign up rejected - Cooldown active ($emailCooldownSeconds s)");
+      throw "COOLDOWN ACTIVE";
+    }
     _setLoading(true);
     _pendingEmail = email;
     _pendingUsername = username;
+    
+    debugPrint("AuthProvider: Initiating sign up for $email (Username: $username)");
+    
     try {
-      await _supabase.auth.signUp(
+      final response = await _supabase.auth.signUp(
         email: email,
         password: password,
         data: username != null ? {'username': username} : null,
         emailRedirectTo: kIsWeb ? null : 'heavyduty://heavyduty/signup',
       );
+
+      debugPrint("AuthProvider: Supabase sign up response received.");
+      debugPrint("AuthProvider: User ID: ${response.user?.id}");
+      debugPrint("AuthProvider: Session present: ${response.session != null}");
+      debugPrint("AuthProvider: Identities: ${response.user?.identities?.length ?? 0}");
+
+      // If identities is empty, it means the user already exists (Supabase security masking)
+      if (response.user?.identities != null && response.user!.identities!.isEmpty) {
+        debugPrint("AuthProvider: Throwing duplicate email error (Identities is empty)");
+        throw "THIS EMAIL IS ALREADY REGISTERED. PLEASE LOG IN.";
+      }
+
+      if (response.session != null && response.user?.emailConfirmedAt != null) {
+        debugPrint("AuthProvider: User already verified or auto-confirmed.");
+      } else {
+        debugPrint("AuthProvider: Confirmation email should have been sent to $email");
+      }
+
       _startGlobalCooldown();
     } catch (e) {
+      debugPrint("AuthProvider: Sign up error: $e");
+      if (e is AuthException) {
+        debugPrint("AuthProvider: AuthException details: ${e.message}, Status: ${e.statusCode}");
+      }
       _setLoading(false);
       rethrow;
     }
@@ -545,16 +572,22 @@ class AuthProvider with ChangeNotifier {
   }
 
   Future<void> resendOTP(String email, {bool isRecovery = false}) async {
-    if (_emailCooldownSeconds > 0) throw "COOLDOWN ACTIVE";
+    if (_emailCooldownSeconds > 0) {
+      debugPrint("AuthProvider: Resend rejected - Cooldown active");
+      throw "COOLDOWN ACTIVE";
+    }
     _setLoading(true);
+    debugPrint("AuthProvider: Resending ${isRecovery ? 'recovery' : 'signup'} email to $email");
     try {
       await _supabase.auth.resend(
         type: isRecovery ? OtpType.recovery : OtpType.signup,
         email: email,
         emailRedirectTo: kIsWeb ? null : (isRecovery ? 'heavyduty://change-password' : 'heavyduty://confirm-email'),
       );
+      debugPrint("AuthProvider: Resend call to Supabase successful for $email");
       _startGlobalCooldown();
     } catch (e) {
+      debugPrint("AuthProvider: Resend failed: $e");
       _setLoading(false);
       rethrow;
     }
@@ -635,6 +668,8 @@ class AuthProvider with ChangeNotifier {
       // are propagated to the profiles table for future lookups.
       if (!isRecovery && response.user != null && _pendingUsername != null) {
         debugPrint("AuthProvider: Persisting pending username to profiles table: $_pendingUsername");
+        // Ensure _currentUser is updated before calling profile update to avoid null check errors
+        _currentUser = response.user;
         await updateUserProfile(username: _pendingUsername);
       }
 
@@ -666,8 +701,11 @@ class AuthProvider with ChangeNotifier {
   Future<void> updateUserProfile({String? name, String? username, double? height, Map<String, dynamic>? extraMetadata}) async {
     _setLoading(true);
     try {
-      final String userId = _currentUser!.id;
-      final String? userEmail = _currentUser!.email;
+      final user = _currentUser ?? _supabase.auth.currentUser;
+      if (user == null) throw "USER SESSION NOT FOUND";
+
+      final String userId = user.id;
+      final String? userEmail = user.email;
 
       // 1. Sync to Supabase Profiles Table (Unified identity management)
       final Map<String, dynamic> profileUpdate = {};

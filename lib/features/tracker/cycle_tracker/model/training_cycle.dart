@@ -16,6 +16,7 @@ class TrainingCycle {
   final List<Workout> workouts;
   final String? sharedBy;
   final int isSynced;
+  final String? userId;
 
   TrainingCycle({
     String? id,
@@ -29,11 +30,13 @@ class TrainingCycle {
     this.workouts = const [],
     this.sharedBy,
     this.isSynced = 1,
+    this.userId,
   }) : id = id ?? const Uuid().v4();
 
   Map<String, dynamic> toMap() {
     return {
       'id': id,
+      'user_id': userId,
       'name': name,
       'description': description,
       'is_default': isDefault ? 1 : 0,
@@ -57,6 +60,7 @@ class TrainingCycle {
 
     return TrainingCycle(
       id: map['id']?.toString() ?? const Uuid().v4(),
+      userId: map['user_id']?.toString(),
       name: map['name']?.toString() ?? "Untitled Cycle",
       description: map['description']?.toString() ?? "",
       isDefault: isDefaultBool,
@@ -102,6 +106,7 @@ class TrainingCycle {
     List<Workout>? workouts,
     String? sharedBy,
     int? isSynced,
+    String? userId,
   }) {
     return TrainingCycle(
       id: id ?? this.id,
@@ -115,6 +120,8 @@ class TrainingCycle {
       workouts: workouts ?? this.workouts,
       sharedBy: sharedBy ?? this.sharedBy,
       isSynced: isSynced ?? this.isSynced,
+      userId: userId ?? this.userId,
     );
   }
 }
+

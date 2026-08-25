@@ -2,7 +2,6 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:fl_chart/fl_chart.dart';
 import 'package:heavy_duty/core/theme/app_colors.dart';
 import 'package:heavy_duty/core/theme/app_text_styles.dart';
 import 'package:heavy_duty/core/widgets/elite_confirm_dialog.dart';
@@ -42,16 +41,16 @@ class _SleepScreenState extends State<SleepScreen> with SingleTickerProviderStat
   TimeOfDay _entryWakeTime = const TimeOfDay(hour: 06, minute: 45);
   int _selectedQuality = 4;
   String _entryNote = "";
-  SleepType _selectedType = SleepType.night;
+  final SleepType _selectedType = SleepType.night;
   final List<String> _chartLabels = [];
 
   Color get _activeAccentColor => _selectedType == SleepType.night ? AppColors.crimson : Colors.amber;
   
   // Filter/Sort State
-  bool _showSleep = true;
-  bool _showNaps = true;
-  String _sortBy = 'Date'; // 'Date' or 'Duration'
-  bool _isAscending = false;
+  final bool _showSleep = true;
+  final bool _showNaps = true;
+  final String _sortBy = 'Date'; // 'Date' or 'Duration'
+  final bool _isAscending = false;
 
   // Calendar State
   DateTime _displayedMonth = DateTime.now();
@@ -212,25 +211,13 @@ class _SleepScreenState extends State<SleepScreen> with SingleTickerProviderStat
       initialDate: initialDatePickerDate,
       firstDate: DateTime(2000),
       lastDate: DateTime.now(),
+      builder: (context, child) => child!,
       selectableDayPredicate: (DateTime date) {
         final bool hasLog = provider.logs.any((l) =>
             l.wakeUpTime.year == date.year &&
             l.wakeUpTime.month == date.month &&
             l.wakeUpTime.day == date.day);
         return !hasLog;
-      },
-      builder: (context, child) {
-        return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.dark(
-              primary: AppColors.crimson,
-              onPrimary: Colors.white,
-              surface: AppColors.surface,
-              onSurface: Colors.white,
-            ),
-          ),
-          child: child!,
-        );
       },
     );
     if (picked != null) {
@@ -240,18 +227,20 @@ class _SleepScreenState extends State<SleepScreen> with SingleTickerProviderStat
   }
 
   Future<void> _pickAudio(bool isBedtime, SleepAlarmProvider provider) async {
-    FilePickerResult? result = await FilePicker.platform.pickFiles(
-      type: FileType.audio,
+    final FilePickerResult? result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: ['mp3', 'wav', 'm4a', 'aac'],
     );
 
     if (result != null && result.files.single.path != null) {
+        final String path = result.files.single.path!;
         if (isBedtime) {
           await provider.updateSettings(
-            bedtimeAudioPath: result.files.single.path,
+            bedtimeAudioPath: path,
           );
         } else {
           await provider.updateSettings(
-            wakeUpAudioPath: result.files.single.path,
+            wakeUpAudioPath: path,
           );
         }
         if (mounted) setState(() {});
@@ -721,19 +710,22 @@ class _SleepScreenState extends State<SleepScreen> with SingleTickerProviderStat
                     initialDate: _selectedHistoryDate,
                     firstDate: DateTime(2020),
                     lastDate: DateTime.now(),
-                    builder: (context, child) {
-                      return Theme(
-                        data: Theme.of(context).copyWith(
-                          colorScheme: const ColorScheme.dark(
-                            primary: AppColors.crimson,
-                            onPrimary: Colors.white,
-                            surface: AppColors.surface,
-                            onSurface: Colors.white,
-                          ),
-                        ),
-                        child: child!,
-                      );
-                    },
+              builder: (context, child) {
+                return Theme(
+                  data: Theme.of(context).copyWith(
+                    colorScheme: const ColorScheme.dark(
+                      primary: AppColors.crimson,
+                      onPrimary: Colors.white,
+                      surface: AppColors.surface,
+                      onSurface: Colors.white,
+                    ),
+                    textButtonTheme: TextButtonThemeData(
+                      style: TextButton.styleFrom(foregroundColor: AppColors.crimson),
+                    ),
+                  ),
+                  child: child!,
+                );
+              },
                   );
                   if (picked != null) {
                     setState(() {
@@ -1041,13 +1033,19 @@ class _SleepScreenState extends State<SleepScreen> with SingleTickerProviderStat
           isEnabled: settings.bedtimeEnabled,
           audioName: settings.bedtimeAudioPath != null ? settings.bedtimeAudioPath!.split('/').last : 'Standard',
           use24HourClock: context.read<SleepProvider>().settings.use24HourClock,
-          onToggle: (val) async {
+          onToggle: (val) {
              if (val) {
-                final ok = await alarmProvider.checkAndRequestPermissions(context);
-                if (!ok) return;
-                await alarmProvider.updateSettings(bedtimeEnabled: true);
+                // Optimistic UI update
+                alarmProvider.updateSettings(bedtimeEnabled: true);
+                // Background permission check
+                alarmProvider.checkAndRequestPermissions(context).then((ok) {
+                   if (!ok) {
+                      // Revert if denied
+                      alarmProvider.updateSettings(bedtimeEnabled: false);
+                   }
+                });
              } else {
-                await alarmProvider.updateSettings(bedtimeEnabled: false);
+                alarmProvider.updateSettings(bedtimeEnabled: false);
              }
           },
           onTimeTap: () async {
@@ -1077,13 +1075,19 @@ class _SleepScreenState extends State<SleepScreen> with SingleTickerProviderStat
           isEnabled: settings.wakeUpEnabled,
           audioName: settings.wakeUpAudioPath != null ? settings.wakeUpAudioPath!.split('/').last : 'Standard',
           use24HourClock: context.read<SleepProvider>().settings.use24HourClock,
-          onToggle: (val) async {
+          onToggle: (val) {
              if (val) {
-                final ok = await alarmProvider.checkAndRequestPermissions(context);
-                if (!ok) return;
-                await alarmProvider.updateSettings(wakeUpEnabled: true);
+                // Optimistic UI update
+                alarmProvider.updateSettings(wakeUpEnabled: true);
+                // Background permission check
+                alarmProvider.checkAndRequestPermissions(context).then((ok) {
+                   if (!ok) {
+                      // Revert if denied
+                      alarmProvider.updateSettings(wakeUpEnabled: false);
+                   }
+                });
              } else {
-                await alarmProvider.updateSettings(wakeUpEnabled: false);
+                alarmProvider.updateSettings(wakeUpEnabled: false);
              }
           },
           onTimeTap: () async {

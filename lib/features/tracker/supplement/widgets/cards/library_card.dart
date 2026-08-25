@@ -110,7 +110,7 @@ class _LibraryCardState extends State<LibraryCard> {
             children: [
               Switch(
                 value: widget.item.isActive,
-                activeColor: AppColors.crimson,
+                activeThumbColor: AppColors.crimson,
                 onChanged: (v) {
                   final calorieProvider = context.read<CalorieProvider>();
                   widget.provider.toggleSupplementStatus(

@@ -13,7 +13,6 @@ import 'provider/hydration_provider.dart';
 import 'package:heavy_duty/core/widgets/elite_confirm_dialog.dart';
 import 'package:heavy_duty/core/widgets/elite_snackbar.dart';
 import 'package:heavy_duty/features/main_wrapper.dart';
-import 'widgets/sheets/hydration_notification_sheet.dart';
 import 'widgets/water_glass_widget.dart';
 
 class _HydrationFilter {
@@ -71,7 +70,7 @@ class _HydrationScreenState extends State<HydrationScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
   late PageController _pageController;
-  _HydrationFilter _recordsFilter = _HydrationFilter();
+  final _HydrationFilter _recordsFilter = _HydrationFilter();
 
   DateTime _selectedHistoryDate = DateTime.now();
   DateTime _displayedMonth = DateTime.now();
@@ -117,6 +116,22 @@ class _HydrationScreenState extends State<HydrationScreen>
       initialDate: _manualDate,
       firstDate: DateTime(2000),
       lastDate: DateTime.now(),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.dark(
+              primary: Colors.blueAccent,
+              onPrimary: Colors.white,
+              surface: AppColors.surface,
+              onSurface: Colors.white,
+            ),
+            textButtonTheme: TextButtonThemeData(
+              style: TextButton.styleFrom(foregroundColor: Colors.blueAccent),
+            ),
+          ),
+          child: child!,
+        );
+      },
     );
     if (picked != null) {
       setState(() => _manualDate = picked);
@@ -127,6 +142,30 @@ class _HydrationScreenState extends State<HydrationScreen>
     final TimeOfDay? picked = await showTimePicker(
       context: context,
       initialTime: _manualTime,
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.dark(
+              primary: Colors.blueAccent,
+              onPrimary: Colors.white,
+              surface: AppColors.surface,
+              onSurface: Colors.white,
+            ),
+            timePickerTheme: Theme.of(context).timePickerTheme.copyWith(
+              dayPeriodColor: WidgetStateColor.resolveWith((states) {
+                if (states.contains(WidgetState.selected)) {
+                  return Colors.blueAccent;
+                }
+                return Colors.white.withOpacity(0.05);
+              }),
+            ),
+            textButtonTheme: TextButtonThemeData(
+              style: TextButton.styleFrom(foregroundColor: Colors.blueAccent),
+            ),
+          ),
+          child: child!,
+        );
+      },
     );
     if (picked != null) {
       setState(() => _manualTime = picked);
@@ -546,8 +585,8 @@ class _HydrationScreenState extends State<HydrationScreen>
     int quickAddMl = provider.settings.addValue;
     int quickRemoveMl = provider.settings.minusValue;
     
-    String displayQuickAdd = useMetric ? "${quickAddMl}$unit" : "${provider.mlToOz(quickAddMl).toStringAsFixed(1)}$unit";
-    String displayQuickRemove = useMetric ? "${quickRemoveMl}$unit" : "${provider.mlToOz(quickRemoveMl).toStringAsFixed(1)}$unit";
+    String displayQuickAdd = useMetric ? "$quickAddMl$unit" : "${provider.mlToOz(quickAddMl).toStringAsFixed(1)}$unit";
+    String displayQuickRemove = useMetric ? "$quickRemoveMl$unit" : "${provider.mlToOz(quickRemoveMl).toStringAsFixed(1)}$unit";
 
     final settings = provider.settings;
     final isPinned = settings.isPinnedToHome;
@@ -820,6 +859,9 @@ class _HydrationScreenState extends State<HydrationScreen>
                             onPrimary: Colors.white,
                             surface: AppColors.surface,
                             onSurface: Colors.white,
+                          ),
+                          textButtonTheme: TextButtonThemeData(
+                            style: TextButton.styleFrom(foregroundColor: Colors.blueAccent),
                           ),
                         ),
                         child: child!,

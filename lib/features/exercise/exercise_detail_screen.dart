@@ -338,8 +338,9 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
         builder: (context, setModalState) {
           ExerciseType calculatedType = selectedMuscles.length > 1 ? ExerciseType.compound : ExerciseType.isolation;
           int calculatedIntensity = 1;
-          if (selectedMuscles.isEmpty) calculatedIntensity = 1;
-          else if (selectedMuscles.length == 1) calculatedIntensity = 2;
+          if (selectedMuscles.isEmpty) {
+            calculatedIntensity = 1;
+          } else if (selectedMuscles.length == 1) calculatedIntensity = 2;
           else if (selectedMuscles.length == 2) calculatedIntensity = 3;
           else if (selectedMuscles.length <= 4) calculatedIntensity = 4;
           else calculatedIntensity = 5;
@@ -389,8 +390,11 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
                             return GestureDetector(
                               onTap: () {
                                 setModalState(() {
-                                  if (isSelected) selectedMuscles.remove(m);
-                                  else selectedMuscles.add(m);
+                                  if (isSelected) {
+                                    selectedMuscles.remove(m);
+                                  } else {
+                                    selectedMuscles.add(m);
+                                  }
                                 });
                               },
                               child: Container(
@@ -586,8 +590,9 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
               final prev = logs[index + 1];
               final wDiff = log.weightKg - prev.weightKg;
               final rDiff = log.positiveReps - prev.positiveReps;
-              if (wDiff > 0) diffText = "+${wDiff.toStringAsFixed(1)}KG LOAD INCREASE";
-              else if (rDiff > 0) diffText = "+$rDiff REPS INCREASE";
+              if (wDiff > 0) {
+                diffText = "+${wDiff.toStringAsFixed(1)}KG LOAD INCREASE";
+              } else if (rDiff > 0) diffText = "+$rDiff REPS INCREASE";
               else if (wDiff == 0 && rDiff == 0) diffText = "MAINTAINED PERFORMANCE";
               else diffText = "PERFORMANCE DECREASE";
             } else {

@@ -33,8 +33,8 @@ class SupplementLocalRepository {
     await db.update(
       'ss_supplements', // Aligned table name
       {'remaining_stock': newStockAmount},
-      where: 'id = ?',
-      whereArgs: [supplementId],
+      where: 'id = ? AND user_id = ?',
+      whereArgs: [supplementId, userId],
     );
   }
 
@@ -43,6 +43,8 @@ class SupplementLocalRepository {
     final db = await _getDatabase();
     final List<Map<String, dynamic>> maps = await db.query(
       'ss_supplements',
+      where: 'user_id = ?',
+      whereArgs: [userId],
     ); // Aligned table name
 
     return maps.map((map) => Supplement.fromMap(map)).toList();
@@ -51,9 +53,11 @@ class SupplementLocalRepository {
   /// Inserts or replaces a supplement model entry into local memory
   Future<void> saveSupplement(Supplement supplement) async {
     final db = await _getDatabase();
+    // Ensure the userId is set before saving
+    final supplementWithUser = supplement.copyWith(userId: userId);
     await db.insert(
       'ss_supplements', // Aligned table name
-      supplement.toMap(),
+      supplementWithUser.toMap(),
       conflictAlgorithm: ConflictAlgorithm.replace,
     );
   }
@@ -63,8 +67,8 @@ class SupplementLocalRepository {
     final db = await _getDatabase();
     await db.delete(
       'ss_supplements',
-      where: 'id = ?',
-      whereArgs: [id],
+      where: 'id = ? AND user_id = ?',
+      whereArgs: [id, userId],
     ); // Aligned table name
   }
 
@@ -75,9 +79,10 @@ class SupplementLocalRepository {
   /// Inserts a new operational intake or restock item log into the history ledger
   Future<void> insertSupplementItem(SupplementItem entry) async {
     final db = await _getDatabase();
+    final entryWithUser = entry.copyWith(userId: userId);
     await db.insert(
       'ss_records', // Aligned table name
-      entry.toMap(),
+      entryWithUser.toMap(),
       conflictAlgorithm: ConflictAlgorithm.replace,
     );
   }
@@ -88,8 +93,8 @@ class SupplementLocalRepository {
     await db.update(
       'ss_records', // Aligned table name
       {'is_synced': 1},
-      where: 'id = ?',
-      whereArgs: [id],
+      where: 'id = ? AND user_id = ?',
+      whereArgs: [id, userId],
     );
   }
 
@@ -98,8 +103,8 @@ class SupplementLocalRepository {
     final db = await _getDatabase();
     await db.delete(
       'ss_records',
-      where: 'id = ?',
-      whereArgs: [id],
+      where: 'id = ? AND user_id = ?',
+      whereArgs: [id, userId],
     ); // Aligned table name
   }
 
@@ -109,6 +114,8 @@ class SupplementLocalRepository {
 
     final List<Map<String, dynamic>> maps = await db.query(
       'ss_records',
+      where: 'user_id = ?',
+      whereArgs: [userId],
       orderBy: 'timestamp DESC',
     );
 
@@ -121,8 +128,8 @@ class SupplementLocalRepository {
 
     final List<Map<String, dynamic>> maps = await db.query(
       'ss_records', // Aligned table name
-      where: 'is_synced = ?',
-      whereArgs: [0], // Pull rows where is_synced is false/0
+      where: 'is_synced = ? AND user_id = ?',
+      whereArgs: [0, userId], // Pull rows where is_synced is false/0
     );
 
     return maps.map((map) => SupplementItem.fromMap(map)).toList();
@@ -139,6 +146,8 @@ class SupplementLocalRepository {
     final db = await _getDatabase();
     final List<Map<String, dynamic>> maps = await db.query(
       'ss_stack',
+      where: 'user_id = ?',
+      whereArgs: [userId],
     ); // Aligned table name
 
     return maps.map((stackMap) {
@@ -167,9 +176,10 @@ class SupplementLocalRepository {
   /// Saves or alters a custom predefined combination routine stack structure
   Future<void> saveStack(SupplementStack stack) async {
     final db = await _getDatabase();
+    final stackWithUser = stack.copyWith(userId: userId);
     await db.insert(
       'ss_stack', // Aligned table name
-      stack.toMap(),
+      stackWithUser.toMap(),
       conflictAlgorithm: ConflictAlgorithm.replace,
     );
   }
@@ -179,8 +189,8 @@ class SupplementLocalRepository {
     final db = await _getDatabase();
     await db.delete(
       'ss_stack',
-      where: 'id = ?',
-      whereArgs: [id],
+      where: 'id = ? AND user_id = ?',
+      whereArgs: [id, userId],
     ); // Aligned table name
   }
 
@@ -190,13 +200,15 @@ class SupplementLocalRepository {
 
   Future<SupplementSettings?> getSettings() async {
     final db = await _getDatabase();
-    final List<Map<String, dynamic>> maps = await db.query('ss_settings', where: 'id = 1');
+    final List<Map<String, dynamic>> maps = await db.query('ss_settings', where: 'id = 1 AND user_id = ?', whereArgs: [userId]);
     if (maps.isNotEmpty) return SupplementSettings.fromMap(maps.first);
     return null;
   }
 
   Future<void> saveSettings(SupplementSettings settings) async {
     final db = await _getDatabase();
-    await db.insert('ss_settings', settings.toMap(), conflictAlgorithm: ConflictAlgorithm.replace);
+    final settingsWithUser = settings.copyWith(userId: userId);
+    await db.insert('ss_settings', settingsWithUser.toMap(), conflictAlgorithm: ConflictAlgorithm.replace);
   }
+
 }

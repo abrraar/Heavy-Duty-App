@@ -790,8 +790,11 @@ class _ExerciseListScreenState extends State<ExerciseListScreen> {
               ),
               GestureDetector(
                 onTap: () => setState(() {
-                  if (isExpanded) _expandedExerciseIds.remove(exercise.id);
-                  else _expandedExerciseIds.add(exercise.id);
+                  if (isExpanded) {
+                    _expandedExerciseIds.remove(exercise.id);
+                  } else {
+                    _expandedExerciseIds.add(exercise.id);
+                  }
                 }),
                 child: Container(
                   width: double.infinity,

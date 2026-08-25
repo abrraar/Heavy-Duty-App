@@ -5,7 +5,6 @@ import 'package:heavy_duty/core/theme/app_colors.dart';
 import 'package:heavy_duty/core/theme/app_text_styles.dart';
 import 'package:heavy_duty/features/tracker/calorie/provider/calorie_provider.dart';
 import 'package:provider/provider.dart';
-import 'package:heavy_duty/core/services/notification_service.dart';
 import '../../model/saved_meal.dart';
 
 class CalorieNotificationSheet extends StatefulWidget {
@@ -47,7 +46,9 @@ class _CalorieNotificationSheetState extends State<CalorieNotificationSheet> {
 
   @override
   void dispose() {
-    for (var c in _intervalControllers) c.dispose();
+    for (var c in _intervalControllers) {
+      c.dispose();
+    }
     super.dispose();
   }
 
@@ -315,8 +316,11 @@ class _CalorieNotificationSheetState extends State<CalorieNotificationSheet> {
         final isSelected = reminder.days.contains(i + 1);
         return GestureDetector(
           onTap: () => setState(() {
-              if (isSelected) reminder.days.remove(i + 1);
-              else reminder.days.add(i + 1);
+              if (isSelected) {
+                reminder.days.remove(i + 1);
+              } else {
+                reminder.days.add(i + 1);
+              }
           }),
           child: Container(
             width: 36.r, height: 36.r,

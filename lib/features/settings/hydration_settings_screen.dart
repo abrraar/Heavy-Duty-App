@@ -286,7 +286,7 @@ class _HydrationSettingsScreenState extends State<HydrationSettingsScreen> {
           ),
           Switch(
             value: value, 
-            activeColor: Colors.blueAccent, 
+            activeThumbColor: Colors.blueAccent, 
             onChanged: onChanged
           ),
         ],

@@ -6,7 +6,6 @@ import 'package:heavy_duty/core/theme/app_text_styles.dart';
 import 'package:heavy_duty/features/tracker/cycle_tracker/provider/cycle_provider.dart';
 import 'package:go_router/go_router.dart';
 import 'package:heavy_duty/core/navigation/app_routes.dart';
-import 'package:heavy_duty/features/tracker/cycle_tracker/cycle_tracking_screen.dart';
 
 class ImportCycleScreen extends StatefulWidget {
   final String shareId;

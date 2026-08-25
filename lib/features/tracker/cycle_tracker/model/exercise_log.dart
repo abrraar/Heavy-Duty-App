@@ -12,6 +12,7 @@ class ExerciseLog {
   final String? comment;
   final DateTime timestamp;
   final int isSynced;
+  final String? userId;
 
   ExerciseLog({
     String? id,
@@ -25,12 +26,14 @@ class ExerciseLog {
     this.comment,
     DateTime? timestamp,
     this.isSynced = 1,
+    this.userId,
   }) : id = id ?? const Uuid().v4(),
        timestamp = timestamp ?? DateTime.now();
 
   Map<String, dynamic> toMap() {
     return {
       'id': id,
+      'user_id': userId,
       'exercise_id': exerciseId,
       'weight_kg': weightKg,
       'weight_lbs': weightLbs,
@@ -58,6 +61,7 @@ class ExerciseLog {
 
     return ExerciseLog(
       id: map['id']?.toString() ?? const Uuid().v4(),
+      userId: map['user_id']?.toString(),
       exerciseId: map['exercise_id']?.toString() ?? "",
       weightKg: wKg,
       weightLbs: wLbs,
@@ -83,6 +87,7 @@ class ExerciseLog {
     String? comment,
     DateTime? timestamp,
     int? isSynced,
+    String? userId,
   }) {
     return ExerciseLog(
       id: id ?? this.id,
@@ -96,6 +101,8 @@ class ExerciseLog {
       comment: comment ?? this.comment,
       timestamp: timestamp ?? this.timestamp,
       isSynced: isSynced ?? this.isSynced,
+      userId: userId ?? this.userId,
     );
   }
 }
+

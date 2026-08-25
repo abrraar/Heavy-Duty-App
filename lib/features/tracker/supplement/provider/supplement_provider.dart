@@ -11,7 +11,6 @@ import 'package:uuid/uuid.dart';
 import '../../../../core/services/notification_service.dart';
 import '../data/supplement_local_repository.dart';
 import '../data/supplement_cloud_repository.dart';
-import 'package:heavy_duty/core/services/notification_service.dart';
 import '../model/supplement.dart';
 import '../model/supplement_item.dart';
 
@@ -253,7 +252,7 @@ class SupplementProvider with ChangeNotifier {
 
       if (_settings.hideEmptyStock) {
         final supp = _library.firstWhere((s) => s.id == entry.supplementId, orElse: () => null as dynamic);
-        if (supp != null && (supp.remainingStock ?? 0) <= 0) return false;
+        if ((supp.remainingStock ?? 0) <= 0) return false;
       }
 
       return matchesSearch && matchesCategory;
@@ -452,9 +451,9 @@ class SupplementProvider with ChangeNotifier {
     }
 
     // 3. Process Low Stock Alerts: Clear old ones and only add new ones if enabled
-    lowStockThresholds.keys.forEach((id) {
+    for (var id in lowStockThresholds.keys) {
       finalReminders.removeWhere((r) => r.type == ReminderType.lowStock && r.supplementId == id);
-    });
+    }
 
     if (restockEnabled) {
       lowStockThresholds.forEach((id, val) {
@@ -537,7 +536,7 @@ class SupplementProvider with ChangeNotifier {
 
   void deleteSupplement(String id, {void Function(String id, double cals, double pro, double cho, double fat)? onDeactivated}) async {
     final supplement = _library.firstWhere((s) => s.id == id, orElse: () => null as dynamic);
-    if (supplement != null && onDeactivated != null) {
+    if (onDeactivated != null) {
       onDeactivated(
         id, 
         supplement.caloriesPerUnit ?? 0.0, 
@@ -779,7 +778,7 @@ class SupplementProvider with ChangeNotifier {
 
   void deleteStack(String stackId, {void Function(String id, double cals, double pro, double cho, double fat)? onDeleted}) async {
     final stack = _supplementStacks.firstWhere((s) => s.id == stackId, orElse: () => null as dynamic);
-    if (stack != null && onDeleted != null) {
+    if (onDeleted != null) {
       // Calculate stack totals
       double stCals = 0;
       double stPro = 0, stCho = 0, stFat = 0;
@@ -1000,7 +999,7 @@ class SupplementProvider with ChangeNotifier {
       if (suppIndex != -1) {
         final currentSupplement = _library[suppIndex];
         final currentStock = currentSupplement.remainingStock ?? 0.0;
-        final reversedStock = currentStock - entryToRemove!.weightAdjustment;
+        final reversedStock = currentStock - entryToRemove.weightAdjustment;
 
         _library[suppIndex] = currentSupplement.copyWith(
           remainingStock: reversedStock,
@@ -1015,7 +1014,7 @@ class SupplementProvider with ChangeNotifier {
       if (suppIndex != -1) {
         final currentSupplement = _library[suppIndex];
         await _localRepo!.updateSupplementStock(
-          entryToRemove!.supplementId,
+          entryToRemove.supplementId,
           currentSupplement.remainingStock ?? 0.0,
         );
       }
@@ -1129,44 +1128,23 @@ class SupplementProvider with ChangeNotifier {
     );
   }
 
+  bool _isStackProcessing = false;
+  bool get isStackProcessing => _isStackProcessing;
+
   void quickLogStack(String stackId, {List<double>? forcedValues, bool isNotification = false}) async {
-    if (!canLogStack(stackId)) return;
+    if (!canLogStack(stackId) || _isStackProcessing) return;
     
     final index = _supplementStacks.indexWhere((s) => s.id == stackId);
     if (index == -1) return;
 
     final stack = _supplementStacks[index];
+    _isStackProcessing = true;
     
-    // 1. Perform ALL in-memory updates first
-    for (int i = 0; i < stack.items.length; i++) {
-      final stackItem = stack.items[i];
-      final libraryItemIndex = _library.indexWhere((s) => s.id == stackItem.id && s.isActive);
-      if (libraryItemIndex == -1) continue;
-      
-      final libraryItem = _library[libraryItemIndex];
-      final bool isRecord = stack.pinnedRecordModes[libraryItem.id] ?? true;
-      final bool servings = stack.pinnedUseServings[libraryItem.id] ?? true;
-      
-      double amount = 1.0;
-      if (forcedValues != null && i < forcedValues.length) {
-        amount = forcedValues[i];
-      } else {
-        amount = stack.pinnedAmounts[libraryItem.id] ?? 1.0;
-      }
-      if (amount <= 0) continue;
+    // 1. Perform ALL in-memory updates first for instant responsiveness
+    final List<SupplementItem> newEntries = [];
+    final now = DateTime.now();
+    String method = isNotification ? "NOTIFICATION STACK" : "STACK LOG";
 
-      double weightAdjustment = servings ? (amount * libraryItem.weightPerServing) : amount;
-      double finalAdjustment = isRecord ? -weightAdjustment : weightAdjustment;
-      
-      _library[libraryItemIndex] = libraryItem.copyWith(
-        remainingStock: (libraryItem.remainingStock ?? 0) + finalAdjustment
-      );
-    }
-    
-    // 2. Notify listeners IMMEDIATELY
-    notifyListeners();
-
-    // 3. Perform background operations (persistence)
     for (int i = 0; i < stack.items.length; i++) {
       final stackItem = stack.items[i];
       final libraryItemIndex = _library.indexWhere((s) => s.id == stackItem.id && s.isActive);
@@ -1187,8 +1165,13 @@ class SupplementProvider with ChangeNotifier {
       double weightAdjustment = servings ? (amount * libraryItem.weightPerServing) : amount;
       double finalAdjustment = isRecord ? -weightAdjustment : weightAdjustment;
       final unitLabel = servings ? libraryItem.servingUnit : libraryItem.weightUnit;
-      String method = isNotification ? "NOTIFICATION STACK" : "STACK LOG";
 
+      // Update Library Item in-memory
+      _library[libraryItemIndex] = libraryItem.copyWith(
+        remainingStock: (libraryItem.remainingStock ?? 0) + finalAdjustment
+      );
+
+      // Create History Entry
       final entry = SupplementItem(
         id: const Uuid().v4(),
         supplementId: libraryItem.id,
@@ -1196,22 +1179,45 @@ class SupplementProvider with ChangeNotifier {
         type: isRecord ? "Intake" : "Restock",
         details: "$method: ${stack.name.toUpperCase()} | $amount ${unitLabel.toUpperCase()}",
         weightAdjustment: finalAdjustment,
-        timestamp: DateTime.now(),
+        timestamp: now.add(Duration(milliseconds: i)), // slightly different timestamps for order
         isSynced: 0,
       );
-
-      _history.insert(0, entry);
-
-      try {
-        await _localRepo!.insertSupplementItem(entry);
-        await _localRepo!.updateSupplementStock(libraryItem.id, libraryItem.remainingStock!);
-        await _cloudRepo.insertSupplementItem(entry);
-        await _cloudRepo.updateSupplementStock(libraryItem.id, libraryItem.remainingStock!);
-      } catch (e) {
-        debugPrint("Background stack log error: $e");
-      }
+      newEntries.add(entry);
     }
+    
+    // Update History in-memory (most recent first)
+    _history.insertAll(0, newEntries.reversed);
+    
+    // 2. Notify listeners IMMEDIATELY
     notifyListeners();
+
+    // 3. Perform background operations (persistence)
+    try {
+      for (var entry in newEntries) {
+        final libItem = _library.firstWhereOrNull((s) => s.id == entry.supplementId);
+        if (libItem == null) continue;
+
+        await _localRepo!.insertSupplementItem(entry);
+        await _localRepo!.updateSupplementStock(libItem.id, libItem.remainingStock!);
+        
+        // Background cloud sync
+        _cloudRepo.insertSupplementItem(entry).then((_) {
+           _localRepo!.markHistoryAsSynced(entry.id);
+           final idx = _history.indexWhere((e) => e.id == entry.id);
+           if (idx != -1) {
+             _history[idx].isSynced = 1;
+             notifyListeners();
+           }
+        }).catchError((e) => debugPrint("Cloud sync error: $e"));
+        
+        _cloudRepo.updateSupplementStock(libItem.id, libItem.remainingStock!).catchError((e) => debugPrint("Cloud stock sync error: $e"));
+      }
+    } catch (e) {
+      debugPrint("Background stack log persistence error: $e");
+    } finally {
+      _isStackProcessing = false;
+      notifyListeners();
+    }
   }
 
   Future<void> deleteLastEntry({void Function(String sourceId, String supplementId, double amount)? onSourceRollback}) async {
@@ -1256,8 +1262,9 @@ class SupplementProvider with ChangeNotifier {
     if (dailyAverageWeight <= 0) return StockPrediction("Not in use", 999);
 
     int daysRemaining = (item.remainingStock! / dailyAverageWeight).floor();
-    if (daysRemaining > 365)
+    if (daysRemaining > 365) {
       return StockPrediction("1+ year left", daysRemaining);
+    }
     if (daysRemaining == 0) return StockPrediction("Empty today", 0);
 
     final emptyDate = now.add(Duration(days: daysRemaining));
@@ -1274,30 +1281,14 @@ class SupplementProvider with ChangeNotifier {
     required Map<String, double> amounts,
     required DateTime selectedDateTime,
   }) async {
-    // 1. Perform ALL in-memory weight updates first for instant responsiveness
-    for (var stackItem in stack.items) {
-      final libraryItemIndex = _library.indexWhere((s) => s.id == stackItem.id && s.isActive);
-      if (libraryItemIndex == -1) continue;
-      
-      final libraryItem = _library[libraryItemIndex];
-      final bool isRecord = recordModes[libraryItem.id] ?? true;
-      final bool servings = useServings[libraryItem.id] ?? true;
-      final double amount = amounts[libraryItem.id] ?? 0.0;
-      if (amount <= 0) continue;
+    if (_isStackProcessing) return;
+    _isStackProcessing = true;
 
-      double weightAdjustment = servings ? (amount * libraryItem.weightPerServing) : amount;
-      double finalAdjustment = isRecord ? -weightAdjustment : weightAdjustment;
-
-      _library[libraryItemIndex] = libraryItem.copyWith(
-        remainingStock: (libraryItem.remainingStock ?? 0) + finalAdjustment
-      );
-    }
+    // 1. Perform ALL in-memory updates first for instant responsiveness
+    final List<SupplementItem> newEntries = [];
     
-    // 2. Notify listeners IMMEDIATELY
-    notifyListeners();
-
-    // 3. Perform background operations
-    for (var stackItem in stack.items) {
+    for (int i = 0; i < stack.items.length; i++) {
+      final stackItem = stack.items[i];
       final libraryItemIndex = _library.indexWhere((s) => s.id == stackItem.id && s.isActive);
       if (libraryItemIndex == -1) continue;
       
@@ -1311,6 +1302,12 @@ class SupplementProvider with ChangeNotifier {
       double finalAdjustment = isRecord ? -weightAdjustment : weightAdjustment;
       final unitLabel = servings ? libraryItem.servingUnit : libraryItem.weightUnit;
 
+      // Update Library Item in-memory
+      _library[libraryItemIndex] = libraryItem.copyWith(
+        remainingStock: (libraryItem.remainingStock ?? 0) + finalAdjustment
+      );
+
+      // Create History Entry
       final entry = SupplementItem(
         id: const Uuid().v4(),
         supplementId: libraryItem.id,
@@ -1318,22 +1315,45 @@ class SupplementProvider with ChangeNotifier {
         type: isRecord ? "Intake" : "Restock",
         details: "STACK LOG: ${stack.name.toUpperCase()} | $amount ${unitLabel.toUpperCase()}",
         weightAdjustment: finalAdjustment,
-        timestamp: selectedDateTime,
+        timestamp: selectedDateTime.add(Duration(milliseconds: i)),
         isSynced: 0,
       );
-
-      _history.insert(0, entry);
-
-      try {
-        await _localRepo!.insertSupplementItem(entry);
-        await _localRepo!.updateSupplementStock(libraryItem.id, libraryItem.remainingStock!);
-        await _cloudRepo.insertSupplementItem(entry);
-        await _cloudRepo.updateSupplementStock(libraryItem.id, libraryItem.remainingStock!);
-      } catch (e) {
-        debugPrint("Background execute stack error: $e");
-      }
+      newEntries.add(entry);
     }
+    
+    // Update History in-memory
+    _history.insertAll(0, newEntries.reversed);
+    
+    // 2. Notify listeners IMMEDIATELY
     notifyListeners();
+
+    // 3. Perform background operations
+    try {
+      for (var entry in newEntries) {
+        final libItem = _library.firstWhereOrNull((s) => s.id == entry.supplementId);
+        if (libItem == null) continue;
+
+        await _localRepo!.insertSupplementItem(entry);
+        await _localRepo!.updateSupplementStock(libItem.id, libItem.remainingStock!);
+        
+        // Background cloud sync
+        _cloudRepo.insertSupplementItem(entry).then((_) {
+           _localRepo!.markHistoryAsSynced(entry.id);
+           final idx = _history.indexWhere((e) => e.id == entry.id);
+           if (idx != -1) {
+             _history[idx].isSynced = 1;
+             notifyListeners();
+           }
+        }).catchError((e) => debugPrint("Cloud sync error: $e"));
+
+        _cloudRepo.updateSupplementStock(libItem.id, libItem.remainingStock!).catchError((e) => debugPrint("Cloud stock sync error: $e"));
+      }
+    } catch (e) {
+      debugPrint("Background execute stack persistence error: $e");
+    } finally {
+      _isStackProcessing = false;
+      notifyListeners();
+    }
   }
 
   String getRemainingServings(Supplement item) {

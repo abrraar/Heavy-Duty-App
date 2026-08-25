@@ -21,15 +21,27 @@ class _SupplementSettingsScreenState extends State<SupplementSettingsScreen> {
     return Consumer<SupplementProvider>(
       builder: (context, provider, _) {
         final settings = provider.settings;
-        final pinnedItems = [
-          ...provider.library.where((s) => s.isActive && s.isPinnedToHome).map((s) => {'id': s.id, 'name': s.name, 'isStack': false}),
-          ...provider.supplementStacks.where((s) => s.isPinnedToHome).map((s) => {'id': s.id, 'name': s.name, 'isStack': true}),
-        ];
+        
+        final pinnedSupps = provider.library
+            .where((s) => s.isActive && s.isPinnedToHome)
+            .toList();
+        final pinnedStacks = provider.supplementStacks
+            .where((s) => s.isPinnedToHome)
+            .toList();
 
-        // Sort based on current pinnedOrder
-        pinnedItems.sort((a, b) {
-          final idxA = settings.pinnedOrder.indexOf(a['id'] as String);
-          final idxB = settings.pinnedOrder.indexOf(b['id'] as String);
+        // Sort both independently
+        pinnedSupps.sort((a, b) {
+          final idxA = settings.pinnedOrder.indexOf(a.id);
+          final idxB = settings.pinnedOrder.indexOf(b.id);
+          if (idxA == -1 && idxB == -1) return 0;
+          if (idxA == -1) return 1;
+          if (idxB == -1) return -1;
+          return idxA.compareTo(idxB);
+        });
+
+        pinnedStacks.sort((a, b) {
+          final idxA = settings.pinnedOrder.indexOf(a.id);
+          final idxB = settings.pinnedOrder.indexOf(b.id);
           if (idxA == -1 && idxB == -1) return 0;
           if (idxA == -1) return 1;
           if (idxB == -1) return -1;
@@ -67,47 +79,85 @@ class _SupplementSettingsScreenState extends State<SupplementSettingsScreen> {
                             provider.updateSettings(settings.copyWith(hideEmptyStock: val));
                           },
                         ),
+                        
                         SizedBox(height: 32.h),
-                        _buildSectionHeader("PINNING MANAGEMENT"),
+                        _buildSectionHeader("PINNED SUPPLEMENTS"),
                         Text(
-                          "REORDER PINNED ITEMS FOR HOME SCREEN",
+                          "REORDER INDIVIDUAL SUPPLEMENT SHORTCUTS",
                           style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary, fontSize: 10.sp),
                         ),
                         SizedBox(height: 16.h),
-                        if (pinnedItems.isEmpty)
-                          Center(
-                            child: Padding(
-                              padding: EdgeInsets.symmetric(vertical: 40.h),
-                              child: Text(
-                                "NO ITEMS PINNED TO HOME",
-                                style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary.withOpacity(0.3)),
-                              ),
-                            ),
-                          )
+                        if (pinnedSupps.isEmpty)
+                          _buildEmptyPlaceholder("NO SUPPLEMENTS PINNED")
                         else
                           ReorderableListView.builder(
                             shrinkWrap: true,
                             physics: const NeverScrollableScrollPhysics(),
-                            itemCount: pinnedItems.length,
+                            itemCount: pinnedSupps.length,
                             proxyDecorator: (child, index, animation) => Material(
                               type: MaterialType.transparency,
                               child: child,
                             ),
                             onReorder: (oldIdx, newIdx) {
                               if (newIdx > oldIdx) newIdx--;
-                              final item = pinnedItems.removeAt(oldIdx);
-                              pinnedItems.insert(newIdx, item);
-                              provider.updatePinnedOrder(pinnedItems.map((e) => e['id'] as String).toList());
+                              final item = pinnedSupps.removeAt(oldIdx);
+                              pinnedSupps.insert(newIdx, item);
+                              
+                              final List<String> newOrder = [
+                                ...pinnedSupps.map((e) => e.id),
+                                ...pinnedStacks.map((e) => e.id),
+                              ];
+                              provider.updatePinnedOrder(newOrder);
                             },
                             itemBuilder: (context, index) {
-                              final item = pinnedItems[index];
+                              final item = pinnedSupps[index];
                               return _buildPinnedItemCard(
-                                key: ValueKey(item['id']),
-                                name: item['name'] as String,
-                                isStack: item['isStack'] as bool,
+                                key: ValueKey(item.id),
+                                name: item.name,
+                                isStack: false,
                               );
                             },
                           ),
+
+                        SizedBox(height: 32.h),
+                        _buildSectionHeader("PINNED STACKS"),
+                        Text(
+                          "REORDER SUPPLEMENT STACK SHORTCUTS",
+                          style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary, fontSize: 10.sp),
+                        ),
+                        SizedBox(height: 16.h),
+                        if (pinnedStacks.isEmpty)
+                          _buildEmptyPlaceholder("NO STACKS PINNED")
+                        else
+                          ReorderableListView.builder(
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            itemCount: pinnedStacks.length,
+                            proxyDecorator: (child, index, animation) => Material(
+                              type: MaterialType.transparency,
+                              child: child,
+                            ),
+                            onReorder: (oldIdx, newIdx) {
+                              if (newIdx > oldIdx) newIdx--;
+                              final item = pinnedStacks.removeAt(oldIdx);
+                              pinnedStacks.insert(newIdx, item);
+                              
+                              final List<String> newOrder = [
+                                ...pinnedSupps.map((e) => e.id),
+                                ...pinnedStacks.map((e) => e.id),
+                              ];
+                              provider.updatePinnedOrder(newOrder);
+                            },
+                            itemBuilder: (context, index) {
+                              final item = pinnedStacks[index];
+                              return _buildPinnedItemCard(
+                                key: ValueKey(item.id),
+                                name: item.name,
+                                isStack: true,
+                              );
+                            },
+                          ),
+                        
                         SizedBox(height: 40.h),
                       ],
                     ),
@@ -118,6 +168,18 @@ class _SupplementSettingsScreenState extends State<SupplementSettingsScreen> {
           ),
         );
       },
+    );
+  }
+
+  Widget _buildEmptyPlaceholder(String message) {
+    return Center(
+      child: Padding(
+        padding: EdgeInsets.symmetric(vertical: 40.h),
+        child: Text(
+          message,
+          style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary.withOpacity(0.3)),
+        ),
+      ),
     );
   }
 
@@ -162,7 +224,7 @@ class _SupplementSettingsScreenState extends State<SupplementSettingsScreen> {
           ),
           Switch(
             value: value,
-            activeColor: AppColors.crimson,
+            activeThumbColor: AppColors.crimson,
             onChanged: onChanged,
           ),
         ],

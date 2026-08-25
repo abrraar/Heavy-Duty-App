@@ -107,17 +107,29 @@ class _StackNotificationSheetState extends State<StackNotificationSheet> {
     // Process intake UI state
     for (int i = 0; i < intakeReminders.length; i++) {
       var r = intakeReminders[i].copyWith(reminderMode: _selectedMode);
+      
+      if (_selectedMode == ReminderMode.schedule) {
+        // If no days picked, ignore this slot
+        if (r.days.isEmpty) continue;
+
+        // Auto-pick time ONLY if days are picked but no time is set
+        if (r.times.isEmpty) {
+          r = r.copyWith(times: [TimeOfDay.now()]);
+        }
+      }
+
       final Map<String, double> itemValues = {};
       for (var item in widget.stack.items) {
         double? val = double.tryParse(_itemControllers[i][item.id]?.text ?? "");
         itemValues[item.id] = (val == null || val <= 0) ? 1.0 : val;
       }
       r = r.copyWith(stackItemValues: itemValues);
-
-      if (_selectedMode == ReminderMode.schedule) {
-        if (r.times.isEmpty) r.times.add(TimeOfDay.now());
-      }
       updatedIntake.add(r);
+    }
+
+    // If no valid slots remain in schedule mode, turn off notifications for this section
+    if (updatedIntake.isEmpty && _selectedMode == ReminderMode.schedule) {
+      recordEnabled = false;
     }
 
     final Map<String, double> thresholds = {};
@@ -142,9 +154,15 @@ class _StackNotificationSheetState extends State<StackNotificationSheet> {
 
   @override
   void dispose() {
-    for (var m in _itemControllers) for (var c in m.values) c.dispose();
-    for (var c in _intervalControllers) c.dispose();
-    for (var c in _lowStockControllers.values) c.dispose();
+    for (var m in _itemControllers) for (var c in m.values) {
+      c.dispose();
+    }
+    for (var c in _intervalControllers) {
+      c.dispose();
+    }
+    for (var c in _lowStockControllers.values) {
+      c.dispose();
+    }
     super.dispose();
   }
 
@@ -216,7 +234,9 @@ class _StackNotificationSheetState extends State<StackNotificationSheet> {
               Text("TIME SLOT CONFIG", style: AppTextStyles.labelSmall.copyWith(fontWeight: FontWeight.w900, color: Colors.white)),
               if (intakeReminders.length > 1) IconButton(onPressed: () => setState(() { 
                 intakeReminders.removeAt(index); 
-                for (var c in _itemControllers[index].values) c.dispose();
+                for (var c in _itemControllers[index].values) {
+                  c.dispose();
+                }
                 _itemControllers.removeAt(index); 
                 _itemUseServings.removeAt(index);
                 _intervalControllers[index].dispose();
@@ -321,7 +341,24 @@ class _StackNotificationSheetState extends State<StackNotificationSheet> {
   Widget _buildTimeChips(SupplementReminder r, Function(List<TimeOfDay>) onChanged) {
     return Wrap(spacing: 8.w, runSpacing: 8.h, children: [
         ...r.times.map((t) => Chip(backgroundColor: AppColors.surface, label: Text(t.format(context), style: AppTextStyles.labelSmall), onDeleted: () => onChanged(List.from(r.times)..remove(t)), deleteIcon: Icon(Icons.close, size: 14.r, color: AppColors.crimson))),
-        GestureDetector(onTap: () async { final p = await showTimePicker(context: context, initialTime: TimeOfDay.now()); if (p != null) onChanged(List.from(r.times)..add(p)); }, child: Container(padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h), decoration: BoxDecoration(color: AppColors.crimson.withOpacity(0.1), borderRadius: BorderRadius.circular(20.r)), child: Row(mainAxisSize: MainAxisSize.min, children: [Icon(Icons.access_time_rounded, size: 14.r, color: AppColors.crimson), SizedBox(width: 4.w), Text("ADD TIME", style: AppTextStyles.labelSmall.copyWith(color: AppColors.crimson, fontWeight: FontWeight.bold))]))),
+        Opacity(
+          opacity: r.days.isNotEmpty ? 1.0 : 0.4,
+          child: GestureDetector(
+            onTap: r.days.isNotEmpty ? () async { 
+              final p = await showTimePicker(context: context, initialTime: TimeOfDay.now()); 
+              if (p != null) onChanged(List.from(r.times)..add(p)); 
+            } : null, 
+            child: Container(
+              padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h), 
+              decoration: BoxDecoration(color: AppColors.crimson.withOpacity(0.1), borderRadius: BorderRadius.circular(20.r)), 
+              child: Row(mainAxisSize: MainAxisSize.min, children: [
+                Icon(Icons.access_time_rounded, size: 14.r, color: AppColors.crimson), 
+                SizedBox(width: 4.w), 
+                Text("ADD TIME", style: AppTextStyles.labelSmall.copyWith(color: AppColors.crimson, fontWeight: FontWeight.bold))
+              ])
+            )
+          ),
+        ),
     ]);
   }
 

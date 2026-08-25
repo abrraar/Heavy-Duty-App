@@ -3,6 +3,7 @@ import 'package:uuid/uuid.dart';
 
 class CalorieLog {
   final String id;
+  final String? userId;
   final String mealName;
   final String foodItems;
   final double calories;
@@ -17,6 +18,7 @@ class CalorieLog {
 
   CalorieLog({
     String? id,
+    this.userId,
     required this.mealName,
     required this.foodItems,
     required this.calories,
@@ -34,6 +36,7 @@ class CalorieLog {
   Map<String, dynamic> toMap() {
     return {
       'id': id,
+      'user_id': userId,
       'meal_name': mealName,
       'food_items': foodItems,
       'calories': calories,
@@ -59,6 +62,7 @@ class CalorieLog {
 
     return CalorieLog(
       id: map['id'] as String,
+      userId: map['user_id']?.toString(),
       mealName: map['meal_name'] as String,
       foodItems: map['food_items'] as String,
       calories: (map['calories'] as num).toDouble(),
@@ -75,6 +79,7 @@ class CalorieLog {
 
   CalorieLog copyWith({
     String? id,
+    String? userId,
     String? mealName,
     String? foodItems,
     double? calories,
@@ -91,6 +96,7 @@ class CalorieLog {
   }) {
     return CalorieLog(
       id: id ?? this.id,
+      userId: userId ?? this.userId,
       mealName: mealName ?? this.mealName,
       foodItems: foodItems ?? this.foodItems,
       calories: calories ?? this.calories,

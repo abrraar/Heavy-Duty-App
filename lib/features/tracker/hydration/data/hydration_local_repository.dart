@@ -19,17 +19,23 @@ class HydrationLocalRepository {
 
   Future<void> insertLog(HydrationLog log) async {
     final db = await _getDatabase();
-    await db.insert('hydration_logs', log.toMap(), conflictAlgorithm: ConflictAlgorithm.replace);
+    final logWithUser = log.copyWith(userId: userId);
+    await db.insert('hydration_logs', logWithUser.toMap(), conflictAlgorithm: ConflictAlgorithm.replace);
   }
 
   Future<void> deleteLog(String id) async {
     final db = await _getDatabase();
-    await db.delete('hydration_logs', where: 'id = ?', whereArgs: [id]);
+    await db.delete('hydration_logs', where: 'id = ? AND user_id = ?', whereArgs: [id, userId]);
   }
 
   Future<List<HydrationLog>> getAllLogs() async {
     final db = await _getDatabase();
-    final List<Map<String, dynamic>> maps = await db.query('hydration_logs', orderBy: 'timestamp DESC');
+    final List<Map<String, dynamic>> maps = await db.query(
+      'hydration_logs', 
+      where: 'user_id = ?',
+      whereArgs: [userId],
+      orderBy: 'timestamp DESC'
+    );
     return maps.map((map) => HydrationLog.fromMap(map)).toList();
   }
 
@@ -40,8 +46,8 @@ class HydrationLocalRepository {
     
     final List<Map<String, dynamic>> maps = await db.query(
       'hydration_logs',
-      where: 'timestamp >= ? AND timestamp <= ?',
-      whereArgs: [startOfDay, endOfDay],
+      where: 'timestamp >= ? AND timestamp <= ? AND user_id = ?',
+      whereArgs: [startOfDay, endOfDay, userId],
       orderBy: 'timestamp DESC',
     );
     return maps.map((map) => HydrationLog.fromMap(map)).toList();
@@ -51,19 +57,20 @@ class HydrationLocalRepository {
 
   Future<HydrationSettings> getSettings() async {
     final db = await _getDatabase();
-    final List<Map<String, dynamic>> maps = await db.query('hydration_settings', where: 'id = 1');
+    final List<Map<String, dynamic>> maps = await db.query('hydration_settings', where: 'id = 1 AND user_id = ?', whereArgs: [userId]);
     if (maps.isNotEmpty) {
       return HydrationSettings.fromMap(maps.first);
     }
     // Default settings if none found
-    final defaultSettings = HydrationSettings();
+    final defaultSettings = HydrationSettings(userId: userId);
     await saveSettings(defaultSettings);
     return defaultSettings;
   }
 
   Future<void> saveSettings(HydrationSettings settings) async {
     final db = await _getDatabase();
-    final map = settings.toMap();
+    final settingsWithUser = settings.copyWith(userId: userId);
+    final map = settingsWithUser.toMap();
     map['id'] = 1;
     await db.insert('hydration_settings', map, conflictAlgorithm: ConflictAlgorithm.replace);
   }
@@ -72,40 +79,41 @@ class HydrationLocalRepository {
 
   Future<void> addToDeletionQueue(String id, String tableName) async {
     final db = await _getDatabase();
-    await db.insert('pending_deletions', {'id': id, 'table_name': tableName},
+    await db.insert('pending_deletions', {'id': id, 'user_id': userId, 'table_name': tableName},
         conflictAlgorithm: ConflictAlgorithm.replace);
   }
 
   Future<void> removeFromDeletionQueue(String id) async {
     final db = await _getDatabase();
-    await db.delete('pending_deletions', where: 'id = ?', whereArgs: [id]);
+    await db.delete('pending_deletions', where: 'id = ? AND user_id = ?', whereArgs: [id, userId]);
   }
 
   Future<List<Map<String, dynamic>>> getPendingDeletions() async {
     final db = await _getDatabase();
-    return await db.query('pending_deletions');
+    return await db.query('pending_deletions', where: 'user_id = ?', whereArgs: [userId]);
   }
 
   Future<List<HydrationLog>> getUnsyncedLogs() async {
     final db = await _getDatabase();
-    final List<Map<String, dynamic>> maps = await db.query('hydration_logs', where: 'is_synced = 0');
+    final List<Map<String, dynamic>> maps = await db.query('hydration_logs', where: 'is_synced = 0 AND user_id = ?', whereArgs: [userId]);
     return maps.map((map) => HydrationLog.fromMap(map)).toList();
   }
 
   Future<HydrationSettings?> getUnsyncedSettings() async {
     final db = await _getDatabase();
-    final List<Map<String, dynamic>> maps = await db.query('hydration_settings', where: 'is_synced = 0 AND id = 1');
+    final List<Map<String, dynamic>> maps = await db.query('hydration_settings', where: 'is_synced = 0 AND id = 1 AND user_id = ?', whereArgs: [userId]);
     if (maps.isNotEmpty) return HydrationSettings.fromMap(maps.first);
     return null;
   }
 
   Future<void> markLogSynced(String id) async {
     final db = await _getDatabase();
-    await db.update('hydration_logs', {'is_synced': 1}, where: 'id = ?', whereArgs: [id]);
+    await db.update('hydration_logs', {'is_synced': 1}, where: 'id = ? AND user_id = ?', whereArgs: [id, userId]);
   }
 
   Future<void> markSettingsSynced() async {
     final db = await _getDatabase();
-    await db.update('hydration_settings', {'is_synced': 1}, where: 'id = 1');
+    await db.update('hydration_settings', {'is_synced': 1}, where: 'id = 1 AND user_id = ?', whereArgs: [userId]);
   }
+
 }

@@ -58,6 +58,7 @@ class BodyCompSettings {
   final List<BodyCompReminder> muscleReminders;
 
   final int isSynced;
+  final String? userId;
 
   BodyCompSettings({
     this.weightUnit = WeightUnit.kgs,
@@ -69,11 +70,13 @@ class BodyCompSettings {
     this.muscleRemindersEnabled = false,
     this.muscleReminders = const [],
     this.isSynced = 1,
+    this.userId,
   });
 
   Map<String, dynamic> toMap() {
     return {
       'id': 1,
+      'user_id': userId,
       'weight_unit': weightUnit.name,
       'height_unit': heightUnit.name,
       'weight_reminders_enabled': weightRemindersEnabled ? 1 : 0,
@@ -114,6 +117,7 @@ class BodyCompSettings {
       muscleRemindersEnabled: map['muscle_reminders_enabled'] == 1,
       muscleReminders: parseReminders(map['muscle_reminders_json']),
       isSynced: (map['is_synced'] as num?)?.toInt() ?? 1,
+      userId: map['user_id'] as String?,
     );
   }
 
@@ -127,6 +131,7 @@ class BodyCompSettings {
     bool? muscleRemindersEnabled,
     List<BodyCompReminder>? muscleReminders,
     int? isSynced,
+    String? userId,
   }) {
     return BodyCompSettings(
       weightUnit: weightUnit ?? this.weightUnit,
@@ -138,6 +143,8 @@ class BodyCompSettings {
       muscleRemindersEnabled: muscleRemindersEnabled ?? this.muscleRemindersEnabled,
       muscleReminders: muscleReminders ?? this.muscleReminders,
       isSynced: isSynced ?? this.isSynced,
+      userId: userId ?? this.userId,
     );
   }
 }
+

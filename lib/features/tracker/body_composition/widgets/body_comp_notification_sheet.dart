@@ -1,12 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:heavy_duty/core/theme/app_colors.dart';
 import 'package:heavy_duty/core/theme/app_text_styles.dart';
-import 'package:provider/provider.dart';
-import 'package:heavy_duty/core/widgets/elite_snackbar.dart';
 import '../model/body_comp_settings.dart';
-import '../provider/body_comp_provider.dart';
 
 class BodyCompNotificationSheet extends StatefulWidget {
   final String title;
@@ -207,10 +203,11 @@ class _BodyCompNotificationSheetState extends State<BodyCompNotificationSheet> {
         final isSelected = reminder.days.contains(i + 1);
         return GestureDetector(
           onTap: () => setState(() {
-            if (isSelected)
+            if (isSelected) {
               reminder.days.remove(i + 1);
-            else
+            } else {
               reminder.days.add(i + 1);
+            }
           }),
           child: Container(
             width: 36.r,

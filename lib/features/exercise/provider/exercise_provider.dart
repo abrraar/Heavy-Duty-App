@@ -111,9 +111,9 @@ class ExerciseProvider with ChangeNotifier {
         (t) => t.name == 'Dumbbell Flyes', 
         orElse: () => ExerciseTemplate(name: 'Empty')
       );
-      final hasUpdatedNotes = flyes.aboutTheMovement != null && flyes.aboutTheMovement!.contains('elbows pulled back');
+      final hasCitation = flyes.aboutTheMovement != null && flyes.aboutTheMovement!.contains('The Mike Mentzer Way');
 
-      if (defaultCount != 42 || !hasUpdatedNotes) {
+      if (defaultCount != 42 || !hasCitation) {
         debugPrint("ExerciseProvider: [UPDATE] Syncing Mentzer library versions...");
         await _initializeDefaults();
         _templates = await _localRepo!.getAllTemplates();
@@ -272,13 +272,15 @@ class ExerciseProvider with ChangeNotifier {
         .replaceAll(')', '');
     final String publicUrl = 'https://fmudyebwpvpgqbnrjtpi.supabase.co/storage/v1/object/public/exercise-photos/$fileName.webp';
 
+    final String citedAbout = '"$about"\n\n— Mike Mentzer, High Intensity Training: The Mike Mentzer Way';
+
     return ExerciseTemplate(
       name: name,
       targetMuscles: muscles,
       type: type,
       intensity: intensity,
       isDefault: true,
-      aboutTheMovement: about,
+      aboutTheMovement: citedAbout,
       imageUrl: publicUrl,
     );
   }

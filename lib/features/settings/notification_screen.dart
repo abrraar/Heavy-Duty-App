@@ -9,7 +9,6 @@ import 'package:heavy_duty/features/tracker/hydration/provider/hydration_provide
 import 'package:heavy_duty/features/tracker/sleep/provider/sleep_alarm_provider.dart';
 import 'package:heavy_duty/features/tracker/supplement/provider/supplement_provider.dart';
 import 'package:provider/provider.dart';
-import 'package:intl/intl.dart';
 
 import '../tracker/supplement/model/supplement.dart';
 

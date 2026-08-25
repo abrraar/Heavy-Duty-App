@@ -15,6 +15,7 @@ class Workout {
   final String? note;
   final List<Exercise> exercises;
   final int isSynced;
+  final String? userId;
 
   Workout({
     String? id,
@@ -26,11 +27,13 @@ class Workout {
     this.note,
     this.exercises = const [],
     this.isSynced = 1,
+    this.userId,
   }) : id = id ?? const Uuid().v4();
 
   Map<String, dynamic> toMap() {
     return {
       'id': id,
+      'user_id': userId,
       'cycle_id': cycleId,
       'name': name,
       'workout_order': order,
@@ -44,6 +47,7 @@ class Workout {
   factory Workout.fromMap(Map<String, dynamic> map, [List<Exercise> exercises = const []]) {
     return Workout(
       id: map['id']?.toString() ?? const Uuid().v4(),
+      userId: map['user_id']?.toString(),
       cycleId: map['cycle_id']?.toString() ?? "",
       name: map['name']?.toString() ?? "Untitled Workout",
       order: (map['workout_order'] as num?)?.toInt() ?? 0,
@@ -86,6 +90,7 @@ class Workout {
     String? note,
     List<Exercise>? exercises,
     int? isSynced,
+    String? userId,
   }) {
     return Workout(
       id: id ?? this.id,
@@ -97,6 +102,8 @@ class Workout {
       note: note ?? this.note,
       exercises: exercises ?? this.exercises,
       isSynced: isSynced ?? this.isSynced,
+      userId: userId ?? this.userId,
     );
   }
 }
+

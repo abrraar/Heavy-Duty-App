@@ -14,6 +14,7 @@ class SleepAlarmSettings {
   final int wakeUpHour;
   final int wakeUpMinute;
   final String? wakeUpAudioPath;
+  final String? userId;
 
   SleepAlarmSettings({
     this.bedtimeEnabled = false,
@@ -24,10 +25,12 @@ class SleepAlarmSettings {
     this.wakeUpHour = 6,
     this.wakeUpMinute = 45,
     this.wakeUpAudioPath,
+    this.userId,
   });
 
   Map<String, dynamic> toMap({bool forCloud = false}) {
     return {
+      'user_id': userId,
       'bedtime_enabled': forCloud ? bedtimeEnabled : (bedtimeEnabled ? 1 : 0),
       'bedtime_hour': bedtimeHour,
       'bedtime_minute': bedtimeMinute,
@@ -56,9 +59,35 @@ class SleepAlarmSettings {
       wakeUpHour: map['wake_up_hour'] as int? ?? 6,
       wakeUpMinute: map['wake_up_minute'] as int? ?? 45,
       wakeUpAudioPath: map['wake_up_audio_path'] as String?,
+      userId: map['user_id'] as String?,
+    );
+  }
+
+  SleepAlarmSettings copyWith({
+    bool? bedtimeEnabled,
+    int? bedtimeHour,
+    int? bedtimeMinute,
+    String? bedtimeAudioPath,
+    bool? wakeUpEnabled,
+    int? wakeUpHour,
+    int? wakeUpMinute,
+    String? wakeUpAudioPath,
+    String? userId,
+  }) {
+    return SleepAlarmSettings(
+      bedtimeEnabled: bedtimeEnabled ?? this.bedtimeEnabled,
+      bedtimeHour: bedtimeHour ?? this.bedtimeHour,
+      bedtimeMinute: bedtimeMinute ?? this.bedtimeMinute,
+      bedtimeAudioPath: bedtimeAudioPath ?? this.bedtimeAudioPath,
+      wakeUpEnabled: wakeUpEnabled ?? this.wakeUpEnabled,
+      wakeUpHour: wakeUpHour ?? this.wakeUpHour,
+      wakeUpMinute: wakeUpMinute ?? this.wakeUpMinute,
+      wakeUpAudioPath: wakeUpAudioPath ?? this.wakeUpAudioPath,
+      userId: userId ?? this.userId,
     );
   }
 }
+
 
 class SleepAlarmRepository {
   final String userId;
@@ -74,7 +103,7 @@ class SleepAlarmRepository {
   Future<SleepAlarmSettings> getSettings() async {
     // 1. Try Local First
     final db = await _getDatabase();
-    final List<Map<String, dynamic>> maps = await db.query('sleep_alarm_settings', where: 'id = 1');
+    final List<Map<String, dynamic>> maps = await db.query('sleep_alarm_settings', where: 'id = 1 AND user_id = ?', whereArgs: [userId]);
     SleepAlarmSettings settings;
     
     if (maps.isNotEmpty) {
@@ -82,8 +111,9 @@ class SleepAlarmRepository {
       settings = SleepAlarmSettings.fromMap(maps.first);
     } else {
       debugPrint("SleepAlarmRepository: No local settings, using defaults");
-      settings = SleepAlarmSettings();
+      settings = SleepAlarmSettings(userId: userId);
     }
+
 
     // 2. Try Cloud and sync if newer/different
     try {

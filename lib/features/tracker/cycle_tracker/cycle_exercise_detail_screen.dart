@@ -7,7 +7,6 @@ import 'package:heavy_duty/core/theme/app_text_styles.dart';
 import 'package:heavy_duty/features/tracker/cycle_tracker/provider/cycle_provider.dart';
 import 'package:heavy_duty/features/tracker/cycle_tracker/model/cycle_settings.dart';
 import 'package:provider/provider.dart';
-import 'package:intl/intl.dart';
 import 'model/exercise.dart';
 import 'model/exercise_log.dart';
 import 'model/training_cycle.dart';
@@ -41,7 +40,7 @@ class _CycleExerciseDetailScreenState extends State<CycleExerciseDetailScreen> {
   Timer? _debounce;
   ExerciseLog? _currentSessionLog;
   bool _isInitialLoad = true;
-  bool _isManualEditMode = false;
+  final bool _isManualEditMode = false;
   WeightUnit? _lastUnit;
 
   @override

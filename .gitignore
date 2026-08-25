@@ -52,3 +52,4 @@ GoogleService-Info.plist
 *.keystore
 *.jks
 signing.properties
+key.properties

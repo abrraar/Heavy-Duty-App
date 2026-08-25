@@ -1,12 +1,10 @@
 // main.dart
 
-import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:heavy_duty/core/constants/app_constants.dart';
 import 'package:heavy_duty/core/theme/app_picker_theme.dart';
-import 'package:heavy_duty/core/navigation/app_routes.dart';
 import 'package:heavy_duty/features/auth/provider/auth_provider.dart';
 import 'package:heavy_duty/features/tracker/hydration/provider/hydration_provider.dart';
 import 'package:heavy_duty/features/tracker/sleep/provider/sleep_provider.dart';
@@ -30,6 +28,7 @@ import 'core/providers/update_provider.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized(); // Ensure this is first
 
+  await Alarm.init();
   await NotificationService().init();
   ConnectivityService().init();
 
@@ -88,8 +87,6 @@ class AuthWrapper extends StatefulWidget {
 }
 
 class _AuthWrapperState extends State<AuthWrapper> {
-  StreamSubscription<AlarmSettings>? _alarmSubscription;
-
   @override
   void initState() {
     super.initState();
@@ -100,16 +97,6 @@ class _AuthWrapperState extends State<AuthWrapper> {
     // Check for Updates
     context.read<UpdateProvider>().init();
     
-    // Listen for Alarms
-    _alarmSubscription = Alarm.ringStream.stream.listen((settings) {
-      debugPrint("ALARM RINGING: ${settings.id}");
-      // Navigate to Ringing Screen
-      appRouter.push(
-        AppRoutes.alarmRinging,
-        extra: {'id': settings.id, 'label': settings.notificationSettings.body},
-      );
-    });
-
     // Listen to Auth changes
     Supabase.instance.client.auth.onAuthStateChange.listen((data) {
       final user = data.session?.user;
@@ -150,7 +137,6 @@ class _AuthWrapperState extends State<AuthWrapper> {
 
   @override
   void dispose() {
-    _alarmSubscription?.cancel();
     super.dispose();
   }
 

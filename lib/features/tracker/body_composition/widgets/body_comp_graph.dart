@@ -72,7 +72,7 @@ class _BodyCompGraphState extends State<BodyCompGraph> {
                   child: Text(
                     "SELECT A METRIC TO VIEW TRENDS",
                     style: AppTextStyles.labelSmall.copyWith(
-                      color: AppColors.textSecondary.withOpacity(0.2),
+                      color: AppColors.textSecondary.withValues(alpha: 0.2),
                       letterSpacing: 1.5,
                       fontWeight: FontWeight.w900,
                     ),
@@ -109,9 +109,9 @@ class _BodyCompGraphState extends State<BodyCompGraph> {
                           begin: Alignment.topCenter,
                           end: Alignment.bottomCenter,
                           colors: [
-                            AppColors.crimson.withOpacity(0.0),
-                            AppColors.crimson.withOpacity(0.2),
-                            AppColors.crimson.withOpacity(0.0),
+                            AppColors.crimson.withValues(alpha: 0.0),
+                            AppColors.crimson.withValues(alpha: 0.2),
+                            AppColors.crimson.withValues(alpha: 0.0),
                           ],
                         ),
                       ),
@@ -128,13 +128,18 @@ class _BodyCompGraphState extends State<BodyCompGraph> {
         if (hasSelection)
           Padding(
             padding: EdgeInsets.symmetric(horizontal: 24.w),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                _buildStatMini("WEIGHT", widget.data["weight"]?[_currentIndex], Colors.tealAccent),
-                _buildStatMini("BODY FAT", widget.data["fat"]?[_currentIndex], Colors.redAccent),
-                _buildStatMini("MUSCLE", widget.data["muscle"]?[_currentIndex], Colors.lightGreenAccent),
-              ],
+            child: Consumer<BodyCompProvider>(
+              builder: (context, provider, _) {
+                final String unit = provider.settings.weightUnit == WeightUnit.kgs ? "KG" : "LBS";
+                return Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  children: [
+                    _buildStatMini("WEIGHT", widget.data["weight"]?[_currentIndex], Colors.tealAccent, unit),
+                    _buildStatMini("BODY FAT", widget.data["fat"]?[_currentIndex], Colors.redAccent, unit),
+                    _buildStatMini("MUSCLE", widget.data["muscle"]?[_currentIndex], Colors.lightGreenAccent, unit),
+                  ],
+                );
+              },
             ),
           ),
         
@@ -154,7 +159,7 @@ class _BodyCompGraphState extends State<BodyCompGraph> {
           Text(
             DateFormat('hh:mm a').format(widget.dates[_currentIndex]),
             style: AppTextStyles.labelSmall.copyWith(
-              color: AppColors.textSecondary.withOpacity(0.4),
+              color: AppColors.textSecondary.withValues(alpha: 0.4),
               fontSize: 10.sp,
             ),
           ),
@@ -206,7 +211,7 @@ class _BodyCompGraphState extends State<BodyCompGraph> {
                           height: 8.h, 
                           alignment: Alignment.centerLeft,
                           decoration: BoxDecoration(
-                            color: AppColors.white.withOpacity(0.1),
+                            color: AppColors.white.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(10.r),
                           ),
                           child: Stack(
@@ -236,14 +241,14 @@ class _BodyCompGraphState extends State<BodyCompGraph> {
                         "START",
                         style: AppTextStyles.labelSmall.copyWith(
                           fontSize: 8.sp,
-                          color: AppColors.textSecondary.withOpacity(0.2),
+                          color: AppColors.textSecondary.withValues(alpha: 0.2),
                         ),
                       ),
                       Text(
                         "LATEST",
                         style: AppTextStyles.labelSmall.copyWith(
                           fontSize: 8.sp,
-                          color: AppColors.textSecondary.withOpacity(0.2),
+                          color: AppColors.textSecondary.withValues(alpha: 0.2),
                         ),
                       ),
                     ],
@@ -257,26 +262,44 @@ class _BodyCompGraphState extends State<BodyCompGraph> {
     );
   }
 
-  Widget _buildStatMini(String label, double? value, Color color) {
+  Widget _buildStatMini(String label, double? value, Color color, String unit) {
     return Column(
       children: [
         Text(
           label,
           style: AppTextStyles.labelSmall.copyWith(
-            color: AppColors.textSecondary.withOpacity(0.4),
+            color: AppColors.textSecondary.withValues(alpha: 0.4),
             fontSize: 7.sp, // Smaller label
             fontWeight: FontWeight.w900,
             letterSpacing: 1.5,
           ),
         ),
         SizedBox(height: 6.h),
-        Text(
-          value != null ? double.parse(value.toStringAsFixed(3)).toString() : "--",
-          style: AppTextStyles.h3.copyWith(
-            color: color,
-            fontSize: 22.sp, // Larger value for impact
-            fontWeight: FontWeight.w900,
-          ),
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.baseline,
+          textBaseline: TextBaseline.alphabetic,
+          children: [
+            Text(
+              value != null ? value.toStringAsFixed(1) : "--",
+              style: AppTextStyles.h3.copyWith(
+                color: color,
+                fontSize: 22.sp, // Larger value for impact
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+            if (value != null) ...[
+              SizedBox(width: 4.w),
+              Text(
+                unit,
+                style: AppTextStyles.labelSmall.copyWith(
+                  color: color.withValues(alpha: 0.5),
+                  fontSize: 10.sp,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ],
+          ],
         ),
       ],
     );
@@ -341,7 +364,7 @@ class _BodyCompGraphState extends State<BodyCompGraph> {
             gradient: LinearGradient(
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
-              colors: [entry.value.withOpacity(0.15), entry.value.withOpacity(0)],
+              colors: [entry.value.withValues(alpha: 0.15), entry.value.withValues(alpha: 0)],
             ),
           ),
         ));
@@ -366,7 +389,7 @@ class _BodyCompGraphState extends State<BodyCompGraph> {
         drawVerticalLine: false,
         horizontalInterval: ((maxY - minY) / 5).clamp(0.1, 1000).toDouble(),
         getDrawingHorizontalLine: (value) => FlLine(
-          color: AppColors.white.withOpacity(0.05),
+          color: AppColors.white.withValues(alpha: 0.05),
           strokeWidth: 1,
           dashArray: [5, 5],
         ),
@@ -408,7 +431,7 @@ class BodyCompComparisonWidget extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(28.r),
-        border: Border.all(color: AppColors.white.withOpacity(0.05)),
+        border: Border.all(color: AppColors.white.withValues(alpha: 0.05)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -429,7 +452,7 @@ class BodyCompComparisonWidget extends StatelessWidget {
             Center(
               child: Text(
                 "SELECT TWO POINTS TO COMPARE",
-                style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary.withOpacity(0.2)),
+                style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary.withValues(alpha: 0.2)),
               ),
             ),
           ],
@@ -452,20 +475,20 @@ class BodyCompComparisonWidget extends StatelessWidget {
                   onTap: () => onChanged(null),
                   child: Container(
                     padding: EdgeInsets.all(4.r),
-                    decoration: BoxDecoration(color: AppColors.error.withOpacity(0.1), shape: BoxShape.circle),
+                    decoration: BoxDecoration(color: AppColors.error.withValues(alpha: 0.1), shape: BoxShape.circle),
                     child: Icon(Icons.close_rounded, color: AppColors.error, size: 12.r),
                   ),
                 ),
                 SizedBox(width: 8.w),
               ],
-              Text(title, style: AppTextStyles.labelSmall.copyWith(color: selectedIdx != null ? AppColors.crimson : AppColors.textSecondary.withOpacity(0.4), fontSize: 11.sp, fontWeight: FontWeight.w900)),
+             Text(title, style: AppTextStyles.labelSmall.copyWith(color: selectedIdx != null ? AppColors.crimson : AppColors.textSecondary.withValues(alpha: 0.4), fontSize: 11.sp, fontWeight: FontWeight.w900)),
               if (selectedIdx != null && !isEnd) ...[
                 SizedBox(width: 8.w),
                 GestureDetector(
                   onTap: () => onChanged(null),
                   child: Container(
                     padding: EdgeInsets.all(4.r),
-                    decoration: BoxDecoration(color: AppColors.error.withOpacity(0.1), shape: BoxShape.circle),
+                    decoration: BoxDecoration(color: AppColors.error.withValues(alpha: 0.1), shape: BoxShape.circle),
                     child: Icon(Icons.close_rounded, color: AppColors.error, size: 12.r),
                   ),
                 ),
@@ -478,16 +501,16 @@ class BodyCompComparisonWidget extends StatelessWidget {
             child: Container(
               padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 12.h),
               decoration: BoxDecoration(
-                color: selectedIdx != null ? AppColors.crimson.withOpacity(0.05) : AppColors.surfaceLight.withOpacity(0.3),
+                color: selectedIdx != null ? AppColors.crimson.withValues(alpha: 0.05) : AppColors.surfaceLight.withValues(alpha: 0.3),
                 borderRadius: BorderRadius.circular(12.r),
-                border: Border.all(color: selectedIdx != null ? AppColors.crimson.withOpacity(0.4) : AppColors.white.withOpacity(0.05)),
+                border: Border.all(color: selectedIdx != null ? AppColors.crimson.withValues(alpha: 0.4) : AppColors.white.withValues(alpha: 0.05)),
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(selectedIdx != null ? Icons.event_available_rounded : Icons.event_note_rounded, color: selectedIdx != null ? AppColors.crimson : AppColors.textSecondary.withOpacity(0.3), size: 18.r),
+                  Icon(selectedIdx != null ? Icons.event_available_rounded : Icons.event_note_rounded, color: selectedIdx != null ? AppColors.crimson : AppColors.textSecondary.withValues(alpha: 0.3), size: 18.r),
                   SizedBox(width: 10.w),
-                  Flexible(child: Text(selectedIdx != null ? labels[selectedIdx] : "SET POINT", overflow: TextOverflow.ellipsis, style: AppTextStyles.labelSmall.copyWith(fontSize: 11.sp, color: selectedIdx != null ? Colors.white : AppColors.textSecondary.withOpacity(0.4)))),
+                  Flexible(child: Text(selectedIdx != null ? labels[selectedIdx] : "SET POINT", overflow: TextOverflow.ellipsis, style: AppTextStyles.labelSmall.copyWith(fontSize: 11.sp, color: selectedIdx != null ? Colors.white : AppColors.textSecondary.withValues(alpha: 0.4)))),
                 ],
               ),
             ),
@@ -515,20 +538,20 @@ class BodyCompComparisonWidget extends StatelessWidget {
         decoration: BoxDecoration(
           color: AppColors.surface,
           borderRadius: BorderRadius.vertical(top: Radius.circular(32.r)),
-          border: Border.all(color: AppColors.white.withOpacity(0.05)),
+          border: Border.all(color: AppColors.white.withValues(alpha: 0.05)),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             Container(
               width: 40.w, height: 4.h, margin: EdgeInsets.only(bottom: 24.h),
-              decoration: BoxDecoration(color: AppColors.textSecondary.withOpacity(0.2), borderRadius: BorderRadius.circular(2.r)),
+              decoration: BoxDecoration(color: AppColors.textSecondary.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(2.r)),
             ),
             Row(
               children: [
                 Container(
                   padding: EdgeInsets.all(10.r),
-                  decoration: BoxDecoration(color: AppColors.crimson.withOpacity(0.1), shape: BoxShape.circle),
+                  decoration: BoxDecoration(color: AppColors.crimson.withValues(alpha: 0.1), shape: BoxShape.circle),
                   child: Icon(Icons.event_note_rounded, color: AppColors.crimson, size: 24.r),
                 ),
                 SizedBox(width: 16.w),
@@ -537,7 +560,7 @@ class BodyCompComparisonWidget extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text("SELECT RECORDING", style: AppTextStyles.h3.copyWith(fontSize: 18.sp)),
-                      Text("CHOOSE A DATE FROM YOUR HISTORY", style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary.withOpacity(0.5), letterSpacing: 1)),
+                      Text("CHOOSE A DATE FROM YOUR HISTORY", style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary.withValues(alpha: 0.5), letterSpacing: 1)),
                     ],
                   ),
                 ),
@@ -583,11 +606,11 @@ class BodyCompComparisonWidget extends StatelessWidget {
                                     contentPadding: EdgeInsets.symmetric(horizontal: 16.w),
                                     leading: Icon(
                                       isCurrent ? Icons.check_circle_rounded : (isOther ? Icons.info_outline_rounded : Icons.radio_button_off_rounded),
-                                      color: isCurrent ? AppColors.crimson : (isOther ? AppColors.textSecondary.withOpacity(0.5) : AppColors.textSecondary.withOpacity(0.2)),
+                                      color: isCurrent ? AppColors.crimson : (isOther ? AppColors.textSecondary.withValues(alpha: 0.5) : AppColors.textSecondary.withValues(alpha: 0.2)),
                                     ),
                                     title: Text(
                                       DateFormat('hh:mm a').format(dates[idx]),
-                                      style: AppTextStyles.labelSmall.copyWith(color: isCurrent ? Colors.white : (isOther ? AppColors.textSecondary.withOpacity(0.5) : AppColors.textSecondary)),
+                                      style: AppTextStyles.labelSmall.copyWith(color: isCurrent ? Colors.white : (isOther ? AppColors.textSecondary.withValues(alpha: 0.5) : AppColors.textSecondary)),
                                     ),
                                     onTap: () => Navigator.pop(ctx, idx),
                                   );
@@ -603,10 +626,10 @@ class BodyCompComparisonWidget extends StatelessWidget {
                       duration: const Duration(milliseconds: 200),
                       padding: EdgeInsets.all(16.r),
                       decoration: BoxDecoration(
-                        color: isPartiallySelected ? AppColors.crimson.withOpacity(0.1) : AppColors.background.withOpacity(0.5),
+                        color: isPartiallySelected ? AppColors.crimson.withValues(alpha: 0.1) : AppColors.background.withValues(alpha: 0.5),
                         borderRadius: BorderRadius.circular(16.r),
                         border: Border.all(
-                          color: isPartiallySelected ? AppColors.crimson : (isOccupiedByOther ? AppColors.crimson.withOpacity(0.3) : AppColors.white.withOpacity(0.05)),
+                          color: isPartiallySelected ? AppColors.crimson : (isOccupiedByOther ? AppColors.crimson.withValues(alpha: 0.3) : AppColors.white.withValues(alpha: 0.05)),
                           width: 1.5,
                         ),
                       ),
@@ -614,7 +637,7 @@ class BodyCompComparisonWidget extends StatelessWidget {
                         children: [
                           Icon(
                             isPartiallySelected ? Icons.check_circle_rounded : (isOccupiedByOther ? Icons.info_outline_rounded : Icons.calendar_today_rounded),
-                            color: isPartiallySelected ? AppColors.crimson : (isOccupiedByOther ? AppColors.crimson.withOpacity(0.5) : AppColors.textSecondary.withOpacity(0.2)),
+                            color: isPartiallySelected ? AppColors.crimson : (isOccupiedByOther ? AppColors.crimson.withValues(alpha: 0.5) : AppColors.textSecondary.withValues(alpha: 0.2)),
                             size: 20.r,
                           ),
                           SizedBox(width: 16.w),
@@ -630,8 +653,8 @@ class BodyCompComparisonWidget extends StatelessWidget {
                           if (indices.length > 1)
                             Container(
                               padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
-                              decoration: BoxDecoration(color: AppColors.white.withOpacity(0.05), borderRadius: BorderRadius.circular(8.r)),
-                              child: Text("${indices.length} LOGS", style: AppTextStyles.labelSmall.copyWith(fontSize: 9.sp, color: AppColors.textSecondary.withOpacity(0.5))),
+                              decoration: BoxDecoration(color: AppColors.white.withValues(alpha: 0.05), borderRadius: BorderRadius.circular(8.r)),
+                              child: Text("${indices.length} LOGS", style: AppTextStyles.labelSmall.copyWith(fontSize: 9.sp, color: AppColors.textSecondary.withValues(alpha: 0.5))),
                             ),
                         ],
                       ),
@@ -672,7 +695,7 @@ class BodyCompComparisonWidget extends StatelessWidget {
           padding: EdgeInsets.symmetric(vertical: 20.h),
           child: Text(
             "NO OVERLAPPING METRICS ON THESE DATES", 
-            style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary.withOpacity(0.3), fontSize: 8.sp)
+            style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary.withValues(alpha: 0.3), fontSize: 8.sp)
           ),
         ),
       );
@@ -689,7 +712,7 @@ class BodyCompComparisonWidget extends StatelessWidget {
       margin: EdgeInsets.only(bottom: 16.h),
       padding: EdgeInsets.all(20.r),
       decoration: BoxDecoration(
-        color: AppColors.surfaceLight.withOpacity(0.3),
+        color: AppColors.surfaceLight.withValues(alpha: 0.3),
         borderRadius: BorderRadius.circular(20.r),
       ),
       child: Column(
@@ -724,7 +747,7 @@ class BodyCompComparisonWidget extends StatelessWidget {
   Widget _valItem(String l, double v, String u, {bool isDelta = false}) {
     return Column(
       children: [
-        Text(l, style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary.withOpacity(0.4), fontSize: 10.sp, fontWeight: FontWeight.bold)),
+        Text(l, style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary.withValues(alpha: 0.4), fontSize: 10.sp, fontWeight: FontWeight.bold)),
         SizedBox(height: 4.h),
         Text("${v >= 0 && isDelta ? '+' : ''}${v.toStringAsFixed(1)}$u", style: AppTextStyles.labelMedium.copyWith(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 16.sp)),
       ],

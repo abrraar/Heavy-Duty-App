@@ -35,14 +35,31 @@ class AffirmationCard extends StatelessWidget {
                 ),
               ),
             ),
-            child: Text(
-              '"${current.text}"',
-              style: AppTextStyles.bodySmall.copyWith(
-                color: AppColors.textSecondary,
-                fontStyle: FontStyle.italic,
-                height: 1.5,
-                fontSize: 14.sp,
-              ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  '"${current.text}"',
+                  style: AppTextStyles.bodySmall.copyWith(
+                    color: AppColors.textSecondary,
+                    fontStyle: FontStyle.italic,
+                    height: 1.5,
+                    fontSize: 14.sp,
+                  ),
+                ),
+                if (current.speaker != null && current.speaker!.isNotEmpty) ...[
+                  SizedBox(height: 4.h),
+                  Text(
+                    "— ${current.speaker}",
+                    style: AppTextStyles.labelSmall.copyWith(
+                      color: AppColors.crimson.withOpacity(0.7),
+                      fontWeight: FontWeight.bold,
+                      fontSize: 10.sp,
+                    ),
+                  ),
+                ],
+              ],
             ),
           ),
         );

@@ -33,7 +33,6 @@ class SleepAlarmProvider with ChangeNotifier {
 
   Future<void> init() async {
     if (!_isInitialized) {
-      await Alarm.init();
       _isInitialized = true;
     }
 
@@ -45,7 +44,6 @@ class SleepAlarmProvider with ChangeNotifier {
   }
 
   Future<bool> checkAndRequestPermissions(BuildContext context) async {
-    // Check Notification Permission (Android 13+)
     if (Platform.isAndroid || Platform.isIOS) {
       final notificationStatus = await Permission.notification.status;
       if (notificationStatus.isDenied) {
@@ -53,7 +51,6 @@ class SleepAlarmProvider with ChangeNotifier {
       }
     }
 
-    // Check Exact Alarm Permission (Android 12+)
     if (Platform.isAndroid) {
       final status = await Permission.scheduleExactAlarm.status;
       if (status.isDenied) {
@@ -94,20 +91,35 @@ class SleepAlarmProvider with ChangeNotifier {
   }
 
   Future<void> _loadAlarms() async {
-    final List<AlarmSettings> scheduledAlarms = await Alarm.getAlarms();
-    _alarms = scheduledAlarms.map((a) {
-      return SleepAlarm(
-        id: a.id,
-        label: a.notificationSettings.body,
-        time: a.dateTime,
-        audioPath: a.assetAudioPath ?? 'assets/audio/alarm.mp3',
+    _alarms = [];
+    if (_settings.bedtimeEnabled) {
+      _alarms.add(SleepAlarm(
+        id: bedtimeId,
+        label: 'Sleep Time',
+        time: _getNextOccurrence(_settings.bedtimeHour, _settings.bedtimeMinute),
+        audioPath: _settings.bedtimeAudioPath ?? 'assets/audio/alarm.mp3',
         isEnabled: true,
-        type: (a.id == bedtimeId) 
-            ? AlarmType.bedtime
-            : (a.notificationSettings.title.contains("NAP") ? AlarmType.nap : AlarmType.wakeUp),
-      );
-    }).toList();
+        type: AlarmType.bedtime,
+      ));
+    }
+    if (_settings.wakeUpEnabled) {
+      _alarms.add(SleepAlarm(
+        id: wakeUpId,
+        label: 'Wake Up',
+        time: _getNextOccurrence(_settings.wakeUpHour, _settings.wakeUpMinute),
+        audioPath: _settings.wakeUpAudioPath ?? 'assets/audio/alarm.mp3',
+        isEnabled: true,
+        type: AlarmType.wakeUp,
+      ));
+    }
     notifyListeners();
+  }
+
+  DateTime _getNextOccurrence(int hour, int minute) {
+    final now = DateTime.now();
+    DateTime target = DateTime(now.year, now.month, now.day, hour, minute);
+    if (target.isBefore(now)) target = target.add(const Duration(days: 1));
+    return target;
   }
 
   Future<void> updateSettings({
@@ -131,11 +143,12 @@ class SleepAlarmProvider with ChangeNotifier {
       wakeUpAudioPath: wakeUpAudioPath ?? _settings.wakeUpAudioPath,
     );
 
+    notifyListeners();
+
     if (_repo != null) {
       await _repo!.saveSettings(_settings);
     }
 
-    // Refresh Alarms based on new settings
     if (_settings.bedtimeEnabled) {
       await _scheduleBedtime();
     } else {
@@ -152,32 +165,42 @@ class SleepAlarmProvider with ChangeNotifier {
   }
 
   Future<void> _scheduleBedtime() async {
-    final now = DateTime.now();
-    DateTime target = DateTime(now.year, now.month, now.day, _settings.bedtimeHour, _settings.bedtimeMinute);
-    if (target.isBefore(now)) target = target.add(const Duration(days: 1));
+    final target = _getNextOccurrence(_settings.bedtimeHour, _settings.bedtimeMinute);
 
-    await setIndividualAlarm(
-      id: bedtimeId,
-      time: target,
-      audioPath: _settings.bedtimeAudioPath ?? 'assets/audio/alarm.mp3',
-      title: 'Sleep Time',
-      body: 'Time to head to bed for optimal recovery.',
-      volume: 0.6,
+    await Alarm.set(
+      alarmSettings: AlarmSettings(
+        id: bedtimeId,
+        dateTime: target,
+        assetAudioPath: _settings.bedtimeAudioPath ?? 'assets/audio/alarm.mp3',
+        loopAudio: true,
+        vibrate: true,
+        volumeSettings: const VolumeSettings.fixed(volume: 0.7),
+        notificationSettings: const NotificationSettings(
+          title: "SLEEP TIME",
+          body: "Time for your growth protocol recovery session.",
+          stopButton: "STOP",
+        ),
+      ),
     );
   }
 
   Future<void> _scheduleWakeUp() async {
-    final now = DateTime.now();
-    DateTime target = DateTime(now.year, now.month, now.day, _settings.wakeUpHour, _settings.wakeUpMinute);
-    if (target.isBefore(now)) target = target.add(const Duration(days: 1));
+    final target = _getNextOccurrence(_settings.wakeUpHour, _settings.wakeUpMinute);
 
-    await setIndividualAlarm(
-      id: wakeUpId,
-      time: target,
-      audioPath: _settings.wakeUpAudioPath ?? 'assets/audio/alarm.mp3',
-      title: 'Wake Up',
-      body: 'Rise and grind. Recovery complete.',
-      volume: 0.8,
+    await Alarm.set(
+      alarmSettings: AlarmSettings(
+        id: wakeUpId,
+        dateTime: target,
+        assetAudioPath: _settings.wakeUpAudioPath ?? 'assets/audio/alarm.mp3',
+        loopAudio: true,
+        vibrate: true,
+        volumeSettings: const VolumeSettings.fixed(volume: 0.7),
+        notificationSettings: const NotificationSettings(
+          title: "WAKE UP",
+          body: "Rise and shine. Growth protocol active.",
+          stopButton: "STOP",
+        ),
+      ),
     );
   }
 
@@ -189,32 +212,27 @@ class SleepAlarmProvider with ChangeNotifier {
     required String body,
     double volume = 0.7,
   }) async {
-    final alarmSettings = AlarmSettings(
-      id: id,
-      dateTime: time,
-      assetAudioPath: audioPath,
-      loopAudio: true,
-      vibrate: true,
-      volumeSettings: VolumeSettings.fixed(
-        volume: volume,
-        volumeEnforced: true,
+    await Alarm.set(
+      alarmSettings: AlarmSettings(
+        id: id,
+        dateTime: time,
+        assetAudioPath: audioPath,
+        loopAudio: true,
+        vibrate: true,
+        volumeSettings: VolumeSettings.fixed(volume: volume),
+        notificationSettings: NotificationSettings(
+          title: title,
+          body: body,
+          stopButton: "STOP",
+        ),
       ),
-      notificationSettings: NotificationSettings(
-        title: title,
-        body: body,
-        stopButton: 'Stop',
-      ),
-      warningNotificationOnKill: true,
-      androidFullScreenIntent: true,
     );
-
-    await Alarm.set(alarmSettings: alarmSettings);
     await _loadAlarms();
   }
 
   Future<void> stopAlarm(int id) async {
     await Alarm.stop(id);
-    // Also update settings to reflect disabled state if it was a system alarm
+    
     if (id == bedtimeId) {
        await updateSettings(bedtimeEnabled: false);
     } else if (id == wakeUpId) {
@@ -227,34 +245,26 @@ class SleepAlarmProvider with ChangeNotifier {
     final int id = IdUtils.stringToIntId("NAP_${const Uuid().v4()}");
     final DateTime time = DateTime.now().add(duration);
 
-    final alarmSettings = AlarmSettings(
-      id: id,
-      dateTime: time,
-      assetAudioPath: audioPath,
-      loopAudio: true,
-      vibrate: true,
-      volumeSettings: const VolumeSettings.fixed(
-        volume: 0.7,
-        volumeEnforced: true,
+    await Alarm.set(
+      alarmSettings: AlarmSettings(
+        id: id,
+        dateTime: time,
+        assetAudioPath: audioPath,
+        loopAudio: true,
+        vibrate: true,
+        volumeSettings: const VolumeSettings.fixed(volume: 0.7),
+        notificationSettings: const NotificationSettings(
+          title: "NAP OVER",
+          body: "Power nap completed. Return to protocol.",
+          stopButton: "STOP",
+        ),
       ),
-      notificationSettings: const NotificationSettings(
-        title: 'NAP OVER',
-        body: 'Recovery Burst Complete.',
-        stopButton: 'Stop',
-      ),
-      warningNotificationOnKill: true,
-      androidFullScreenIntent: true,
     );
-
-    await Alarm.set(alarmSettings: alarmSettings);
     await _loadAlarms();
   }
 
   Future<void> stopAll() async {
-    final List<AlarmSettings> all = await Alarm.getAlarms();
-    for (var a in all) {
-      await Alarm.stop(a.id);
-    }
+    await Alarm.stopAll();
     await updateSettings(bedtimeEnabled: false, wakeUpEnabled: false);
     await _loadAlarms();
   }

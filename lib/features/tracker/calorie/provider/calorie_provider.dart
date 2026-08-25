@@ -38,6 +38,7 @@ class CalorieProvider with ChangeNotifier {
         final meal = _savedMeals.firstWhere((m) => m.id == payload);
         addLog(CalorieLog(
           id: const Uuid().v4(),
+          userId: _localRepo?.userId,
           mealName: meal.name,
           foodItems: meal.foodItems,
           calories: meal.calories,
@@ -384,7 +385,7 @@ class CalorieProvider with ChangeNotifier {
   Future<void> addLog(CalorieLog log) async {
     if (_localRepo == null) return;
     
-    final localLog = log.copyWith(isSynced: 0);
+    final localLog = log.copyWith(isSynced: 0, userId: _localRepo!.userId);
     
     // UPSERT LOGIC: Check if log already exists in memory
     final index = _logs.indexWhere((l) => l.id == localLog.id);
@@ -481,6 +482,7 @@ class CalorieProvider with ChangeNotifier {
     
     final localMeal = meal.copyWith(
       id: targetId,
+      userId: _localRepo?.userId,
       isSynced: 0,
     );
     
@@ -517,7 +519,7 @@ class CalorieProvider with ChangeNotifier {
   Future<void> updateSavedMeal(SavedMeal meal) async {
     if (_localRepo == null) return;
 
-    final localMeal = meal.copyWith(isSynced: 0);
+    final localMeal = meal.copyWith(isSynced: 0, userId: _localRepo!.userId);
     final index = _savedMeals.indexWhere((m) => m.id == localMeal.id);
     if (index != -1) {
       _savedMeals[index] = localMeal;

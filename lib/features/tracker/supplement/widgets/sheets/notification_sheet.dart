@@ -7,7 +7,6 @@ import 'package:heavy_duty/core/theme/app_colors.dart';
 import 'package:heavy_duty/core/theme/app_text_styles.dart';
 import 'package:heavy_duty/features/tracker/supplement/provider/supplement_provider.dart';
 import 'package:provider/provider.dart';
-import 'package:heavy_duty/core/services/notification_service.dart';
 import '../../model/supplement.dart';
 
 class NotificationSheet extends StatefulWidget {
@@ -103,8 +102,12 @@ class _NotificationSheetState extends State<NotificationSheet> {
 
   @override
   void dispose() {
-    for (var c in _intakeControllers) c.dispose();
-    for (var c in _intervalControllers) c.dispose();
+    for (var c in _intakeControllers) {
+      c.dispose();
+    }
+    for (var c in _intervalControllers) {
+      c.dispose();
+    }
     _restockController.dispose();
     super.dispose();
   }
@@ -114,12 +117,22 @@ class _NotificationSheetState extends State<NotificationSheet> {
     
     // Process intake UI state
     for (int i = 0; i < intakeReminders.length; i++) {
-      final r = intakeReminders[i].copyWith(reminderMode: _selectedMode);
+      var r = intakeReminders[i].copyWith(reminderMode: _selectedMode);
       if (_selectedMode == ReminderMode.schedule) {
-        updatedIntake.add(r.times.isEmpty ? r.copyWith(times: [TimeOfDay.now()]) : r);
-      } else {
-        updatedIntake.add(r);
+        // If no days picked, ignore this slot
+        if (r.days.isEmpty) continue;
+
+        // Auto-pick time ONLY if days are picked but no time is set
+        if (r.times.isEmpty) {
+          r = r.copyWith(times: [TimeOfDay.now()]);
+        }
       }
+      updatedIntake.add(r);
+    }
+
+    // If no valid slots remain in schedule mode, turn off notifications for this section
+    if (updatedIntake.isEmpty && _selectedMode == ReminderMode.schedule) {
+      recordEnabled = false;
     }
 
     // Master Switch Logic: Active if either section is toggled ON
@@ -530,8 +543,11 @@ class _NotificationSheetState extends State<NotificationSheet> {
         final isSelected = reminder.days.contains(i + 1);
         return GestureDetector(
           onTap: () => setState(() {
-              if (isSelected) reminder.days.remove(i + 1);
-              else reminder.days.add(i + 1);
+              if (isSelected) {
+                reminder.days.remove(i + 1);
+              } else {
+                reminder.days.add(i + 1);
+              }
           }),
           child: Container(
             width: 36.r, height: 36.r,
@@ -555,20 +571,23 @@ class _NotificationSheetState extends State<NotificationSheet> {
             onDeleted: () => setState(() => reminder.times.remove(t)),
           ),
         ),
-        GestureDetector(
-          onTap: () => _selectTime(reminder),
-          child: Container(
-              padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
-              decoration: BoxDecoration(color: AppColors.crimson.withOpacity(0.1), borderRadius: BorderRadius.circular(20.r)),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.access_time_rounded, size: 14.r, color: AppColors.crimson),
-                  SizedBox(width: 4.w),
-                  Text("ADD TIME", style: AppTextStyles.labelSmall.copyWith(color: AppColors.crimson, fontWeight: FontWeight.bold)),
-                ],
+        Opacity(
+          opacity: reminder.days.isNotEmpty ? 1.0 : 0.4,
+          child: GestureDetector(
+            onTap: reminder.days.isNotEmpty ? () => _selectTime(reminder) : null,
+            child: Container(
+                padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
+                decoration: BoxDecoration(color: AppColors.crimson.withOpacity(0.1), borderRadius: BorderRadius.circular(20.r)),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.access_time_rounded, size: 14.r, color: AppColors.crimson),
+                    SizedBox(width: 4.w),
+                    Text("ADD TIME", style: AppTextStyles.labelSmall.copyWith(color: AppColors.crimson, fontWeight: FontWeight.bold)),
+                  ],
+                ),
               ),
-            ),
+          ),
         ),
       ],
     );

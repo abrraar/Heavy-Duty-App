@@ -1309,19 +1309,7 @@ class _CalorieScreenState extends State<CalorieScreen> with SingleTickerProvider
                     initialDate: _selectedHistoryDate,
                     firstDate: DateTime(2020),
                     lastDate: DateTime.now(),
-                    builder: (context, child) {
-                      return Theme(
-                        data: Theme.of(context).copyWith(
-                          colorScheme: const ColorScheme.dark(
-                            primary: AppColors.crimson,
-                            onPrimary: Colors.white,
-                            surface: AppColors.surface,
-                            onSurface: Colors.white,
-                          ),
-                        ),
-                        child: child!,
-                      );
-                    },
+                    builder: (context, child) => child!,
                   );
                   if (picked != null) {
                     setState(() {

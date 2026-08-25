@@ -1,10 +1,11 @@
-// lib/features/tracker/body_composition/model/body_comp_log.dart
+import 'package:uuid/uuid.dart';
 
 enum BodyMetricType { weight, fat, muscle }
 enum BodyMetricUnit { kg, percentage, lbs }
 
 class BodyCompLog {
   final String id;
+  final String? userId;
   final double valueKg; // Also stores percentage if unit is percentage
   final double valueLbs; // Also stores percentage if unit is percentage
   final BodyMetricType type;
@@ -14,13 +15,14 @@ class BodyCompLog {
 
   BodyCompLog({
     String? id,
+    this.userId,
     required this.valueKg,
     required this.valueLbs,
     required this.type,
     required this.unit,
     required this.timestamp,
     this.isSynced = 1,
-  }) : id = id ?? DateTime.now().millisecondsSinceEpoch.toString();
+  }) : id = id ?? const Uuid().v4();
 
   // For backward compatibility and internal calculations
   double get value => valueKg;
@@ -28,6 +30,7 @@ class BodyCompLog {
   Map<String, dynamic> toMap() {
     return {
       'id': id,
+      'user_id': userId,
       'value_kg': valueKg,
       'value_lbs': valueLbs,
       'unit': unit.name,
@@ -57,6 +60,7 @@ class BodyCompLog {
 
     return BodyCompLog(
       id: map['id']?.toString(),
+      userId: map['user_id']?.toString(),
       valueKg: vKg,
       valueLbs: vLbs,
       type: type,
@@ -68,6 +72,7 @@ class BodyCompLog {
 
   BodyCompLog copyWith({
     String? id,
+    String? userId,
     double? valueKg,
     double? valueLbs,
     BodyMetricType? type,
@@ -77,6 +82,7 @@ class BodyCompLog {
   }) {
     return BodyCompLog(
       id: id ?? this.id,
+      userId: userId ?? this.userId,
       valueKg: valueKg ?? this.valueKg,
       valueLbs: valueLbs ?? this.valueLbs,
       type: type ?? this.type,

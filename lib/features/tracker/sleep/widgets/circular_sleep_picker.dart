@@ -98,19 +98,9 @@ class _CircularSleepPickerState extends State<CircularSleepPicker> {
       context: context,
       initialTime: initialTime,
       builder: (context, child) {
-        return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.dark(
-              primary: AppColors.crimson,
-              onPrimary: Colors.white,
-              surface: AppColors.surface,
-              onSurface: Colors.white,
-            ),
-          ),
-          child: MediaQuery(
-            data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: widget.use24HourClock),
-            child: child!,
-          ),
+        return MediaQuery(
+          data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: widget.use24HourClock),
+          child: child!,
         );
       },
     );
@@ -405,8 +395,11 @@ class _CircularSleepPickerState extends State<CircularSleepPicker> {
         onLongPressStart: (_) {
           HapticFeedback.mediumImpact();
           setState(() {
-            if (isStart) _isDraggingStart = true;
-            else _isDraggingEnd = true;
+            if (isStart) {
+              _isDraggingStart = true;
+            } else {
+              _isDraggingEnd = true;
+            }
           });
         },
         onLongPressMoveUpdate: (details) {

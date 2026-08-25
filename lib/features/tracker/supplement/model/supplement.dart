@@ -177,6 +177,7 @@ class Supplement {
 
   // NEW: Shared by badge
   final String? sharedBy;
+  final String? userId;
 
   // --- SHORTCUT SETTINGS ---
   final bool isPinnedToHome;
@@ -204,6 +205,7 @@ class Supplement {
     this.carbsPerUnit,
     this.fatsPerUnit,
     this.sharedBy,
+    this.userId,
     this.isPinnedToHome = false,
     this.pinnedIntakeAmount = 1.0,
     this.pinnedUseServingsIntake = true,
@@ -214,6 +216,7 @@ class Supplement {
   Map<String, dynamic> toMap() {
     return {
       'id': id,
+      'user_id': userId,
       'name': name,
       'serving_unit': servingUnit,
       'weight_per_serving': weightPerServing,
@@ -254,6 +257,7 @@ class Supplement {
 
     return Supplement(
       id: map['id'] as String,
+      userId: map['user_id'] as String?,
       name: map['name'] as String,
       servingUnit: map['serving_unit'] as String? ?? '',
       weightPerServing: (map['weight_per_serving'] as num? ?? 0.0).toDouble(),
@@ -308,6 +312,7 @@ class Supplement {
     double? carbsPerUnit,
     double? fatsPerUnit,
     String? sharedBy,
+    String? userId,
     bool? isPinnedToHome,
     double? pinnedIntakeAmount,
     bool? pinnedUseServingsIntake,
@@ -333,6 +338,7 @@ class Supplement {
       carbsPerUnit: carbsPerUnit ?? this.carbsPerUnit,
       fatsPerUnit: fatsPerUnit ?? this.fatsPerUnit,
       sharedBy: sharedBy ?? this.sharedBy,
+      userId: userId ?? this.userId,
       isPinnedToHome: isPinnedToHome ?? this.isPinnedToHome,
       pinnedIntakeAmount: pinnedIntakeAmount ?? this.pinnedIntakeAmount,
       pinnedUseServingsIntake:
@@ -342,4 +348,5 @@ class Supplement {
           pinnedUseServingsRestock ?? this.pinnedUseServingsRestock,
     );
   }
+
 }

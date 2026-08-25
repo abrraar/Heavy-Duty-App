@@ -21,7 +21,11 @@ class CycleLocalRepository {
     final db = await _getDatabase();
     
     // 1. Fetch Cycles
-    final List<Map<String, dynamic>> cycleMaps = await db.query('hit_cycles');
+    final List<Map<String, dynamic>> cycleMaps = await db.query(
+      'hit_cycles', 
+      where: 'user_id = ?', 
+      whereArgs: [userId]
+    );
     
     List<TrainingCycle> cycles = [];
     
@@ -31,8 +35,8 @@ class CycleLocalRepository {
       // 2. Fetch Workouts for this cycle
       final List<Map<String, dynamic>> workoutMaps = await db.query(
         'hit_workouts', 
-        where: 'cycle_id = ?', 
-        whereArgs: [cycleId],
+        where: 'cycle_id = ? AND user_id = ?', 
+        whereArgs: [cycleId, userId],
         orderBy: 'workout_order ASC'
       );
       
@@ -43,8 +47,8 @@ class CycleLocalRepository {
         // 3. Fetch Exercises for this workout
         final List<Map<String, dynamic>> exerciseMaps = await db.query(
           'hit_exercises', 
-          where: 'workout_id = ?', 
-          whereArgs: [workoutId],
+          where: 'workout_id = ? AND user_id = ?', 
+          whereArgs: [workoutId, userId],
           orderBy: 'exercise_order ASC'
         );
         
@@ -63,15 +67,18 @@ class CycleLocalRepository {
     
     await db.transaction((txn) async {
       // 1. Insert Cycle
-      await txn.insert('hit_cycles', cycle.toMap(), conflictAlgorithm: ConflictAlgorithm.replace);
+      final cycleWithUser = cycle.copyWith(userId: userId);
+      await txn.insert('hit_cycles', cycleWithUser.toMap(), conflictAlgorithm: ConflictAlgorithm.replace);
       
       // 2. Insert Workouts
       for (var workout in cycle.workouts) {
-        await txn.insert('hit_workouts', workout.toMap(), conflictAlgorithm: ConflictAlgorithm.replace);
+        final workoutWithUser = workout.copyWith(userId: userId);
+        await txn.insert('hit_workouts', workoutWithUser.toMap(), conflictAlgorithm: ConflictAlgorithm.replace);
         
         // 3. Insert Exercises
         for (var exercise in workout.exercises) {
-          await txn.insert('hit_exercises', exercise.toMap(), conflictAlgorithm: ConflictAlgorithm.replace);
+          final exerciseWithUser = exercise.copyWith(userId: userId);
+          await txn.insert('hit_exercises', exerciseWithUser.toMap(), conflictAlgorithm: ConflictAlgorithm.replace);
         }
       }
     });
@@ -81,84 +88,94 @@ class CycleLocalRepository {
     final db = await _getDatabase();
     // ON DELETE CASCADE in SQLite handles Workouts and Exercises if set up correctly, 
     // but we can be explicit if needed. DatabaseHelper has foreign_keys = ON.
-    await db.delete('hit_cycles', where: 'id = ?', whereArgs: [id]);
+    await db.delete('hit_cycles', where: 'id = ? AND user_id = ?', whereArgs: [id, userId]);
   }
 
   // --- Granular Updates ---
 
   Future<void> insertWorkout(Workout workout) async {
     final db = await _getDatabase();
-    await db.insert('hit_workouts', workout.toMap(), conflictAlgorithm: ConflictAlgorithm.replace);
+    final workoutWithUser = workout.copyWith(userId: userId);
+    await db.insert('hit_workouts', workoutWithUser.toMap(), conflictAlgorithm: ConflictAlgorithm.replace);
   }
 
   Future<void> insertExercise(Exercise exercise) async {
     final db = await _getDatabase();
-    await db.insert('hit_exercises', exercise.toMap(), conflictAlgorithm: ConflictAlgorithm.replace);
+    final exerciseWithUser = exercise.copyWith(userId: userId);
+    await db.insert('hit_exercises', exerciseWithUser.toMap(), conflictAlgorithm: ConflictAlgorithm.replace);
   }
 
   Future<void> deleteWorkout(String id) async {
     final db = await _getDatabase();
-    await db.delete('hit_workouts', where: 'id = ?', whereArgs: [id]);
+    await db.delete('hit_workouts', where: 'id = ? AND user_id = ?', whereArgs: [id, userId]);
   }
 
   Future<void> deleteExercise(String id) async {
     final db = await _getDatabase();
-    await db.delete('hit_exercises', where: 'id = ?', whereArgs: [id]);
+    await db.delete('hit_exercises', where: 'id = ? AND user_id = ?', whereArgs: [id, userId]);
   }
 
   // --- Logs ---
 
   Future<List<ExerciseLog>> getAllLogs() async {
     final db = await _getDatabase();
-    final List<Map<String, dynamic>> maps = await db.query('exercise_logs', orderBy: 'timestamp DESC');
+    final List<Map<String, dynamic>> maps = await db.query(
+      'exercise_logs', 
+      where: 'user_id = ?', 
+      whereArgs: [userId],
+      orderBy: 'timestamp DESC'
+    );
     return maps.map((map) => ExerciseLog.fromMap(map)).toList();
   }
 
   Future<void> insertLog(ExerciseLog log) async {
     final db = await _getDatabase();
-    await db.insert('exercise_logs', log.toMap(), conflictAlgorithm: ConflictAlgorithm.replace);
+    final logWithUser = log.copyWith(userId: userId);
+    await db.insert('exercise_logs', logWithUser.toMap(), conflictAlgorithm: ConflictAlgorithm.replace);
   }
 
   Future<void> deleteLog(String id) async {
     final db = await _getDatabase();
-    await db.delete('exercise_logs', where: 'id = ?', whereArgs: [id]);
+    await db.delete('exercise_logs', where: 'id = ? AND user_id = ?', whereArgs: [id, userId]);
   }
 
   // --- Settings ---
 
   Future<Map<String, dynamic>?> getSettings() async {
     final db = await _getDatabase();
-    final List<Map<String, dynamic>> maps = await db.query('hit_settings', where: 'id = 1');
+    final List<Map<String, dynamic>> maps = await db.query('hit_settings', where: 'id = 1 AND user_id = ?', whereArgs: [userId]);
     if (maps.isNotEmpty) return maps.first;
     return null;
   }
 
   Future<void> saveSettings(Map<String, dynamic> settings) async {
     final db = await _getDatabase();
-    await db.insert('hit_settings', settings, conflictAlgorithm: ConflictAlgorithm.replace);
+    final settingsMap = Map<String, dynamic>.from(settings);
+    settingsMap['user_id'] = userId;
+    await db.insert('hit_settings', settingsMap, conflictAlgorithm: ConflictAlgorithm.replace);
   }
 
   // --- Sync Helpers ---
 
   Future<void> addToDeletionQueue(String id, String tableName) async {
     final db = await _getDatabase();
-    await db.insert('pending_deletions', {'id': id, 'table_name': tableName},
+    await db.insert('pending_deletions', {'id': id, 'user_id': userId, 'table_name': tableName},
         conflictAlgorithm: ConflictAlgorithm.replace);
   }
 
   Future<void> removeFromDeletionQueue(String id) async {
     final db = await _getDatabase();
-    await db.delete('pending_deletions', where: 'id = ?', whereArgs: [id]);
+    await db.delete('pending_deletions', where: 'id = ? AND user_id = ?', whereArgs: [id, userId]);
   }
 
   Future<List<Map<String, dynamic>>> getPendingDeletions() async {
     final db = await _getDatabase();
-    return await db.query('pending_deletions');
+    return await db.query('pending_deletions', where: 'user_id = ?', whereArgs: [userId]);
   }
 
   Future<List<TrainingCycle>> getUnsyncedCycles() async {
     final db = await _getDatabase();
-    final List<Map<String, dynamic>> maps = await db.query('hit_cycles', where: 'is_synced = 0');
+    final List<Map<String, dynamic>> maps = await db.query('hit_cycles', where: 'is_synced = 0 AND user_id = ?', whereArgs: [userId]);
     
     List<TrainingCycle> cycles = [];
     for (var cycleMap in maps) {
@@ -167,8 +184,8 @@ class CycleLocalRepository {
       // Fetch Workouts for this cycle
       final List<Map<String, dynamic>> workoutMaps = await db.query(
         'hit_workouts', 
-        where: 'cycle_id = ?', 
-        whereArgs: [cycleId],
+        where: 'cycle_id = ? AND user_id = ?', 
+        whereArgs: [cycleId, userId],
         orderBy: 'workout_order ASC'
       );
       
@@ -179,8 +196,8 @@ class CycleLocalRepository {
         // Fetch Exercises for this workout
         final List<Map<String, dynamic>> exerciseMaps = await db.query(
           'hit_exercises', 
-          where: 'workout_id = ?', 
-          whereArgs: [workoutId],
+          where: 'workout_id = ? AND user_id = ?', 
+          whereArgs: [workoutId, userId],
           orderBy: 'exercise_order ASC'
         );
         
@@ -194,40 +211,40 @@ class CycleLocalRepository {
 
   Future<List<ExerciseLog>> getUnsyncedLogs() async {
     final db = await _getDatabase();
-    final List<Map<String, dynamic>> maps = await db.query('exercise_logs', where: 'is_synced = 0');
+    final List<Map<String, dynamic>> maps = await db.query('exercise_logs', where: 'is_synced = 0 AND user_id = ?', whereArgs: [userId]);
     return maps.map((map) => ExerciseLog.fromMap(map)).toList();
   }
 
   Future<Map<String, dynamic>?> getUnsyncedSettings() async {
     final db = await _getDatabase();
-    final List<Map<String, dynamic>> maps = await db.query('hit_settings', where: 'is_synced = 0 AND id = 1');
+    final List<Map<String, dynamic>> maps = await db.query('hit_settings', where: 'is_synced = 0 AND id = 1 AND user_id = ?', whereArgs: [userId]);
     if (maps.isNotEmpty) return maps.first;
     return null;
   }
 
   Future<void> markCycleSynced(String id) async {
     final db = await _getDatabase();
-    await db.update('hit_cycles', {'is_synced': 1}, where: 'id = ?', whereArgs: [id]);
+    await db.update('hit_cycles', {'is_synced': 1}, where: 'id = ? AND user_id = ?', whereArgs: [id, userId]);
   }
 
   Future<void> markWorkoutSynced(String id) async {
     final db = await _getDatabase();
-    await db.update('hit_workouts', {'is_synced': 1}, where: 'id = ?', whereArgs: [id]);
+    await db.update('hit_workouts', {'is_synced': 1}, where: 'id = ? AND user_id = ?', whereArgs: [id, userId]);
   }
 
   Future<void> markExerciseSynced(String id) async {
     final db = await _getDatabase();
-    await db.update('hit_exercises', {'is_synced': 1}, where: 'id = ?', whereArgs: [id]);
+    await db.update('hit_exercises', {'is_synced': 1}, where: 'id = ? AND user_id = ?', whereArgs: [id, userId]);
   }
 
   Future<void> markLogSynced(String id) async {
     final db = await _getDatabase();
-    await db.update('exercise_logs', {'is_synced': 1}, where: 'id = ?', whereArgs: [id]);
+    await db.update('exercise_logs', {'is_synced': 1}, where: 'id = ? AND user_id = ?', whereArgs: [id, userId]);
   }
 
   Future<void> markSettingsSynced() async {
     final db = await _getDatabase();
-    await db.update('hit_settings', {'is_synced': 1}, where: 'id = 1');
+    await db.update('hit_settings', {'is_synced': 1}, where: 'id = 1 AND user_id = ?', whereArgs: [userId]);
   }
 
   Future<void> renameExerciseGlobally(String oldName, String newName) async {
@@ -235,8 +252,9 @@ class CycleLocalRepository {
     await db.update(
       'hit_exercises',
       {'name': newName, 'is_synced': 0},
-      where: 'name = ?',
-      whereArgs: [oldName],
+      where: 'name = ? AND user_id = ?',
+      whereArgs: [oldName, userId],
     );
   }
+
 }

@@ -1,6 +1,5 @@
 // lib/features/tracker/sleep/model/sleep_log.dart
 
-import 'package:flutter/material.dart';
 
 enum SleepType { night, nap }
 
@@ -12,6 +11,7 @@ class SleepLog {
   final SleepType type;
   final String note;
   final int isSynced;
+  final String? userId;
 
   SleepLog({
     required this.id,
@@ -21,6 +21,7 @@ class SleepLog {
     this.type = SleepType.night,
     this.note = "",
     this.isSynced = 1,
+    this.userId,
   });
 
   Duration get duration => wakeUpTime.difference(bedtime);
@@ -28,6 +29,7 @@ class SleepLog {
   Map<String, dynamic> toMap() {
     return {
       'id': id,
+      'user_id': userId,
       'bedtime': bedtime.toIso8601String(),
       'wake_up_time': wakeUpTime.toIso8601String(),
       'quality': quality,
@@ -40,6 +42,7 @@ class SleepLog {
   factory SleepLog.fromMap(Map<String, dynamic> map) {
     return SleepLog(
       id: map['id'] as String,
+      userId: map['user_id'] as String?,
       bedtime: DateTime.parse(map['bedtime'] as String),
       wakeUpTime: DateTime.parse(map['wake_up_time'] as String),
       quality: map['quality'] as int,
@@ -59,15 +62,18 @@ class SleepLog {
     SleepType? type,
     String? note,
     int? isSynced,
+    String? userId,
   }) {
     return SleepLog(
-      id: this.id,
+      id: id,
       bedtime: bedtime ?? this.bedtime,
       wakeUpTime: wakeUpTime ?? this.wakeUpTime,
       quality: quality ?? this.quality,
       type: type ?? this.type,
       note: note ?? this.note,
       isSynced: isSynced ?? this.isSynced,
+      userId: userId ?? this.userId,
     );
   }
 }
+

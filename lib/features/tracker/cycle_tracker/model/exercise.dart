@@ -7,6 +7,7 @@ class Exercise {
   final int order;
   final String? targetMuscles;
   final int isSynced;
+  final String? userId;
 
   Exercise({
     String? id,
@@ -15,11 +16,13 @@ class Exercise {
     required this.order,
     this.targetMuscles,
     this.isSynced = 1,
+    this.userId,
   }) : id = id ?? const Uuid().v4();
 
   Map<String, dynamic> toMap() {
     return {
       'id': id,
+      'user_id': userId,
       'workout_id': workoutId,
       'name': name,
       'exercise_order': order,
@@ -31,6 +34,7 @@ class Exercise {
   factory Exercise.fromMap(Map<String, dynamic> map) {
     return Exercise(
       id: map['id']?.toString() ?? const Uuid().v4(),
+      userId: map['user_id']?.toString(),
       workoutId: map['workout_id']?.toString() ?? "",
       name: map['name']?.toString() ?? "Untitled Exercise",
       order: (map['exercise_order'] as num?)?.toInt() ?? 0,
@@ -49,6 +53,7 @@ class Exercise {
     int? order,
     String? targetMuscles,
     int? isSynced,
+    String? userId,
   }) {
     return Exercise(
       id: id ?? this.id,
@@ -57,6 +62,8 @@ class Exercise {
       order: order ?? this.order,
       targetMuscles: targetMuscles ?? this.targetMuscles,
       isSynced: isSynced ?? this.isSynced,
+      userId: userId ?? this.userId,
     );
   }
 }
+

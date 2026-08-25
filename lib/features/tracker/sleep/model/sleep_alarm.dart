@@ -33,7 +33,7 @@ class SleepAlarm {
     List<int>? days,
   }) {
     return SleepAlarm(
-      id: this.id,
+      id: id,
       label: label ?? this.label,
       time: time ?? this.time,
       bedtime: bedtime ?? this.bedtime,

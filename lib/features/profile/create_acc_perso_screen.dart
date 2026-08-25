@@ -41,22 +41,7 @@ class _CreateAccPersoScreenState extends State<CreateAccPersoScreen> {
       initialDate: DateTime.now().subtract(const Duration(days: 365 * 20)),
       firstDate: DateTime(1900),
       lastDate: DateTime.now(),
-      builder: (context, child) {
-        return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.dark(
-              primary: AppColors.crimson,
-              onPrimary: Colors.white,
-              surface: AppColors.surface,
-              onSurface: Colors.white,
-            ),
-            textButtonTheme: TextButtonThemeData(
-              style: TextButton.styleFrom(foregroundColor: AppColors.crimson),
-            ),
-          ),
-          child: child!,
-        );
-      },
+      builder: (context, child) => child!,
     );
     if (picked != null && picked != _selectedBirthday) {
       setState(() => _selectedBirthday = picked);
@@ -98,8 +83,8 @@ class _CreateAccPersoScreenState extends State<CreateAccPersoScreen> {
         
         await bodyProv.addLog(BodyCompLog(
           id: const Uuid().v4(),
-          valueKg: dualValues['kg']!,
-          valueLbs: dualValues['lbs']!,
+          valueKg: dualValues['kg'] ?? weight,
+          valueLbs: dualValues['lbs'] ?? (weight * 2.20462),
           type: BodyMetricType.weight,
           unit: BodyMetricUnit.kg,
           timestamp: DateTime.now(),

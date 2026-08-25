@@ -14,16 +14,18 @@ class HydrationSettings {
   final bool isPinnedToHome;
   final List<HydrationReminder> reminders;
   final int isSynced;
+  final String? userId;
 
   HydrationSettings({
     this.dailyGoal = 3500,
     this.unit = HydrationUnit.ml,
     this.addValue = 250,
     this.minusValue = 250,
-    this.remindersEnabled = true,
+    this.remindersEnabled = false,
     this.isPinnedToHome = true,
     this.reminders = const [],
     this.isSynced = 1,
+    this.userId,
   });
 
   bool get useMetric => unit == HydrationUnit.ml;
@@ -31,6 +33,7 @@ class HydrationSettings {
   Map<String, dynamic> toMap() {
     return {
       'id': 1,
+      'user_id': userId,
       'daily_goal': dailyGoal,
       'unit': unit.name,
       'add_value': addValue,
@@ -50,10 +53,10 @@ class HydrationSettings {
         : [];
 
     bool toBool(dynamic val) {
-      if (val == null) return true;
+      if (val == null) return false;
       if (val is bool) return val;
       if (val is int) return val == 1;
-      return true;
+      return false;
     }
 
     // Migration logic for old use_metric boolean
@@ -78,6 +81,7 @@ class HydrationSettings {
           .map((r) => HydrationReminder.fromMap(r as Map<String, dynamic>))
           .toList(),
       isSynced: (map['is_synced'] as num?)?.toInt() ?? 1,
+      userId: map['user_id'] as String?,
     );
   }
 
@@ -90,6 +94,7 @@ class HydrationSettings {
     bool? isPinnedToHome,
     List<HydrationReminder>? reminders,
     int? isSynced,
+    String? userId,
   }) {
     return HydrationSettings(
       dailyGoal: dailyGoal ?? this.dailyGoal,
@@ -100,6 +105,8 @@ class HydrationSettings {
       isPinnedToHome: isPinnedToHome ?? this.isPinnedToHome,
       reminders: reminders ?? this.reminders,
       isSynced: isSynced ?? this.isSynced,
+      userId: userId ?? this.userId,
     );
   }
 }
+

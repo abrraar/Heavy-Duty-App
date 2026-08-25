@@ -29,7 +29,7 @@ class UpdateProvider with ChangeNotifier {
     await checkForUpdates();
   }
 
-  Future<void> checkForUpdates({bool showNotification = true}) async {
+  Future<void> checkForUpdates({bool showNotification = false}) async {
     if (_isLoading) return;
     _isLoading = true;
     notifyListeners();

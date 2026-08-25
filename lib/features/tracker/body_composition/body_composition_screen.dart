@@ -71,38 +71,14 @@ class _BodyCompositionScreenState extends State<BodyCompositionScreen> with Sing
       initialDate: _selectedLogDate,
       firstDate: DateTime(2000),
       lastDate: DateTime.now(),
-      builder: (context, child) {
-        return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.dark(
-              primary: AppColors.crimson,
-              onPrimary: Colors.white,
-              surface: AppColors.surface,
-              onSurface: Colors.white,
-            ),
-          ),
-          child: child!,
-        );
-      },
+      builder: (context, child) => child!,
     );
 
     if (pickedDate != null) {
       final TimeOfDay? pickedTime = await showTimePicker(
         context: context,
         initialTime: TimeOfDay.fromDateTime(_selectedLogDate),
-        builder: (context, child) {
-          return Theme(
-            data: Theme.of(context).copyWith(
-              colorScheme: const ColorScheme.dark(
-                primary: AppColors.crimson,
-                onPrimary: Colors.white,
-                surface: AppColors.surface,
-                onSurface: Colors.white,
-              ),
-            ),
-            child: child!,
-          );
-        },
+        builder: (context, child) => child!,
       );
 
       if (pickedTime != null) {

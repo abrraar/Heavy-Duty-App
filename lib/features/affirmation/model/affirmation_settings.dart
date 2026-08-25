@@ -5,6 +5,7 @@ class AffirmationSettings {
   final bool showSystem;
   final bool showCustom;
   final int isSynced;
+  final String? userId;
 
   AffirmationSettings({
     this.rotationMinutes = 60,
@@ -13,10 +14,12 @@ class AffirmationSettings {
     this.showSystem = true,
     this.showCustom = true,
     this.isSynced = 1,
+    this.userId,
   });
 
   Map<String, dynamic> toMap() {
     return {
+      'user_id': userId,
       'rotation_minutes': rotationMinutes,
       'rotation_mode': rotationMode,
       'order_direction': orderDirection,
@@ -34,6 +37,7 @@ class AffirmationSettings {
       showSystem: map['show_system'] == null || map['show_system'] == 1 || map['show_system'] == true,
       showCustom: map['show_custom'] == null || map['show_custom'] == 1 || map['show_custom'] == true,
       isSynced: (map['is_synced'] as num?)?.toInt() ?? 1,
+      userId: map['user_id'] as String?,
     );
   }
 
@@ -44,6 +48,7 @@ class AffirmationSettings {
     bool? showSystem,
     bool? showCustom,
     int? isSynced,
+    String? userId,
   }) {
     return AffirmationSettings(
       rotationMinutes: rotationMinutes ?? this.rotationMinutes,
@@ -52,6 +57,8 @@ class AffirmationSettings {
       showSystem: showSystem ?? this.showSystem,
       showCustom: showCustom ?? this.showCustom,
       isSynced: isSynced ?? this.isSynced,
+      userId: userId ?? this.userId,
     );
   }
 }
+

@@ -7,7 +7,6 @@ import 'package:heavy_duty/core/theme/app_colors.dart';
 import 'package:heavy_duty/core/theme/app_text_styles.dart';
 import 'package:provider/provider.dart';
 import '../../provider/hydration_provider.dart';
-import '../../model/hydration_settings.dart';
 import '../../model/hydration_reminder.dart';
 
 class HydrationNotificationSheet extends StatefulWidget {
@@ -43,7 +42,9 @@ class _HydrationNotificationSheetState extends State<HydrationNotificationSheet>
 
   @override
   void dispose() {
-    for (var c in _intervalControllers) c.dispose();
+    for (var c in _intervalControllers) {
+      c.dispose();
+    }
     super.dispose();
   }
 
@@ -330,7 +331,34 @@ class _HydrationNotificationSheetState extends State<HydrationNotificationSheet>
         )),
         GestureDetector(
           onTap: () async {
-            final picked = await showTimePicker(context: context, initialTime: TimeOfDay.now());
+            final picked = await showTimePicker(
+              context: context, 
+              initialTime: TimeOfDay.now(),
+              builder: (context, child) {
+                return Theme(
+                  data: Theme.of(context).copyWith(
+                    colorScheme: const ColorScheme.dark(
+                      primary: Colors.blueAccent,
+                      onPrimary: Colors.white,
+                      surface: AppColors.surface,
+                      onSurface: Colors.white,
+                    ),
+                    timePickerTheme: Theme.of(context).timePickerTheme.copyWith(
+                      dayPeriodColor: WidgetStateColor.resolveWith((states) {
+                        if (states.contains(WidgetState.selected)) {
+                          return Colors.blueAccent;
+                        }
+                        return Colors.white.withOpacity(0.05);
+                      }),
+                    ),
+                    textButtonTheme: TextButtonThemeData(
+                      style: TextButton.styleFrom(foregroundColor: Colors.blueAccent),
+                    ),
+                  ),
+                  child: child!,
+                );
+              },
+            );
             if (picked != null) {
               setState(() => _localReminders[index] = reminder.copyWith(times: List.from(reminder.times)..add(picked)));
             }

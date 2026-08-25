@@ -1,9 +1,9 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:heavy_duty/core/theme/app_colors.dart';
 import 'package:heavy_duty/core/theme/app_text_styles.dart';
+import 'package:heavy_duty/core/widgets/elite_confirm_dialog.dart';
 import 'package:provider/provider.dart';
 import 'package:heavy_duty/features/main_wrapper.dart';
 import 'provider/affirmation_provider.dart';
@@ -19,6 +19,7 @@ class AffirmationScreen extends StatefulWidget {
 class _AffirmationScreenState extends State<AffirmationScreen> with SingleTickerProviderStateMixin {
   late TabController _tabController;
   final TextEditingController _addController = TextEditingController();
+  final TextEditingController _speakerController = TextEditingController();
   
   final ScrollController _systemScrollController = ScrollController();
   final ScrollController _customScrollController = ScrollController();
@@ -35,6 +36,7 @@ class _AffirmationScreenState extends State<AffirmationScreen> with SingleTicker
     activeSettingsContext.value = "";
     _tabController.dispose();
     _addController.dispose();
+    _speakerController.dispose();
     _systemScrollController.dispose();
     _customScrollController.dispose();
     super.dispose();
@@ -54,12 +56,34 @@ class _AffirmationScreenState extends State<AffirmationScreen> with SingleTicker
                 controller: _tabController,
                 children: [
                   _buildWheelView(isSystem: true),
-                  _buildCustomWheelView(),
+                  _buildWheelView(isSystem: false),
                 ],
               ),
             ),
           ],
         ),
+      ),
+      floatingActionButton: ListenableBuilder(
+        listenable: _tabController,
+        builder: (context, _) {
+          if (_tabController.index == 1) {
+            return FloatingActionButton.extended(
+              onPressed: _showAddBottomSheet,
+              backgroundColor: AppColors.crimson,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.r)),
+              icon: Icon(Icons.add_rounded, color: Colors.white, size: 24.r),
+              label: Text(
+                "AFFIRMATION",
+                style: AppTextStyles.labelSmall.copyWith(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 1.2,
+                ),
+              ),
+            );
+          }
+          return const SizedBox.shrink();
+        },
       ),
     );
   }
@@ -75,9 +99,107 @@ class _AffirmationScreenState extends State<AffirmationScreen> with SingleTicker
             onPressed: () => Navigator.pop(context),
           ),
           Text("AFFIRMATIONS", style: AppTextStyles.h2.copyWith(fontWeight: FontWeight.w900)),
-          const Opacity(opacity: 0, child: IconButton(icon: Icon(Icons.settings), onPressed: null)),
+          IconButton(
+            icon: Icon(Icons.info_outline_rounded, color: Colors.white.withValues(alpha: 0.5), size: 22.r),
+            onPressed: _showSystemInstructions,
+          ),
         ],
       ),
+    );
+  }
+
+  void _showSystemInstructions() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppColors.surface,
+        surfaceTintColor: Colors.transparent,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(28.r),
+        ),
+        title: Column(
+          children: [
+            Container(
+              padding: EdgeInsets.all(12.r),
+              decoration: BoxDecoration(
+                color: AppColors.crimson.withValues(alpha: 0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.info_outline_rounded,
+                color: AppColors.crimson,
+                size: 28.r,
+              ),
+            ),
+            SizedBox(height: 16.h),
+            Text(
+              "AFFIRMATION CONTROLS",
+              style: AppTextStyles.h3.copyWith(
+                fontSize: 16.sp,
+                letterSpacing: 1.2,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _instructionRow(Icons.add_circle_outline_rounded, "Tap the '+' button in the CUSTOM tab to add your own quote."),
+            SizedBox(height: 16.h),
+            _instructionRow(Icons.touch_app_rounded, "Long press any custom affirmation to edit or delete it."),
+            SizedBox(height: 16.h),
+            _instructionRow(Icons.sync_rounded, "Your custom affirmations are synced automatically across all your devices."),
+          ],
+        ),
+        actions: [
+          Padding(
+            padding: EdgeInsets.fromLTRB(12.w, 0, 12.w, 16.h),
+            child: Row(
+              children: [
+                Expanded(
+                  child: GestureDetector(
+                    onTap: () => Navigator.pop(context),
+                    child: Container(
+                      padding: EdgeInsets.symmetric(vertical: 12.h),
+                      decoration: BoxDecoration(
+                        color: AppColors.crimson.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(12.r),
+                        border: Border.all(color: AppColors.crimson.withValues(alpha: 0.5)),
+                      ),
+                      alignment: Alignment.center,
+                      child: Text(
+                        "DISMISS",
+                        style: AppTextStyles.labelMedium.copyWith(
+                          color: AppColors.crimson,
+                          fontWeight: FontWeight.w400,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _instructionRow(IconData icon, String text) {
+    return Row(
+      children: [
+        Icon(icon, color: AppColors.crimson, size: 20.r),
+        SizedBox(width: 12.w),
+        Expanded(
+          child: Text(
+            text,
+            style: AppTextStyles.labelMedium.copyWith(
+              color: AppColors.textSecondary,
+            ),
+          ),
+        ),
+      ],
     );
   }
 
@@ -108,7 +230,7 @@ class _AffirmationScreenState extends State<AffirmationScreen> with SingleTicker
           return Center(
             child: Text(
               isSystem ? "NO SYSTEM DATA" : "NO CUSTOM DATA",
-              style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary.withOpacity(0.3)),
+              style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary.withValues(alpha: 0.3)),
             ),
           );
         }
@@ -146,61 +268,21 @@ class _AffirmationScreenState extends State<AffirmationScreen> with SingleTicker
     );
   }
 
-  Widget _buildCustomWheelView() {
-    return Column(
-      children: [
-        SizedBox(height: 12.h),
-        Padding(
-          padding: EdgeInsets.symmetric(horizontal: 24.w),
-          child: GestureDetector(
-            onTap: _showAddDialog,
-            child: Container(
-              height: 50.h,
-              width: double.infinity,
-              decoration: BoxDecoration(
-                color: AppColors.crimson.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(12.r),
-                border: Border.all(color: AppColors.crimson.withOpacity(0.5)),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.add_circle_outline_rounded, color: AppColors.crimson, size: 20.r),
-                  SizedBox(width: 8.w),
-                  Text(
-                    "ADD CUSTOM AFFIRMATION",
-                    style: AppTextStyles.labelSmall.copyWith(
-                      color: AppColors.crimson,
-                      fontWeight: FontWeight.w500,
-                      letterSpacing: 1.2,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-        Expanded(child: _buildWheelView(isSystem: false)),
-      ],
-    );
-  }
 
   Widget _buildItemContent(Affirmation aff, AffirmationProvider provider) {
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: 40.w),
-      child: Stack(
-        clipBehavior: Clip.none,
-        alignment: Alignment.center,
-        children: [
-          // The text is placed inside a ConstrainedBox to ensure it respects the itemExtent
-          // but allows for multi-line wrapping of long quotes.
-          ConstrainedBox(
-            constraints: BoxConstraints(maxHeight: 350.h),
-            child: Text(
-              aff.text.toUpperCase(),
+      child: GestureDetector(
+        onLongPress: aff.isCustom ? () => _showAffirmationActions(context, provider, aff) : null,
+        behavior: HitTestBehavior.opaque,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              '"${aff.text.toUpperCase()}"',
               textAlign: TextAlign.center,
               style: AppTextStyles.displayMedium.copyWith(
-                fontSize: 15.sp,
+                fontSize: 14.sp,
                 height: 1.3,
                 fontWeight: FontWeight.w500,
                 fontStyle: FontStyle.italic,
@@ -208,66 +290,419 @@ class _AffirmationScreenState extends State<AffirmationScreen> with SingleTicker
                 letterSpacing: 0.5,
               ),
             ),
-          ),
-          if (aff.isCustom)
-            Positioned(
-              right: -30.w,
-              top: 0,
-              bottom: 0,
-              child: Center(
-                child: IconButton(
-                  icon: Icon(Icons.close_rounded, color: AppColors.error.withValues(alpha: 0.4), size: 24.r),
-                  onPressed: () => provider.deleteAffirmation(aff.id),
+            if (aff.speaker != null && aff.speaker!.isNotEmpty) ...[
+              SizedBox(height: 16.h),
+              Text(
+                "— ${aff.speaker!.toUpperCase()}",
+                textAlign: TextAlign.center,
+                style: AppTextStyles.labelSmall.copyWith(
+                  color: AppColors.crimson,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 1.2,
                 ),
               ),
-            ),
-        ],
+            ],
+          ],
+        ),
       ),
     );
   }
 
-  void _showAddDialog() {
-    showDialog(
+  Widget _buildHandle() => Container(
+    width: double.infinity,
+    padding: EdgeInsets.symmetric(vertical: 16.h),
+    alignment: Alignment.center,
+    child: Container(
+      width: 40.w,
+      height: 4.h,
+      decoration: BoxDecoration(
+        color: AppColors.textSecondary.withValues(alpha: 0.4),
+        borderRadius: BorderRadius.circular(3.r),
+      ),
+    ),
+  );
+
+  void _showAffirmationActions(BuildContext context, AffirmationProvider provider, Affirmation aff) {
+    showModalBottomSheet(
       context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: AppColors.surface,
-        title: Text("ADD AFFIRMATION", style: AppTextStyles.h3),
-        content: TextField(
-          controller: _addController,
-          maxLines: 3,
-          style: const TextStyle(color: Colors.white),
-          decoration: InputDecoration(
-            hintText: "Enter custom quote...",
-            hintStyle: TextStyle(color: AppColors.textSecondary.withOpacity(0.5)),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12.r)),
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Material(
+        color: Colors.transparent,
+        child: Container(
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(32.r)),
+            border: Border.all(color: AppColors.white.withValues(alpha: 0.05)),
+          ),
+          child: SafeArea(
+            top: false,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildHandle(),
+                Padding(
+                  padding: EdgeInsets.fromLTRB(24.w, 0, 24.w, 32.h),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text("MANAGE AFFIRMATION", style: AppTextStyles.h3),
+                      SizedBox(height: 8.h),
+                      Text(
+                        "Select an action for your custom quote",
+                        style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary),
+                      ),
+                      SizedBox(height: 32.h),
+                      _buildActionTile(
+                        icon: Icons.edit_outlined,
+                        title: "Edit Affirmation",
+                        subtitle: "Modify your custom quote",
+                        color: AppColors.crimson,
+                        onTap: () {
+                          Navigator.pop(context);
+                          _showEditBottomSheet(aff);
+                        },
+                      ),
+                      SizedBox(height: 16.h),
+                      _buildActionTile(
+                        icon: Icons.delete_outline_rounded,
+                        title: "Delete Affirmation",
+                        subtitle: "This action cannot be undone",
+                        color: AppColors.error,
+                        onTap: () async {
+                          Navigator.pop(context);
+                          final confirmed = await EliteConfirmDialog.show(
+                            context,
+                            title: "DELETE AFFIRMATION",
+                            message: "ARE YOU SURE YOU WANT TO PERMANENTLY REMOVE THIS CUSTOM AFFIRMATION?",
+                          );
+                          if (confirmed == true) {
+                            provider.deleteAffirmation(aff.id);
+                          }
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context), 
-            child: Text(
-              "CANCEL", 
-              style: AppTextStyles.labelSmall.copyWith(color: AppColors.crimson, fontWeight: FontWeight.bold)
-            )
+      ),
+    );
+  }
+
+  Widget _buildActionTile({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return ListTile(
+      contentPadding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.r)),
+      tileColor: AppColors.background.withValues(alpha: 0.5),
+      leading: Container(
+        padding: EdgeInsets.all(8.r),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.1),
+          shape: BoxShape.circle,
+        ),
+        child: Icon(icon, color: color, size: 24.r),
+      ),
+      title: Text(
+        title,
+        style: AppTextStyles.labelMedium.copyWith(color: color, fontWeight: FontWeight.bold),
+      ),
+      subtitle: Text(
+        subtitle,
+        style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary.withValues(alpha: 0.5)),
+      ),
+      onTap: onTap,
+    );
+  }
+
+
+  void _showEditBottomSheet(Affirmation aff) {
+    _addController.text = aff.text;
+    _speakerController.text = aff.speaker ?? "";
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Material(
+        color: Colors.transparent,
+        child: Container(
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(32.r)),
+            border: Border.all(color: AppColors.white.withValues(alpha: 0.05)),
           ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.crimson,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.r)),
-            ),
-            onPressed: () {
-              if (_addController.text.trim().isNotEmpty) {
-                context.read<AffirmationProvider>().addAffirmation(_addController.text.trim());
-                _addController.clear();
-                Navigator.pop(context);
-              }
-            },
-            child: Text(
-              "ADD", 
-              style: AppTextStyles.labelSmall.copyWith(color: Colors.white, fontWeight: FontWeight.w900)
-            ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _buildHandle(),
+              Flexible(
+                child: SingleChildScrollView(
+                  padding: EdgeInsets.only(
+                    left: 24.w, 
+                    right: 24.w, 
+                    top: 0, 
+                    bottom: MediaQuery.of(context).viewInsets.bottom + 40.h
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text("EDIT AFFIRMATION", style: AppTextStyles.h3),
+                      SizedBox(height: 20.h),
+                      ListenableBuilder(
+                        listenable: _addController,
+                        builder: (context, _) {
+                          final text = _addController.text.trim();
+                          final wordCount = text.isEmpty ? 0 : text.split(RegExp(r'\s+')).where((s) => s.isNotEmpty).length;
+                          return TextField(
+                            controller: _addController,
+                            minLines: 5,
+                            maxLines: 10,
+                            style: const TextStyle(color: Colors.white),
+                            inputFormatters: [
+                              TextInputFormatter.withFunction((oldValue, newValue) {
+                                final lineCount = newValue.text.split('\n').length;
+                                if (lineCount > 10) {
+                                  return oldValue;
+                                }
+                                return newValue;
+                              }),
+                            ],
+                            decoration: InputDecoration(
+                              hintText: "Enter custom quote...",
+                              hintStyle: TextStyle(color: AppColors.textSecondary.withValues(alpha: 0.5)),
+                              counterText: "$wordCount / 60 WORDS",
+                              counterStyle: AppTextStyles.labelSmall.copyWith(
+                                color: wordCount > 60 ? AppColors.error : AppColors.textSecondary,
+                                fontSize: 10.sp,
+                              ),
+                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12.r)),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12.r),
+                                borderSide: const BorderSide(color: AppColors.crimson),
+                              ),
+                            ),
+                          );
+                        }
+                      ),
+                      SizedBox(height: 16.h),
+                      TextField(
+                        controller: _speakerController,
+                        maxLength: 20,
+                        style: const TextStyle(color: Colors.white),
+                        inputFormatters: [LengthLimitingTextInputFormatter(20)],
+                        decoration: InputDecoration(
+                          hintText: "Who is the speaker?",
+                          hintStyle: TextStyle(color: AppColors.textSecondary.withValues(alpha: 0.5)),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12.r)),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12.r),
+                            borderSide: const BorderSide(color: AppColors.crimson),
+                          ),
+                          counterStyle: const TextStyle(color: AppColors.textSecondary),
+                        ),
+                      ),
+                      SizedBox(height: 32.h),
+                      SizedBox(
+                        width: double.infinity,
+                        height: 50.h,
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.crimson,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.r)),
+                          ),
+                          onPressed: () {
+                            final text = _addController.text.trim();
+                            if (text.isNotEmpty) {
+                              final wordCount = text.split(RegExp(r'\s+')).where((s) => s.isNotEmpty).length;
+                              if (wordCount > 60) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text("Quote cannot exceed 60 words"),
+                                    backgroundColor: AppColors.error,
+                                  )
+                                );
+                                return;
+                              }
+
+                              context.read<AffirmationProvider>().updateAffirmation(
+                                aff.copyWith(
+                                  text: text,
+                                  speaker: _speakerController.text.trim().isEmpty ? null : _speakerController.text.trim(),
+                                ),
+                              );
+                              _addController.clear();
+                              _speakerController.clear();
+                              Navigator.pop(context);
+                            }
+                          },
+                          child: Text(
+                            "UPDATE AFFIRMATION", 
+                            style: AppTextStyles.labelSmall.copyWith(
+                              color: Colors.white, 
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: 1.2
+                            )
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
           ),
-        ],
+        ),
+      ),
+    );
+  }
+
+  void _showAddBottomSheet() {
+    _addController.clear();
+    _speakerController.clear();
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Material(
+        color: Colors.transparent,
+        child: Container(
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(32.r)),
+            border: Border.all(color: AppColors.white.withValues(alpha: 0.05)),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _buildHandle(),
+              Flexible(
+                child: SingleChildScrollView(
+                  padding: EdgeInsets.only(
+                    left: 24.w, 
+                    right: 24.w, 
+                    top: 0, 
+                    bottom: MediaQuery.of(context).viewInsets.bottom + 40.h
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text("ADD CUSTOM AFFIRMATION", style: AppTextStyles.h3),
+                      SizedBox(height: 20.h),
+                      ListenableBuilder(
+                        listenable: _addController,
+                        builder: (context, _) {
+                          final text = _addController.text.trim();
+                          final wordCount = text.isEmpty ? 0 : text.split(RegExp(r'\s+')).where((s) => s.isNotEmpty).length;
+                          return TextField(
+                            controller: _addController,
+                            minLines: 5,
+                            maxLines: 10,
+                            style: const TextStyle(color: Colors.white),
+                            inputFormatters: [
+                              TextInputFormatter.withFunction((oldValue, newValue) {
+                                final lineCount = newValue.text.split('\n').length;
+                                if (lineCount > 10) {
+                                  return oldValue;
+                                }
+                                return newValue;
+                              }),
+                            ],
+                            decoration: InputDecoration(
+                              hintText: "Enter custom quote...",
+                              hintStyle: TextStyle(color: AppColors.textSecondary.withValues(alpha: 0.5)),
+                              counterText: "$wordCount / 60 WORDS",
+                              counterStyle: AppTextStyles.labelSmall.copyWith(
+                                color: wordCount > 60 ? AppColors.error : AppColors.textSecondary,
+                                fontSize: 10.sp,
+                              ),
+                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12.r)),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12.r),
+                                borderSide: const BorderSide(color: AppColors.crimson),
+                              ),
+                            ),
+                          );
+                        }
+                      ),
+                      SizedBox(height: 16.h),
+                      TextField(
+                        controller: _speakerController,
+                        maxLength: 20,
+                        style: const TextStyle(color: Colors.white),
+                        inputFormatters: [LengthLimitingTextInputFormatter(20)],
+                        decoration: InputDecoration(
+                          hintText: "Who is the speaker?",
+                          hintStyle: TextStyle(color: AppColors.textSecondary.withValues(alpha: 0.5)),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12.r)),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12.r),
+                            borderSide: const BorderSide(color: AppColors.crimson),
+                          ),
+                          counterStyle: const TextStyle(color: AppColors.textSecondary),
+                        ),
+                      ),
+                      SizedBox(height: 32.h),
+                      SizedBox(
+                        width: double.infinity,
+                        height: 50.h,
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.crimson,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.r)),
+                          ),
+                          onPressed: () {
+                            final text = _addController.text.trim();
+                            if (text.isNotEmpty) {
+                              final wordCount = text.split(RegExp(r'\s+')).where((s) => s.isNotEmpty).length;
+                              if (wordCount > 60) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text("Quote cannot exceed 60 words"),
+                                    backgroundColor: AppColors.error,
+                                  )
+                                );
+                                return;
+                              }
+
+                              context.read<AffirmationProvider>().addAffirmation(
+                                text,
+                                _speakerController.text.trim().isEmpty ? null : _speakerController.text.trim(),
+                              );
+                              _addController.clear();
+                              _speakerController.clear();
+                              Navigator.pop(context);
+                            }
+                          },
+                          child: Text(
+                            "SAVE AFFIRMATION", 
+                            style: AppTextStyles.labelSmall.copyWith(
+                              color: Colors.white, 
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: 1.2
+                            )
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

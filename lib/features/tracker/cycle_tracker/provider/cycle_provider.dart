@@ -934,7 +934,7 @@ class CycleProvider with ChangeNotifier {
           status: WorkoutStatus.completed,
           completedAt: DateTime.now(),
         );
-        await _updateWorkoutInCycle(targetCycle!, updatedWorkout);
+        await _updateWorkoutInCycle(targetCycle, updatedWorkout);
       } 
       else if ((!allExercisesFinished || targetWorkout.exercises.isEmpty) && isCurrentlyCompleted) {
         // --- 2. REVERT TO PENDING ---

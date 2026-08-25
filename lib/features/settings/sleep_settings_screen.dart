@@ -3,6 +3,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:heavy_duty/core/widgets/elite_settings_app_bar.dart';
 import 'package:heavy_duty/core/theme/app_colors.dart';
 import 'package:heavy_duty/core/theme/app_text_styles.dart';
+import 'package:heavy_duty/core/widgets/elite_unit_toggle_card.dart';
 
 import 'package:heavy_duty/features/tracker/sleep/provider/sleep_provider.dart';
 import 'package:provider/provider.dart';
@@ -38,14 +39,18 @@ class _SleepSettingsScreenState extends State<SleepSettingsScreen> {
                       children: [
                         SizedBox(height: 16.h),
                         
-                        _buildSectionHeader("TIME FORMAT"),
+                        _buildSectionHeader("GLOBAL PREFERENCES"),
                         
-                        _buildToggleCard(
-                          title: "USE 24-HOUR CLOCK",
-                          subtitle: "SWITCH BETWEEN 12H AND 24H FORMAT",
-                          value: settings.use24HourClock,
-                          onChanged: (val) {
-                            provider.updateSettings(settings.copyWith(use24HourClock: val));
+                        EliteUnitToggleCard(
+                          title: "Time Format",
+                          subtitle: "Switch between 12H and 24H clock",
+                          options: const ["12H", "24H"],
+                          selectedIndex: settings.use24HourClock ? 1 : 0,
+                          selectedColor: AppColors.crimson,
+                          onSelected: (v) {
+                            provider.updateSettings(settings.copyWith(
+                              use24HourClock: v == 1,
+                            ));
                           },
                         ),
                         
@@ -74,32 +79,6 @@ class _SleepSettingsScreenState extends State<SleepSettingsScreen> {
           fontWeight: FontWeight.w900,
           letterSpacing: 1.5,
         ),
-      ),
-    );
-  }
-
-  Widget _buildToggleCard({required String title, required String subtitle, required bool value, required ValueChanged<bool> onChanged}) {
-    return Container(
-      margin: EdgeInsets.only(bottom: 12.h),
-      padding: EdgeInsets.all(16.r),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(12.r),
-        border: Border.all(color: AppColors.white.withValues(alpha: 0.05)),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(title, style: AppTextStyles.labelSmall.copyWith(color: AppColors.white, fontWeight: FontWeight.bold)),
-                Text(subtitle, style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary, fontSize: 10.sp, letterSpacing: 0)),
-              ],
-            ),
-          ),
-          Switch(value: value, activeColor: AppColors.crimson, onChanged: onChanged),
-        ],
       ),
     );
   }

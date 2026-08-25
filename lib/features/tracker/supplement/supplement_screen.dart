@@ -21,7 +21,6 @@ import 'package:heavy_duty/core/theme/app_colors.dart';
 import 'package:heavy_duty/core/theme/app_text_styles.dart';
 import 'package:intl/intl.dart';
 
-import '../calorie/provider/calorie_provider.dart';
 import 'model/supplement.dart';
 import 'provider/supplement_provider.dart';
 import 'widgets/cards/tracker_card.dart';
@@ -473,8 +472,9 @@ class _SupplementScreenState extends State<SupplementScreen>
 
           final String details = h.details.toUpperCase();
           String source = "MANUAL";
-          if (details.startsWith("MEAL LOG:")) source = "MEAL";
-          else if (details.contains("NOTIFICATION")) source = "NOTIF";
+          if (details.startsWith("MEAL LOG:")) {
+            source = "MEAL";
+          } else if (details.contains("NOTIFICATION")) source = "NOTIF";
           else if (details.contains("QUICK LOG") || details.contains("QUICK RESTOCK")) source = "QUICK";
           else if (details.contains("STACK LOG")) source = "STACK";
 
@@ -613,82 +613,80 @@ class _SupplementScreenState extends State<SupplementScreen>
                                           final log = calorieProvider.logs[mealLogIndex];
                                           final supplement = provider.library.firstWhere((s) => s.id == suppId, orElse: () => null as dynamic);
                                           
-                                          if (supplement != null) {
-                                            final bool isStandaloneLog = entry.details.contains("| SUPPLEMENT |");
-                                            final bool isStackLog = entry.details.contains("| STACK: ");
-                                            
-                                            String? targetStackId;
-                                            if (isStackLog) {
-                                               final parts = entry.details.split('|');
-                                               if (parts.length > 1) {
-                                                  final stackName = parts[1].replaceAll("STACK:", "").trim();
-                                                  try {
-                                                     targetStackId = provider.supplementStacks.firstWhere(
-                                                        (s) => s.name.toUpperCase() == stackName.toUpperCase()
-                                                     ).id;
-                                                  } catch (_) {}
-                                               }
-                                            }
-
-                                            final double rollbackCals = ((supplement.caloriesPerUnit ?? 0.0) * amount);
-                                            final double rollbackPro = (supplement.proteinPerUnit ?? 0.0) * amount;
-                                            final double rollbackCho = (supplement.carbsPerUnit ?? 0.0) * amount;
-                                            final double rollbackFat = (supplement.fatsPerUnit ?? 0.0) * amount;
-
-                                            String? newSuppsJson = log.addedSupplementsJson;
-                                            String? newStacksJson = log.addedStacksJson;
-
-                                            if (isStandaloneLog && newSuppsJson != null) {
-                                              try {
-                                                List<dynamic> list = jsonDecode(newSuppsJson);
-                                                list.removeWhere((item) => ((item is Map) ? item['id'] : item) == suppId);
-                                                newSuppsJson = list.isEmpty ? null : jsonEncode(list);
-                                              } catch (_) {}
-                                            }
-
-                                            if (isStackLog && newStacksJson != null) {
-                                              try {
-                                                List<dynamic> stacksList = jsonDecode(newStacksJson);
-                                                final List<dynamic> updatedStacksList = [];
-
-                                                for (var stackEntry in stacksList) {
-                                                   if (stackEntry is Map && stackEntry['itemAmounts'] is Map) {
-                                                      final String sId = stackEntry['id'];
-                                                      if (targetStackId == null || sId == targetStackId) {
-                                                         Map<String, dynamic> itemAmounts = Map<String, dynamic>.from(stackEntry['itemAmounts']);
-                                                         if (itemAmounts.containsKey(suppId)) {
-                                                            itemAmounts.remove(suppId);
-                                                            if (itemAmounts.isNotEmpty) {
-                                                               final newEntry = Map<String, dynamic>.from(stackEntry);
-                                                               newEntry['itemAmounts'] = itemAmounts;
-                                                               updatedStacksList.add(newEntry);
-                                                            }
-                                                            continue;
-                                                         }
-                                                      }
-                                                   }
-                                                   updatedStacksList.add(stackEntry);
-                                                }
-                                                newStacksJson = updatedStacksList.isEmpty ? null : jsonEncode(updatedStacksList);
-                                              } catch (_) {}
-                                            }
-
-                                            final double? newPro = log.protein != null ? (log.protein! - rollbackPro).clamp(0, 1000) : null;
-                                            final double? newCarbs = log.carbs != null ? (log.carbs! - rollbackCho).clamp(0, 1000) : null;
-                                            final double? newFats = log.fats != null ? (log.fats! - rollbackFat).clamp(0, 1000) : null;
-
-                                            calorieProvider.addLog(log.copyWith(
-                                              calories: (log.calories - rollbackCals).clamp(0.0, 9999.999),
-                                              protein: newPro != null && newPro > 0 ? newPro : null,
-                                              carbs: newCarbs != null && newCarbs > 0 ? newCarbs : null,
-                                              fats: newFats != null && newFats > 0 ? newFats : null,
-                                              addedSupplementsJson: newSuppsJson,
-                                              clearSupplements: newSuppsJson == null,
-                                              addedStacksJson: newStacksJson,
-                                              clearStacks: newStacksJson == null,
-                                            ));
+                                          final bool isStandaloneLog = entry.details.contains("| SUPPLEMENT |");
+                                          final bool isStackLog = entry.details.contains("| STACK: ");
+                                          
+                                          String? targetStackId;
+                                          if (isStackLog) {
+                                             final parts = entry.details.split('|');
+                                             if (parts.length > 1) {
+                                                final stackName = parts[1].replaceAll("STACK:", "").trim();
+                                                try {
+                                                   targetStackId = provider.supplementStacks.firstWhere(
+                                                      (s) => s.name.toUpperCase() == stackName.toUpperCase()
+                                                   ).id;
+                                                } catch (_) {}
+                                             }
                                           }
-                                        }
+
+                                          final double rollbackCals = ((supplement.caloriesPerUnit ?? 0.0) * amount);
+                                          final double rollbackPro = (supplement.proteinPerUnit ?? 0.0) * amount;
+                                          final double rollbackCho = (supplement.carbsPerUnit ?? 0.0) * amount;
+                                          final double rollbackFat = (supplement.fatsPerUnit ?? 0.0) * amount;
+
+                                          String? newSuppsJson = log.addedSupplementsJson;
+                                          String? newStacksJson = log.addedStacksJson;
+
+                                          if (isStandaloneLog && newSuppsJson != null) {
+                                            try {
+                                              List<dynamic> list = jsonDecode(newSuppsJson);
+                                              list.removeWhere((item) => ((item is Map) ? item['id'] : item) == suppId);
+                                              newSuppsJson = list.isEmpty ? null : jsonEncode(list);
+                                            } catch (_) {}
+                                          }
+
+                                          if (isStackLog && newStacksJson != null) {
+                                            try {
+                                              List<dynamic> stacksList = jsonDecode(newStacksJson);
+                                              final List<dynamic> updatedStacksList = [];
+
+                                              for (var stackEntry in stacksList) {
+                                                 if (stackEntry is Map && stackEntry['itemAmounts'] is Map) {
+                                                    final String sId = stackEntry['id'];
+                                                    if (targetStackId == null || sId == targetStackId) {
+                                                       Map<String, dynamic> itemAmounts = Map<String, dynamic>.from(stackEntry['itemAmounts']);
+                                                       if (itemAmounts.containsKey(suppId)) {
+                                                          itemAmounts.remove(suppId);
+                                                          if (itemAmounts.isNotEmpty) {
+                                                             final newEntry = Map<String, dynamic>.from(stackEntry);
+                                                             newEntry['itemAmounts'] = itemAmounts;
+                                                             updatedStacksList.add(newEntry);
+                                                          }
+                                                          continue;
+                                                       }
+                                                    }
+                                                 }
+                                                 updatedStacksList.add(stackEntry);
+                                              }
+                                              newStacksJson = updatedStacksList.isEmpty ? null : jsonEncode(updatedStacksList);
+                                            } catch (_) {}
+                                          }
+
+                                          final double? newPro = log.protein != null ? (log.protein! - rollbackPro).clamp(0, 1000) : null;
+                                          final double? newCarbs = log.carbs != null ? (log.carbs! - rollbackCho).clamp(0, 1000) : null;
+                                          final double? newFats = log.fats != null ? (log.fats! - rollbackFat).clamp(0, 1000) : null;
+
+                                          calorieProvider.addLog(log.copyWith(
+                                            calories: (log.calories - rollbackCals).clamp(0.0, 9999.999),
+                                            protein: newPro != null && newPro > 0 ? newPro : null,
+                                            carbs: newCarbs != null && newCarbs > 0 ? newCarbs : null,
+                                            fats: newFats != null && newFats > 0 ? newFats : null,
+                                            addedSupplementsJson: newSuppsJson,
+                                            clearSupplements: newSuppsJson == null,
+                                            addedStacksJson: newStacksJson,
+                                            clearStacks: newStacksJson == null,
+                                          ));
+                                                                                }
                                       }
                                     );
                                   },
@@ -732,19 +730,7 @@ class _SupplementScreenState extends State<SupplementScreen>
                     initialDate: _selectedHistoryDate,
                     firstDate: DateTime(2020),
                     lastDate: DateTime.now(),
-                    builder: (context, child) {
-                      return Theme(
-                        data: Theme.of(context).copyWith(
-                          colorScheme: const ColorScheme.dark(
-                            primary: AppColors.crimson,
-                            onPrimary: Colors.white,
-                            surface: AppColors.surface,
-                            onSurface: Colors.white,
-                          ),
-                        ),
-                        child: child!,
-                      );
-                    },
+                    builder: (context, child) => child!,
                   );
                   if (picked != null) {
                     setState(() {

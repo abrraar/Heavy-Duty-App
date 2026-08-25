@@ -467,8 +467,11 @@ class _ExerciseScreenState extends State<ExerciseScreen> with SingleTickerProvid
                       return GestureDetector(
                         onTap: () {
                           setModalState(() {
-                            if (isSelected) _selectedDemands.remove(demand);
-                            else _selectedDemands.add(demand);
+                            if (isSelected) {
+                              _selectedDemands.remove(demand);
+                            } else {
+                              _selectedDemands.add(demand);
+                            }
                           });
                           setState(() {});
                         },
@@ -508,8 +511,11 @@ class _ExerciseScreenState extends State<ExerciseScreen> with SingleTickerProvid
                         isSelected: isSelected,
                         onTap: () {
                           setModalState(() {
-                            if (isSelected) _selectedMuscles.remove(m);
-                            else _selectedMuscles.add(m);
+                            if (isSelected) {
+                              _selectedMuscles.remove(m);
+                            } else {
+                              _selectedMuscles.add(m);
+                            }
                           });
                           setState(() {});
                         },

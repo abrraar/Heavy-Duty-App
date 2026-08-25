@@ -16,8 +16,6 @@ import '../tracker/calorie/model/saved_meal.dart';
 import '../tracker/calorie/provider/calorie_provider.dart';
 import '../tracker/hydration/provider/hydration_provider.dart';
 import '../tracker/supplement/provider/supplement_provider.dart';
-import '../tracker/supplement/model/supplement.dart';
-import '../tracker/supplement/model/supplement_stack.dart';
 import '../tracker/cycle_tracker/provider/cycle_provider.dart';
 import '../tracker/cycle_tracker/model/workout.dart';
 import '../tracker/cycle_tracker/exercise_list_screen.dart';
@@ -29,7 +27,6 @@ import 'widgets/affirmation_card.dart';
 import 'widgets/water_tracker_card.dart';
 import 'widgets/cycle_status_card.dart';
 import 'widgets/cycle_metric_tile.dart';
-import 'widgets/workout_action_card.dart';
 import 'widgets/meal%20quick%20log/meal_quick_log_card.dart';
 import 'widgets/supplement quick log/quick_log_card.dart';
 import 'widgets/stack%20quick%20log/stack_quick_log_card.dart';
@@ -375,10 +372,12 @@ class _SupplementLogSection extends StatelessWidget {
               },
             ));
           }
-          if (item.pinnedRestockAmount > 0) cards.add(QuickLogCard(item: item, isRestock: true, onTap: () {
+          if (item.pinnedRestockAmount > 0) {
+            cards.add(QuickLogCard(item: item, isRestock: true, onTap: () {
             provider.quickLogRestockOnly(item.id);
             EliteSnackbar.show(context, "${item.name} RESTOCKED", onUndo: () => provider.deleteLastEntry());
           }));
+          }
         }
         return _HomeSectionWrapper(
           child: Column(

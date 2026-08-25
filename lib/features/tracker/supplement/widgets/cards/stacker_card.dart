@@ -15,8 +15,6 @@ import 'package:collection/collection.dart';
 
 import 'package:heavy_duty/features/tracker/calorie/provider/calorie_provider.dart';
 import 'package:heavy_duty/features/auth/provider/auth_provider.dart';
-import 'package:heavy_duty/core/widgets/elite_snackbar.dart';
-import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../../../../../core/widgets/elite_confirm_dialog.dart';
@@ -71,7 +69,9 @@ class _StackerCardState extends State<StackerCard> {
 
   @override
   void dispose() {
-    for (var c in _controllers.values) c.dispose();
+    for (var c in _controllers.values) {
+      c.dispose();
+    }
     super.dispose();
   }
 
@@ -892,9 +892,11 @@ class _StackerCardState extends State<StackerCard> {
                     "EXECUTE",
                     AppColors.crimson,
                     Colors.white,
-                    () async {
+                    () {
                       final provider = context.read<SupplementProvider>();
-                      await provider.executeStackLog(
+                      if (provider.isStackProcessing) return;
+
+                      provider.executeStackLog(
                         stack: widget.stack,
                         recordModes: _isRecordMode,
                         useServings: _useServings,
@@ -904,14 +906,13 @@ class _StackerCardState extends State<StackerCard> {
                         ),
                         selectedDateTime: _selectedDateTime,
                       );
-                      if (mounted) {
-                        Navigator.pop(context);
-                        EliteSnackbar.show(
-                          context, 
-                          "${widget.stack.name} LOGGED",
-                          onUndo: () => provider.deleteLastEntry(),
-                        );
-                      }
+
+                      Navigator.pop(context);
+                      EliteSnackbar.show(
+                        context,
+                        "STACK LOGGED: ${widget.stack.name.toUpperCase()}",
+                        onUndo: () => provider.deleteLastEntry(),
+                      );
                     },
                   ),
                 ),

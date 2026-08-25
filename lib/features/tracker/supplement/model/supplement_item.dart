@@ -9,7 +9,8 @@ class SupplementItem {
   final double weightAdjustment;
   final DateTime timestamp;
   final String? sourceId; // NEW: Link to external triggers like Meal Logs
-  int isSynced; 
+  int isSynced;
+  final String? userId;
 
   SupplementItem({
     required this.id,
@@ -21,12 +22,14 @@ class SupplementItem {
     required this.timestamp,
     required this.isSynced,
     this.sourceId,
+    this.userId,
   });
 
   // Convert to Map for Database Insertion
   Map<String, dynamic> toMap() {
     return {
       'id': id,
+      'user_id': userId,
       'supplement_id': supplementId,
       'supplement_name': supplementName,
       'type': type,
@@ -42,6 +45,7 @@ class SupplementItem {
   factory SupplementItem.fromMap(Map<String, dynamic> map) {
     return SupplementItem(
       id: map['id'] as String,
+      userId: map['user_id'] as String?,
       supplementId: map['supplement_id'] as String,
       supplementName: map['supplement_name'] as String,
       type: map['type'] as String,
@@ -52,4 +56,31 @@ class SupplementItem {
       isSynced: map['is_synced'] as int,
     );
   }
+
+  SupplementItem copyWith({
+    String? id,
+    String? supplementId,
+    String? supplementName,
+    String? type,
+    String? details,
+    double? weightAdjustment,
+    DateTime? timestamp,
+    String? sourceId,
+    int? isSynced,
+    String? userId,
+  }) {
+    return SupplementItem(
+      id: id ?? this.id,
+      supplementId: supplementId ?? this.supplementId,
+      supplementName: supplementName ?? this.supplementName,
+      type: type ?? this.type,
+      details: details ?? this.details,
+      weightAdjustment: weightAdjustment ?? this.weightAdjustment,
+      timestamp: timestamp ?? this.timestamp,
+      isSynced: isSynced ?? this.isSynced,
+      sourceId: sourceId ?? this.sourceId,
+      userId: userId ?? this.userId,
+    );
+  }
+
 }

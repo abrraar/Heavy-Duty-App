@@ -13,6 +13,7 @@ class ExerciseTemplate {
   final String? aboutTheMovement;
   final String? sharedBy;
   final int isSynced;
+  final String? userId;
   
   // IN-MEMORY CACHE: For dynamic UI adjustments
   double? aspectRatio;
@@ -28,11 +29,13 @@ class ExerciseTemplate {
     this.aboutTheMovement,
     this.sharedBy,
     this.isSynced = 1,
+    this.userId,
   }) : id = id ?? const Uuid().v4();
 
   Map<String, dynamic> toMap() {
     return {
       'id': id,
+      'user_id': userId,
       'name': name,
       'target_muscles': targetMuscles,
       'intensity': intensity,
@@ -56,6 +59,7 @@ class ExerciseTemplate {
 
     return ExerciseTemplate(
       id: map['id'] as String,
+      userId: map['user_id'] as String?,
       name: map['name'] as String,
       targetMuscles: map['target_muscles'] as String?,
       intensity: map['intensity'] as int? ?? 3,
@@ -81,9 +85,10 @@ class ExerciseTemplate {
     String? aboutTheMovement,
     String? sharedBy,
     int? isSynced,
+    String? userId,
   }) {
     return ExerciseTemplate(
-      id: this.id,
+      id: id,
       name: name ?? this.name,
       targetMuscles: targetMuscles ?? this.targetMuscles,
       intensity: intensity ?? this.intensity,
@@ -93,6 +98,8 @@ class ExerciseTemplate {
       aboutTheMovement: aboutTheMovement ?? this.aboutTheMovement,
       sharedBy: sharedBy ?? this.sharedBy,
       isSynced: isSynced ?? this.isSynced,
+      userId: userId ?? this.userId,
     );
   }
 }
+

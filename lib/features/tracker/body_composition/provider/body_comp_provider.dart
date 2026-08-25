@@ -270,7 +270,7 @@ class BodyCompProvider with ChangeNotifier {
 
   Future<void> addLog(BodyCompLog log) async {
     if (_localRepo == null) return;
-    final localLog = log.copyWith(isSynced: 0);
+    final localLog = log.copyWith(isSynced: 0, userId: _localRepo!.userId);
     _logs.add(localLog);
     _logs.sort((a, b) => b.timestamp.compareTo(a.timestamp));
     notifyListeners();

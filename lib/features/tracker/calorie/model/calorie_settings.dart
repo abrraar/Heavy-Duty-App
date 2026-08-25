@@ -6,6 +6,7 @@ class CalorieSettings {
   final bool trackMacros;
   final bool showRemaining;
   final int isSynced;
+  final String? userId;
 
   CalorieSettings({
     this.dailyCalorieGoal = 2500,
@@ -15,11 +16,13 @@ class CalorieSettings {
     this.trackMacros = true,
     this.showRemaining = true,
     this.isSynced = 1,
+    this.userId,
   });
 
   Map<String, dynamic> toMap() {
     return {
       'id': 1,
+      'user_id': userId,
       'daily_calorie_goal': dailyCalorieGoal,
       'protein_percent': proteinPercent,
       'carb_percent': carbPercent,
@@ -45,6 +48,7 @@ class CalorieSettings {
       trackMacros: parseBool(map['track_macros']),
       showRemaining: parseBool(map['show_remaining']),
       isSynced: (map['is_synced'] as num?)?.toInt() ?? 1,
+      userId: map['user_id'] as String?,
     );
   }
 
@@ -56,6 +60,7 @@ class CalorieSettings {
     bool? trackMacros,
     bool? showRemaining,
     int? isSynced,
+    String? userId,
   }) {
     return CalorieSettings(
       dailyCalorieGoal: dailyCalorieGoal ?? this.dailyCalorieGoal,
@@ -65,6 +70,8 @@ class CalorieSettings {
       trackMacros: trackMacros ?? this.trackMacros,
       showRemaining: showRemaining ?? this.showRemaining,
       isSynced: isSynced ?? this.isSynced,
+      userId: userId ?? this.userId,
     );
   }
 }
+

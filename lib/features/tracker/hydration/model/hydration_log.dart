@@ -6,6 +6,7 @@ class HydrationLog {
   final double amountOz;
   final DateTime timestamp;
   final int isSynced;
+  final String? userId;
 
   HydrationLog({
     required this.id,
@@ -13,11 +14,13 @@ class HydrationLog {
     required this.amountOz,
     required this.timestamp,
     this.isSynced = 1,
+    this.userId,
   });
 
   Map<String, dynamic> toMap() {
     return {
       'id': id,
+      'user_id': userId,
       'amount_ml': amountMl,
       'amount_oz': amountOz,
       'timestamp': timestamp.toIso8601String(),
@@ -41,6 +44,7 @@ class HydrationLog {
       amountOz: oz,
       timestamp: DateTime.parse(map['timestamp'] as String),
       isSynced: map['is_synced'] ?? 1,
+      userId: map['user_id'] as String?,
     );
   }
 
@@ -50,6 +54,7 @@ class HydrationLog {
     double? amountOz,
     DateTime? timestamp,
     int? isSynced,
+    String? userId,
   }) {
     return HydrationLog(
       id: id ?? this.id,
@@ -57,6 +62,8 @@ class HydrationLog {
       amountOz: amountOz ?? this.amountOz,
       timestamp: timestamp ?? this.timestamp,
       isSynced: isSynced ?? this.isSynced,
+      userId: userId ?? this.userId,
     );
   }
 }
+

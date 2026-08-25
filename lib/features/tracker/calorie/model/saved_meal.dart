@@ -74,6 +74,7 @@ class CalorieReminder {
 
 class SavedMeal {
   final String id;
+  final String? userId;
   final String name;
   final String foodItems;
   final double calories;
@@ -92,6 +93,7 @@ class SavedMeal {
 
   SavedMeal({
     String? id,
+    this.userId,
     required this.name,
     required this.foodItems,
     required this.calories,
@@ -112,6 +114,7 @@ class SavedMeal {
   Map<String, dynamic> toMap() {
     return {
       'id': id,
+      'user_id': userId,
       'name': name,
       'food_items': foodItems,
       'calories': calories,
@@ -147,6 +150,7 @@ class SavedMeal {
 
     return SavedMeal(
       id: map['id'] as String,
+      userId: map['user_id']?.toString(),
       name: map['name'] as String,
       foodItems: map['food_items'] as String,
       calories: (map['calories'] as num).toDouble(),
@@ -169,6 +173,7 @@ class SavedMeal {
 
   SavedMeal copyWith({
     String? id,
+    String? userId,
     String? name,
     String? foodItems,
     double? calories,
@@ -189,6 +194,7 @@ class SavedMeal {
   }) {
     return SavedMeal(
       id: id ?? this.id,
+      userId: userId ?? this.userId,
       name: name ?? this.name,
       foodItems: foodItems ?? this.foodItems,
       calories: calories ?? this.calories,

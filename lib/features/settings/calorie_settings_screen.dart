@@ -286,7 +286,7 @@ class _CalorieSettingsScreenState extends State<CalorieSettingsScreen> {
               ],
             ),
           ),
-          Switch(value: value, activeColor: AppColors.crimson, onChanged: onChanged),
+          Switch(value: value, activeThumbColor: AppColors.crimson, onChanged: onChanged),
         ],
       ),
     );

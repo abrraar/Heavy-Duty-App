@@ -36,6 +36,7 @@ class DatabaseHelper {
     await db.execute('''
       CREATE TABLE ss_supplements (
         id TEXT PRIMARY KEY,
+        user_id TEXT,
         name TEXT NOT NULL,
         description TEXT,
         serving_unit TEXT,
@@ -67,6 +68,7 @@ class DatabaseHelper {
     await db.execute('''
       CREATE TABLE ss_stack (
         id TEXT PRIMARY KEY,
+        user_id TEXT,
         name TEXT NOT NULL,
         is_pinned INTEGER DEFAULT 0,
         is_pinned_to_home INTEGER DEFAULT 0,
@@ -86,6 +88,7 @@ class DatabaseHelper {
     await db.execute('''
       CREATE TABLE ss_records (
         id TEXT PRIMARY KEY,
+        user_id TEXT,
         supplement_id TEXT NOT NULL,
         supplement_name TEXT NOT NULL,
         type TEXT NOT NULL,
@@ -102,6 +105,7 @@ class DatabaseHelper {
     await db.execute('''
       CREATE TABLE hydration_logs (
         id TEXT PRIMARY KEY,
+        user_id TEXT,
         amount_ml INTEGER NOT NULL,
         amount_oz REAL NOT NULL,
         timestamp TEXT NOT NULL,
@@ -114,11 +118,12 @@ class DatabaseHelper {
     await db.execute('''
       CREATE TABLE hydration_settings (
         id INTEGER PRIMARY KEY CHECK (id = 1),
+        user_id TEXT,
         daily_goal INTEGER DEFAULT 3500,
         unit TEXT DEFAULT 'ml',
         add_value INTEGER DEFAULT 250,
         minus_value INTEGER DEFAULT 250,
-        reminders_enabled INTEGER DEFAULT 1,
+        reminders_enabled INTEGER DEFAULT 0,
         is_pinned_to_home INTEGER DEFAULT 1,
         reminders_json TEXT,
         is_synced INTEGER DEFAULT 1,
@@ -130,6 +135,7 @@ class DatabaseHelper {
     await db.execute('''
       CREATE TABLE sleep_logs (
         id TEXT PRIMARY KEY,
+        user_id TEXT,
         bedtime TEXT NOT NULL,
         wake_up_time TEXT NOT NULL,
         quality INTEGER NOT NULL,
@@ -144,6 +150,7 @@ class DatabaseHelper {
     await db.execute('''
       CREATE TABLE sleep_alarm_settings (
         id INTEGER PRIMARY KEY CHECK (id = 1),
+        user_id TEXT,
         bedtime_enabled INTEGER DEFAULT 0,
         bedtime_hour INTEGER DEFAULT 22,
         bedtime_minute INTEGER DEFAULT 30,
@@ -161,6 +168,7 @@ class DatabaseHelper {
     await db.execute('''
       CREATE TABLE calorie_meal_logs (
         id TEXT PRIMARY KEY,
+        user_id TEXT,
         meal_name TEXT NOT NULL,
         food_items TEXT NOT NULL,
         calories REAL NOT NULL,
@@ -180,6 +188,7 @@ class DatabaseHelper {
     await db.execute('''
       CREATE TABLE calorie_settings (
         id INTEGER PRIMARY KEY CHECK (id = 1),
+        user_id TEXT,
         daily_calorie_goal INTEGER DEFAULT 2500,
         protein_percent INTEGER DEFAULT 25,
         carb_percent INTEGER DEFAULT 60,
@@ -195,6 +204,7 @@ class DatabaseHelper {
     await db.execute('''
       CREATE TABLE calorie_meals (
         id TEXT PRIMARY KEY,
+        user_id TEXT,
         name TEXT NOT NULL,
         food_items TEXT NOT NULL,
         calories REAL NOT NULL,
@@ -218,6 +228,7 @@ class DatabaseHelper {
     await db.execute('''
       CREATE TABLE body_comp_weight_logs (
         id TEXT PRIMARY KEY,
+        user_id TEXT,
         value_kg REAL NOT NULL,
         value_lbs REAL NOT NULL,
         timestamp TEXT NOT NULL,
@@ -229,6 +240,7 @@ class DatabaseHelper {
     await db.execute('''
       CREATE TABLE body_comp_fats_logs (
         id TEXT PRIMARY KEY,
+        user_id TEXT,
         value_kg REAL NOT NULL,
         value_lbs REAL NOT NULL,
         timestamp TEXT NOT NULL,
@@ -240,6 +252,7 @@ class DatabaseHelper {
     await db.execute('''
       CREATE TABLE body_comp_muscle_logs (
         id TEXT PRIMARY KEY,
+        user_id TEXT,
         value_kg REAL NOT NULL,
         value_lbs REAL NOT NULL,
         timestamp TEXT NOT NULL,
@@ -253,6 +266,7 @@ class DatabaseHelper {
     await db.execute('''
       CREATE TABLE hit_cycles (
         id TEXT PRIMARY KEY,
+        user_id TEXT,
         name TEXT NOT NULL,
         description TEXT,
         is_default INTEGER DEFAULT 0,
@@ -270,6 +284,7 @@ class DatabaseHelper {
     await db.execute('''
       CREATE TABLE hit_workouts (
         id TEXT PRIMARY KEY,
+        user_id TEXT,
         cycle_id TEXT NOT NULL,
         name TEXT NOT NULL,
         workout_order INTEGER NOT NULL,
@@ -286,6 +301,7 @@ class DatabaseHelper {
     await db.execute('''
       CREATE TABLE hit_exercises (
         id TEXT PRIMARY KEY,
+        user_id TEXT,
         workout_id TEXT NOT NULL,
         name TEXT NOT NULL,
         exercise_order INTEGER NOT NULL,
@@ -300,6 +316,7 @@ class DatabaseHelper {
     await db.execute('''
       CREATE TABLE exercise_logs (
         id TEXT PRIMARY KEY,
+        user_id TEXT,
         exercise_id TEXT NOT NULL,
         weight_kg REAL NOT NULL,
         weight_lbs REAL NOT NULL,
@@ -318,6 +335,7 @@ class DatabaseHelper {
     await db.execute('''
       CREATE TABLE exercise_templates (
         id TEXT PRIMARY KEY,
+        user_id TEXT,
         name TEXT NOT NULL,
         target_muscles TEXT,
         intensity INTEGER DEFAULT 3,
@@ -335,9 +353,10 @@ class DatabaseHelper {
     await db.execute('''
       CREATE TABLE hit_settings (
         id INTEGER PRIMARY KEY CHECK (id = 1),
+        user_id TEXT,
         weight_unit TEXT DEFAULT 'lbs',
         visible_metrics_json TEXT,
-        workout_reminders_enabled INTEGER DEFAULT 1,
+        workout_reminders_enabled INTEGER DEFAULT 0,
         workout_reminder_interval INTEGER DEFAULT 2,
         is_synced INTEGER DEFAULT 1,
         created_at TEXT DEFAULT CURRENT_TIMESTAMP
@@ -348,6 +367,7 @@ class DatabaseHelper {
     await db.execute('''
       CREATE TABLE pending_deletions (
         id TEXT PRIMARY KEY,
+        user_id TEXT,
         table_name TEXT NOT NULL,
         created_at TEXT DEFAULT CURRENT_TIMESTAMP
       )
@@ -357,6 +377,7 @@ class DatabaseHelper {
     await db.execute('''
       CREATE TABLE home_widget_settings (
         id INTEGER PRIMARY KEY CHECK (id = 1),
+        user_id TEXT,
         home_layout_json TEXT,
         is_synced INTEGER DEFAULT 1,
         created_at TEXT DEFAULT CURRENT_TIMESTAMP
@@ -367,7 +388,9 @@ class DatabaseHelper {
     await db.execute('''
       CREATE TABLE affirmations (
         id TEXT PRIMARY KEY,
+        user_id TEXT,
         text TEXT NOT NULL,
+        speaker TEXT,
         is_custom INTEGER DEFAULT 1,
         display_order INTEGER DEFAULT 0,
         created_at TEXT NOT NULL,
@@ -379,6 +402,7 @@ class DatabaseHelper {
     await db.execute('''
       CREATE TABLE affirmation_settings (
         id INTEGER PRIMARY KEY CHECK (id = 1),
+        user_id TEXT,
         rotation_minutes INTEGER DEFAULT 60,
         rotation_mode TEXT DEFAULT 'random',
         show_system INTEGER DEFAULT 1,
@@ -394,6 +418,7 @@ class DatabaseHelper {
     await db.execute('''
       CREATE TABLE user_emails (
         id TEXT PRIMARY KEY,
+        user_id TEXT,
         email TEXT NOT NULL,
         is_verified INTEGER DEFAULT 0,
         is_synced INTEGER DEFAULT 1,
@@ -405,6 +430,7 @@ class DatabaseHelper {
     await db.execute('''
       CREATE TABLE profiles (
         id TEXT PRIMARY KEY,
+        user_id TEXT,
         full_name TEXT,
         username TEXT UNIQUE,
         birthday TEXT,
@@ -420,6 +446,7 @@ class DatabaseHelper {
     await db.execute('''
       CREATE TABLE body_comp_settings (
         id INTEGER PRIMARY KEY CHECK (id = 1),
+        user_id TEXT,
         weight_unit TEXT DEFAULT 'kgs',
         height_unit TEXT DEFAULT 'cm',
         weight_reminders_enabled INTEGER DEFAULT 0,
@@ -447,6 +474,7 @@ class DatabaseHelper {
     await db.execute('''
       CREATE TABLE ss_settings (
         id INTEGER PRIMARY KEY CHECK (id = 1),
+        user_id TEXT,
         show_expired INTEGER DEFAULT 1,
         hide_empty_stock INTEGER DEFAULT 0,
         pinned_order_json TEXT,
@@ -457,6 +485,6 @@ class DatabaseHelper {
   }
 
   Future _onUpgrade(Database db, int oldVersion, int newVersion) async {
-    // Current final schema is defined in _createDB for version 1
+    // Migration logic removed as version was reset to 1 for fresh install
   }
 }

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:heavy_duty/core/theme/app_colors.dart';
 
 class WaterGlassWidget extends StatelessWidget {
   final double progress; // 0.0 to 1.0

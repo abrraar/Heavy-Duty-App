@@ -13,6 +13,7 @@ class SupplementStack {
   final List<SupplementReminder> reminders;
 
   final String? sharedBy;
+  final String? userId;
 
   // NEW: Snapshot fields to store specific card configurations
   final Map<String, bool>
@@ -30,6 +31,7 @@ class SupplementStack {
     this.notificationsEnabled = false,
     this.reminders = const [],
     this.sharedBy,
+    this.userId,
     this.pinnedRecordModes = const {},
     this.pinnedUseServings = const {},
     this.pinnedAmounts = const {},
@@ -39,6 +41,7 @@ class SupplementStack {
   Map<String, dynamic> toMap() {
     return {
       'id': id,
+      'user_id': userId,
       'name': name,
       'is_pinned': isPinned ? 1 : 0,
       'is_pinned_to_home': isPinnedToHome ? 1 : 0,
@@ -78,6 +81,7 @@ class SupplementStack {
 
     return SupplementStack(
       id: map['id'] as String,
+      userId: map['user_id'] as String?,
       name: map['name'] as String,
       isPinned: (map['is_pinned'] as int? ?? 0) == 1,
       isPinnedToHome: (map['is_pinned_to_home'] as int? ?? 0) == 1,
@@ -101,12 +105,13 @@ class SupplementStack {
     bool? notificationsEnabled,
     List<SupplementReminder>? reminders,
     String? sharedBy,
+    String? userId,
     Map<String, bool>? pinnedRecordModes,
     Map<String, bool>? pinnedUseServings,
     Map<String, double>? pinnedAmounts,
   }) {
     return SupplementStack(
-      id: this.id,
+      id: id,
       name: name ?? this.name,
       items: items ?? this.items,
       isPinned: isPinned ?? this.isPinned,
@@ -114,9 +119,11 @@ class SupplementStack {
       notificationsEnabled: notificationsEnabled ?? this.notificationsEnabled,
       reminders: reminders ?? this.reminders,
       sharedBy: sharedBy ?? this.sharedBy,
+      userId: userId ?? this.userId,
       pinnedRecordModes: pinnedRecordModes ?? this.pinnedRecordModes,
       pinnedUseServings: pinnedUseServings ?? this.pinnedUseServings,
       pinnedAmounts: pinnedAmounts ?? this.pinnedAmounts,
     );
   }
+
 }
