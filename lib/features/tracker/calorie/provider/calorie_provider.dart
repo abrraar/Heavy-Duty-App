@@ -10,6 +10,8 @@ import '../model/saved_meal.dart';
 import '../data/calorie_local_repository.dart';
 import '../data/calorie_cloud_repository.dart';
 
+import 'package:heavy_duty/core/providers/sync_provider.dart';
+
 class CalorieProvider with ChangeNotifier {
   CalorieLocalRepository? _localRepo;
   final CalorieCloudRepository _cloudRepo = CalorieCloudRepository();
@@ -229,7 +231,13 @@ class CalorieProvider with ChangeNotifier {
   Future<void> _syncLocalToCloud() async {
     if (_localRepo == null) return;
 
+    final syncProv = SyncProvider();
+    syncProv.startFeatureSync();
+
     try {
+      final count = await _localRepo!.getUnsyncedCount();
+      syncProv.addTotalItems(count);
+
       // 1. Push Unsynced Deletions
       final deletions = await _localRepo!.getPendingDeletions();
       for (var del in deletions) {
@@ -237,7 +245,9 @@ class CalorieProvider with ChangeNotifier {
         final table = del['table_name'] as String;
         try {
           if (table == 'calorie_meal_logs') await _cloudRepo.deleteLog(id);
+          if (table == 'calorie_meals') await _cloudRepo.deleteSavedMeal(id);
           await _localRepo!.removeFromDeletionQueue(id);
+          syncProv.incrementCompleted();
         } catch (_) {}
       }
 
@@ -247,6 +257,7 @@ class CalorieProvider with ChangeNotifier {
         try {
           await _cloudRepo.insertLog(log);
           await _localRepo!.markLogSynced(log.id);
+          syncProv.incrementCompleted();
         } catch (_) {}
       }
 
@@ -256,6 +267,7 @@ class CalorieProvider with ChangeNotifier {
         try {
           await _cloudRepo.saveSettings(unsyncedSettings);
           await _localRepo!.markSettingsSynced();
+          syncProv.incrementCompleted();
         } catch (_) {}
       }
 
@@ -266,12 +278,15 @@ class CalorieProvider with ChangeNotifier {
           debugPrint("CalorieProvider: Syncing unsynced meal: ${meal.name}");
           await _cloudRepo.insertSavedMeal(meal);
           await _localRepo!.markSavedMealSynced(meal.id);
+          syncProv.incrementCompleted();
         } catch (e) {
           debugPrint("CalorieProvider: Unsynced meal sync failed: ${meal.name} - $e");
         }
       }
     } catch (e) {
       debugPrint("CalorieProvider SyncLocalToCloud Error: $e");
+    } finally {
+      syncProv.endFeatureSync();
     }
   }
 
@@ -283,6 +298,9 @@ class CalorieProvider with ChangeNotifier {
     }
 
     try {
+      // MANDATORY: Push local offline changes BEFORE pulling from cloud
+      await _syncLocalToCloud();
+
       // 1. Load local state first for immediate UI availability
       _settings = await _localRepo!.getSettings();
       _logs = await _localRepo!.getAllLogs();
@@ -293,40 +311,33 @@ class CalorieProvider with ChangeNotifier {
       try {
         final cloudSettings = await _cloudRepo.getSettings();
         if (cloudSettings != null) {
-          if (_settings.isSynced == 1) {
-            _settings = cloudSettings;
-            await _localRepo!.saveSettings(cloudSettings);
-          }
+          await _localRepo!.saveSettings(cloudSettings, isFromCloud: true);
+          _settings = await _localRepo!.getSettings();
         }
       } catch (e) {
         debugPrint("CalorieProvider: Settings sync failed: $e");
       }
 
-      // 3. Fetch and Reconcile Logs
+      // 3. Fetch and Add/Update Logs
       try {
         final cloudLogs = await _cloudRepo.getAllLogs();
         if (cloudLogs != null) {
           final localLogs = await _localRepo!.getAllLogs();
-          final localMap = {for (var l in localLogs) l.id: l};
           final cloudIds = cloudLogs.map((l) => l.id).toSet();
 
-          bool logChanged = false;
-
-          // Pruning: Delete local logs that are synced but missing from cloud
+          // Deletion Reconciliation: Remove local synced logs missing from cloud
           for (var localL in localLogs) {
             if (localL.isSynced == 1 && !cloudIds.contains(localL.id)) {
               await _localRepo!.deleteLog(localL.id);
-              logChanged = true;
             }
           }
 
+          bool logChanged = false;
+
           // Pulling: Add/Update logs from cloud
           for (var log in cloudLogs) {
-            final localL = localMap[log.id];
-            if (localL == null || localL.isSynced == 1) {
-              await _localRepo!.insertLog(log);
-              logChanged = true;
-            }
+            await _localRepo!.insertLog(log, isFromCloud: true);
+            logChanged = true;
           }
           if (logChanged) _logs = await _localRepo!.getAllLogs();
         }
@@ -334,31 +345,26 @@ class CalorieProvider with ChangeNotifier {
         debugPrint("CalorieProvider: Logs reconciliation failed: $e");
       }
 
-      // 4. Fetch and Reconcile Saved Meals
+      // 4. Fetch and Add/Update Saved Meals
       try {
         final cloudSavedMeals = await _cloudRepo.getSavedMeals();
         if (cloudSavedMeals != null) {
           final localMeals = await _localRepo!.getSavedMeals();
-          final localMap = {for (var m in localMeals) m.id: m};
           final cloudIds = cloudSavedMeals.map((m) => m.id).toSet();
 
-          bool mealChanged = false;
-
-          // Pruning: Delete local meals that are synced but missing from cloud
+          // Deletion Reconciliation: Remove local synced meals missing from cloud
           for (var localM in localMeals) {
             if (localM.isSynced == 1 && !cloudIds.contains(localM.id)) {
               await _localRepo!.deleteSavedMeal(localM.id);
-              mealChanged = true;
             }
           }
 
+          bool mealChanged = false;
+
           // Pulling: Add/Update meals from cloud
           for (var meal in cloudSavedMeals) {
-            final localM = localMap[meal.id];
-            if (localM == null || localM.isSynced == 1) {
-              await _localRepo!.insertSavedMeal(meal);
-              mealChanged = true;
-            }
+            await _localRepo!.insertSavedMeal(meal, isFromCloud: true);
+            mealChanged = true;
           }
           if (mealChanged) _savedMeals = await _localRepo!.getSavedMeals();
         }
@@ -385,7 +391,11 @@ class CalorieProvider with ChangeNotifier {
   Future<void> addLog(CalorieLog log) async {
     if (_localRepo == null) return;
     
-    final localLog = log.copyWith(isSynced: 0, userId: _localRepo!.userId);
+    final localLog = log.copyWith(
+      isSynced: 0, 
+      userId: _localRepo!.userId,
+      updatedAt: DateTime.now(),
+    );
     
     // UPSERT LOGIC: Check if log already exists in memory
     final index = _logs.indexWhere((l) => l.id == localLog.id);
@@ -399,7 +409,7 @@ class CalorieProvider with ChangeNotifier {
 
     try {
       await _localRepo!.insertLog(localLog);
-      _syncCalorieLog(localLog);
+      await _syncCalorieLog(localLog);
     } catch (e) {
       debugPrint("Error saving calorie log locally: $e");
     }
@@ -427,7 +437,7 @@ class CalorieProvider with ChangeNotifier {
     try {
       await _localRepo!.deleteLog(id);
       await _localRepo!.addToDeletionQueue(id, 'calorie_meal_logs');
-      _syncCalorieDelete(id);
+      await _syncCalorieDelete(id);
     } catch (e) {
       debugPrint("Error deleting calorie log locally: $e");
     }
@@ -484,6 +494,7 @@ class CalorieProvider with ChangeNotifier {
       id: targetId,
       userId: _localRepo?.userId,
       isSynced: 0,
+      updatedAt: DateTime.now(),
     );
     
     if (existingIndex != -1) {
@@ -496,7 +507,7 @@ class CalorieProvider with ChangeNotifier {
 
     try {
       await _localRepo!.insertSavedMeal(localMeal);
-      _syncSavedMeal(localMeal);
+      await _syncSavedMeal(localMeal);
     } catch (e) {
       debugPrint("Error saving meal template: $e");
     }
@@ -548,9 +559,19 @@ class CalorieProvider with ChangeNotifier {
 
     try {
       await _localRepo!.deleteSavedMeal(id);
-      await _cloudRepo.deleteSavedMeal(id);
+      await _localRepo!.addToDeletionQueue(id, 'calorie_meals');
+      await _syncSavedMealDelete(id);
     } catch (e) {
       debugPrint("Error deleting saved meal: $e");
+    }
+  }
+
+  Future<void> _syncSavedMealDelete(String id) async {
+    try {
+      await _cloudRepo.deleteSavedMeal(id);
+      await _localRepo!.removeFromDeletionQueue(id);
+    } catch (e) {
+      debugPrint("Background Sync Error (Saved Meal Delete): $e");
     }
   }
 

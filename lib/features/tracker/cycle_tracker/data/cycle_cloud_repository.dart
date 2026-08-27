@@ -51,75 +51,54 @@ class CycleCloudRepository {
     final uid = _currentUserId;
     if (uid == null) return;
 
-    try {
-      final data = cycle.toMap();
-      data['user_id'] = uid;
-      data.remove('is_synced');
-      await _supabase.from('hit_cycles').upsert(data, onConflict: 'id');
-    } catch (e) {
-      debugPrint("Cloud Cycle Error (insertCycle): $e");
-    }
+    final data = cycle.toMap();
+    data['user_id'] = uid;
+    data.remove('is_synced');
+    data.remove('updated_at'); // Let database trigger handle this
+    await _supabase.from('hit_cycles').upsert(data, onConflict: 'id');
   }
 
   Future<void> insertWorkout(Workout workout) async {
     final uid = _currentUserId;
     if (uid == null) return;
 
-    try {
-      final data = workout.toMap();
-      data['user_id'] = uid;
-      data.remove('is_synced');
-      await _supabase.from('hit_workouts').upsert(data, onConflict: 'id');
-    } catch (e) {
-      debugPrint("Cloud Cycle Error (insertWorkout): $e");
-    }
+    final data = workout.toMap();
+    data['user_id'] = uid;
+    data.remove('is_synced');
+    data.remove('updated_at'); // Let database trigger handle this
+    await _supabase.from('hit_workouts').upsert(data, onConflict: 'id');
   }
 
   Future<void> insertExercise(Exercise exercise) async {
     final uid = _currentUserId;
     if (uid == null) return;
 
-    try {
-      final data = exercise.toMap();
-      data['user_id'] = uid;
-      data.remove('is_synced');
-      await _supabase.from('hit_exercises').upsert(data, onConflict: 'id');
-    } catch (e) {
-      debugPrint("Cloud Cycle Error (insertExercise): $e");
-    }
+    final data = exercise.toMap();
+    data['user_id'] = uid;
+    data.remove('is_synced');
+    data.remove('updated_at'); // Let database trigger handle this
+    await _supabase.from('hit_exercises').upsert(data, onConflict: 'id');
   }
 
   Future<void> deleteWorkout(String id) async {
     final uid = _currentUserId;
     if (uid == null) return;
 
-    try {
-      await _supabase.from('hit_workouts').delete().eq('id', id).eq('user_id', uid);
-    } catch (e) {
-      debugPrint("Cloud Cycle Error (deleteWorkout): $e");
-    }
+    await _supabase.from('hit_workouts').delete().eq('id', id).eq('user_id', uid);
   }
 
   Future<void> deleteExercise(String id) async {
     final uid = _currentUserId;
     if (uid == null) return;
 
-    try {
-      await _supabase.from('hit_exercises').delete().eq('id', id).eq('user_id', uid);
-    } catch (e) {
-      debugPrint("Cloud Cycle Error (deleteExercise): $e");
-    }
+    await _supabase.from('hit_exercises').delete().eq('id', id).eq('user_id', uid);
   }
 
   Future<void> deleteCycle(String id) async {
     final uid = _currentUserId;
     if (uid == null) return;
 
-    try {
-      await _supabase.from('hit_cycles').delete().eq('id', id).eq('user_id', uid);
-    } catch (e) {
-      debugPrint("Cloud Cycle Error (deleteCycle): $e");
-    }
+    await _supabase.from('hit_cycles').delete().eq('id', id).eq('user_id', uid);
   }
 
   // --- Logs ---
@@ -145,36 +124,26 @@ class CycleCloudRepository {
     final uid = _currentUserId;
     if (uid == null) return;
 
-    try {
-      final data = log.toMap();
-      data['user_id'] = uid;
-      data.remove('is_synced');
-      
-      // UPSERT STRATEGY: 
-      // id is our unique session identifier. 
-      // Supabase will update if it exists for this user, or insert if new.
-      await _supabase.from('exercise_logs').upsert(
-        data, 
-        onConflict: 'id',
-      );
-      debugPrint("CycleCloudRepository: Successfully upserted log ${log.id} to Supabase.");
-    } catch (e) {
-      debugPrint("CycleCloudRepository Error (insertLog): $e");
-      if (e.toString().contains("400") || e.toString().contains("column")) {
-        debugPrint("CRITICAL: Supabase schema mismatch. Ensure weight_kg and weight_lbs columns exist.");
-      }
-    }
+    final data = log.toMap();
+    data['user_id'] = uid;
+    data.remove('is_synced');
+    data.remove('updated_at'); // Let database trigger handle this
+    
+    // UPSERT STRATEGY: 
+    // id is our unique session identifier. 
+    // Supabase will update if it exists for this user, or insert if new.
+    await _supabase.from('exercise_logs').upsert(
+      data, 
+      onConflict: 'id',
+    );
+    debugPrint("CycleCloudRepository: Successfully upserted log ${log.id} to Supabase.");
   }
 
   Future<void> deleteLog(String id) async {
     final uid = _currentUserId;
     if (uid == null) return;
 
-    try {
-      await _supabase.from('exercise_logs').delete().eq('id', id).eq('user_id', uid);
-    } catch (e) {
-      debugPrint("Cloud Cycle Error (deleteLog): $e");
-    }
+    await _supabase.from('exercise_logs').delete().eq('id', id).eq('user_id', uid);
   }
 
   // --- Settings ---
@@ -201,20 +170,16 @@ class CycleCloudRepository {
     final uid = _currentUserId;
     if (uid == null) return;
 
-    try {
-      final data = Map<String, dynamic>.from(settings);
-      data['user_id'] = uid;
-      // Remove local DB specific fields
-      data.remove('id'); 
-      data.remove('is_synced');
-      
-      // Upsert using user_id as the unique constraint to ensure we update existing record
-      await _supabase.from('hit_settings').upsert(
-        data, 
-        onConflict: 'user_id'
-      );
-    } catch (e) {
-      debugPrint("Cloud Cycle Error (saveSettings): $e");
-    }
+    final data = Map<String, dynamic>.from(settings);
+    data['user_id'] = uid;
+    // Remove local DB specific fields
+    data.remove('id'); 
+    data.remove('is_synced');
+    
+    // Upsert using user_id as the unique constraint to ensure we update existing record
+    await _supabase.from('hit_settings').upsert(
+      data, 
+      onConflict: 'user_id'
+    );
   }
 }

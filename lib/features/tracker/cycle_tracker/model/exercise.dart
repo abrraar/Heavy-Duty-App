@@ -7,6 +7,7 @@ class Exercise {
   final int order;
   final String? targetMuscles;
   final int isSynced;
+  final DateTime? updatedAt;
   final String? userId;
 
   Exercise({
@@ -16,6 +17,7 @@ class Exercise {
     required this.order,
     this.targetMuscles,
     this.isSynced = 1,
+    this.updatedAt,
     this.userId,
   }) : id = id ?? const Uuid().v4();
 
@@ -28,6 +30,7 @@ class Exercise {
       'exercise_order': order,
       'target_muscles': targetMuscles,
       'is_synced': isSynced,
+      'updated_at': updatedAt?.toIso8601String(),
     };
   }
 
@@ -40,6 +43,7 @@ class Exercise {
       order: (map['exercise_order'] as num?)?.toInt() ?? 0,
       targetMuscles: map['target_muscles']?.toString(),
       isSynced: (map['is_synced'] as num?)?.toInt() ?? 1,
+      updatedAt: map['updated_at'] != null ? DateTime.tryParse(map['updated_at'].toString()) : null,
     );
   }
 
@@ -53,6 +57,7 @@ class Exercise {
     int? order,
     String? targetMuscles,
     int? isSynced,
+    DateTime? updatedAt,
     String? userId,
   }) {
     return Exercise(
@@ -62,6 +67,7 @@ class Exercise {
       order: order ?? this.order,
       targetMuscles: targetMuscles ?? this.targetMuscles,
       isSynced: isSynced ?? this.isSynced,
+      updatedAt: updatedAt ?? this.updatedAt,
       userId: userId ?? this.userId,
     );
   }

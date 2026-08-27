@@ -9,6 +9,8 @@ import '../data/sleep_cloud_repository.dart';
 import '../model/sleep_log.dart';
 import '../model/sleep_settings.dart';
 
+import 'package:heavy_duty/core/providers/sync_provider.dart';
+
 class SleepProvider with ChangeNotifier {
   SleepLocalRepository? _localRepo;
   final SleepCloudRepository _cloudRepo = SleepCloudRepository();
@@ -107,32 +109,45 @@ class SleepProvider with ChangeNotifier {
   Future<void> _syncLocalToCloud() async {
     if (_localRepo == null) return;
 
-    // 1. Push Unsynced Deletions
-    final deletions = await _localRepo!.getPendingDeletions();
-    for (var del in deletions) {
-      final id = del['id'] as String;
-      try {
-        await _cloudRepo.deleteLog(id);
-        await _localRepo!.removeFromDeletionQueue(id);
-      } catch (_) {}
-    }
+    final syncProv = SyncProvider();
+    syncProv.startFeatureSync();
 
-    // 2. Push Unsynced Logs
-    final unsyncedLogs = await _localRepo!.getUnsyncedLogs();
-    for (var log in unsyncedLogs) {
-      try {
-        await _cloudRepo.insertLog(log);
-        await _localRepo!.markLogSynced(log.id);
-      } catch (_) {}
-    }
+    try {
+      final count = await _localRepo!.getUnsyncedCount();
+      syncProv.addTotalItems(count);
 
-    // 3. Push Unsynced Settings
-    final currentSettings = await _localRepo!.getSettings();
-    if (currentSettings != null && currentSettings.isSynced == 0) {
-      try {
-        await _cloudRepo.saveSettings(currentSettings);
-        await _localRepo!.saveSettings(currentSettings.copyWith(isSynced: 1));
-      } catch (_) {}
+      // 1. Push Unsynced Deletions
+      final deletions = await _localRepo!.getPendingDeletions();
+      for (var del in deletions) {
+        final id = del['id'] as String;
+        try {
+          await _cloudRepo.deleteLog(id);
+          await _localRepo!.removeFromDeletionQueue(id);
+          syncProv.incrementCompleted();
+        } catch (_) {}
+      }
+
+      // 2. Push Unsynced Logs
+      final unsyncedLogs = await _localRepo!.getUnsyncedLogs();
+      for (var log in unsyncedLogs) {
+        try {
+          await _cloudRepo.insertLog(log);
+          await _localRepo!.markLogSynced(log.id);
+          syncProv.incrementCompleted();
+        } catch (_) {}
+      }
+
+      // 3. Push Unsynced Settings
+      final currentSettings = await _localRepo!.getSettings();
+      if (currentSettings != null && currentSettings.isSynced == 0) {
+        try {
+          await _cloudRepo.saveSettings(currentSettings);
+          await _localRepo!.saveSettings(currentSettings.copyWith(isSynced: 1));
+          syncProv.incrementCompleted();
+        } catch (_) {}
+      }
+    } finally {
+      syncProv.endFeatureSync();
     }
   }
 
@@ -144,6 +159,9 @@ class SleepProvider with ChangeNotifier {
     }
 
     try {
+      // MANDATORY: Push local offline changes BEFORE pulling from cloud
+      await _syncLocalToCloud();
+
       _logs = await _localRepo!.getAllLogs();
       _settings = await _localRepo!.getSettings() ?? SleepSettings(userId: _localRepo!.userId);
       notifyListeners();
@@ -152,39 +170,32 @@ class SleepProvider with ChangeNotifier {
       try {
         final cloudSettings = await _cloudRepo.getSettings();
         if (cloudSettings != null) {
-          if (_settings.isSynced == 1) {
-            _settings = cloudSettings;
-            await _localRepo!.saveSettings(cloudSettings);
-          }
+          await _localRepo!.saveSettings(cloudSettings, isFromCloud: true);
+          _settings = await _localRepo!.getSettings() ?? _settings;
         }
       } catch (e) {
         debugPrint("SleepProvider: Settings sync failed: $e");
       }
 
-      // 3. Fetch and Reconcile Logs
+      // 3. Fetch and Add/Update Logs
       final cloudLogs = await _cloudRepo.getAllLogs();
       if (cloudLogs != null) {
         final localLogs = await _localRepo!.getAllLogs();
-        final localMap = {for (var log in localLogs) log.id: log};
         final cloudIds = cloudLogs.map((l) => l.id).toSet();
 
-        bool logChanged = false;
-
-        // 1. Delete local logs that are synced but missing from cloud
-        for (var localLog in localLogs) {
-          if (localLog.isSynced == 1 && !cloudIds.contains(localLog.id)) {
-            await _localRepo!.deleteLog(localLog.id);
-            logChanged = true;
+        // Deletion Reconciliation: Remove local synced logs missing from cloud
+        for (var localL in localLogs) {
+          if (localL.isSynced == 1 && !cloudIds.contains(localL.id)) {
+            await _localRepo!.deleteLog(localL.id);
           }
         }
 
+        bool logChanged = false;
+
         // 2. Add/Update logs from cloud
         for (var log in cloudLogs) {
-          final localLog = localMap[log.id];
-          if (localLog == null || localLog.isSynced == 1) {
-            await _localRepo!.insertLog(log);
-            logChanged = true;
-          }
+          await _localRepo!.insertLog(log, isFromCloud: true);
+          logChanged = true;
         }
         if (logChanged) _logs = await _localRepo!.getAllLogs();
         notifyListeners();
@@ -219,7 +230,10 @@ class SleepProvider with ChangeNotifier {
 
   Future<void> addSleepLog(SleepLog log) async {
     if (_localRepo == null) return;
-    final localLog = log.copyWith(isSynced: 0);
+    final localLog = log.copyWith(
+      isSynced: 0,
+      updatedAt: DateTime.now(),
+    );
 
     _logs.insert(0, localLog);
     _logs.sort((a, b) => b.bedtime.compareTo(a.bedtime));
@@ -230,7 +244,10 @@ class SleepProvider with ChangeNotifier {
       await _cloudRepo.insertLog(localLog);
       await _localRepo!.markLogSynced(localLog.id);
       final idx = _logs.indexWhere((l) => l.id == localLog.id);
-      if (idx != -1) _logs[idx] = localLog.copyWith(isSynced: 1);
+      if (idx != -1) {
+        _logs[idx] = localLog.copyWith(isSynced: 1);
+        notifyListeners();
+      }
     } catch (e) {
       debugPrint("Error saving sleep log: $e");
     }
@@ -254,7 +271,10 @@ class SleepProvider with ChangeNotifier {
 
   Future<void> updateSettings(SleepSettings settings) async {
     if (_localRepo == null) return;
-    final localSettings = settings.copyWith(isSynced: 0);
+    final localSettings = settings.copyWith(
+      isSynced: 0,
+      updatedAt: DateTime.now(),
+    );
     _settings = localSettings;
     notifyListeners();
 

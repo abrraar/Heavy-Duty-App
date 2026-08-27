@@ -6,6 +6,7 @@ import 'package:heavy_duty/features/tracker/supplement/model/supplement_settings
 import 'package:heavy_duty/features/tracker/supplement/model/supplement_stack.dart';
 import 'package:collection/collection.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:heavy_duty/core/providers/sync_provider.dart';
 
 import 'package:uuid/uuid.dart';
 import '../../../../core/services/notification_service.dart';
@@ -282,7 +283,7 @@ class SupplementProvider with ChangeNotifier {
       _library.addAll(localSupps);
 
       // Fetch all local history logs
-      final allLocalHistory = await _localRepo!.getAllHistory(); // Need to add this method or use a generic one
+      final allLocalHistory = await _localRepo!.getAllHistory();
       _history.clear();
       _history.addAll(allLocalHistory);
 
@@ -292,38 +293,85 @@ class SupplementProvider with ChangeNotifier {
 
       notifyListeners();
 
-      // 2. BACKGROUND CATCH-UP SYNC: Push locally created changes that were recorded offline
-      final unsyncedLogs = await _localRepo!.getUnsyncedHistory();
-      for (var log in unsyncedLogs) {
-        try {
-          await _cloudRepo.insertSupplementItem(log);
-          await _localRepo!.markHistoryAsSynced(log.id);
-          // Update in-memory log status
-          final index = _history.indexWhere((h) => h.id == log.id);
-          if (index != -1) {
-            _history[index].isSynced = 1;
-          }
-        } catch (cloudError) {
-          debugPrint("Background log sync failed (still offline): $cloudError");
+      final syncProv = SyncProvider();
+      syncProv.startFeatureSync();
+
+      try {
+        final count = await _localRepo!.getUnsyncedCount();
+        syncProv.addTotalItems(count);
+
+        // 2. MANDATORY: Push local offline changes BEFORE pulling from cloud
+        // This ensures your offline work is the "source of truth."
+        
+        // 2a. Push Deletions
+        final deletions = await _localRepo!.getPendingDeletions();
+        for (var del in deletions) {
+          final id = del['id'] as String;
+          final table = del['table_name'] as String;
+          try {
+            if (table == 'ss_supplements') await _cloudRepo.deleteSupplement(id);
+            if (table == 'ss_stack') await _cloudRepo.deleteStack(id);
+            if (table == 'ss_records') await _cloudRepo.deleteSupplementItem(id);
+            await _localRepo!.removeFromDeletionQueue(id);
+            syncProv.incrementCompleted();
+          } catch (_) {}
         }
+
+        final unsyncedLogs = await _localRepo!.getUnsyncedHistory();
+        for (var log in unsyncedLogs) {
+          try {
+            await _cloudRepo.insertSupplementItem(log);
+            await _localRepo!.markHistoryAsSynced(log.id);
+            // Update in-memory log status
+            final index = _history.indexWhere((h) => h.id == log.id);
+            if (index != -1) {
+              _history[index].isSynced = 1;
+            }
+            syncProv.incrementCompleted();
+          } catch (cloudError) {
+            debugPrint("Background log sync failed (still offline): $cloudError");
+          }
+        }
+
+        // Push Unsynced Supplements
+        final unsyncedSupps = await _localRepo!.getUnsyncedSupplements();
+        for (var supp in unsyncedSupps) {
+          try {
+            await _cloudRepo.saveSupplement(supp);
+            await _localRepo!.markSupplementSynced(supp.id);
+            syncProv.incrementCompleted();
+          } catch (_) {}
+        }
+
+        // Push Unsynced Stacks
+        final unsyncedStacks = await _localRepo!.getUnsyncedStacks();
+        for (var stack in unsyncedStacks) {
+          try {
+            await _cloudRepo.saveStack(stack);
+            await _localRepo!.markStackSynced(stack.id);
+            syncProv.incrementCompleted();
+          } catch (_) {}
+        }
+      } finally {
+        syncProv.endFeatureSync();
       }
 
-      // 3. Fetch down master records from Supabase backend cloud tables asynchronously
+      // 3. Pull master records from Supabase
       // 3.1 Supplements
       final cloudSupps = await _cloudRepo.getAllSupplements();
       if (cloudSupps != null) {
         final localSuppsCurrent = await _localRepo!.getAllSupplements();
         final cloudIds = cloudSupps.map((s) => s.id).toSet();
 
-        // Delete local supplements missing from cloud
-        for (var localSupp in localSuppsCurrent) {
-          if (!cloudIds.contains(localSupp.id)) {
-            await _localRepo!.deleteSupplement(localSupp.id);
+        // Deletion Reconciliation: Remove local synced supplements missing from cloud
+        for (var localS in localSuppsCurrent) {
+          if (localS.isSynced == 1 && !cloudIds.contains(localS.id)) {
+            await _localRepo!.deleteSupplement(localS.id);
           }
         }
 
         for (var cloudSupp in cloudSupps) {
-          await _localRepo!.saveSupplement(cloudSupp);
+          await _localRepo!.saveSupplement(cloudSupp, isFromCloud: true);
         }
       }
 
@@ -333,15 +381,15 @@ class SupplementProvider with ChangeNotifier {
         final localStacksCurrent = await _localRepo!.getAllStacks(_library);
         final cloudIds = cloudStacks.map((s) => s.id).toSet();
 
-        // Delete local stacks missing from cloud
-        for (var localStack in localStacksCurrent) {
-          if (!cloudIds.contains(localStack.id)) {
-            await _localRepo!.deleteStack(localStack.id);
+        // Deletion Reconciliation: Remove local synced stacks missing from cloud
+        for (var localSt in localStacksCurrent) {
+          if (localSt.isSynced == 1 && !cloudIds.contains(localSt.id)) {
+            await _localRepo!.deleteStack(localSt.id);
           }
         }
 
         for (var stack in cloudStacks) {
-          await _localRepo!.saveStack(stack);
+          await _localRepo!.saveStack(stack, isFromCloud: true);
         }
       }
 
@@ -359,20 +407,15 @@ class SupplementProvider with ChangeNotifier {
         }
 
         for (var historyEntry in cloudHistory) {
-          historyEntry.isSynced = 1; // It's from cloud, so it's synced
-          await _localRepo!.insertSupplementItem(historyEntry);
+          await _localRepo!.insertSupplementItem(historyEntry, isFromCloud: true);
         }
       }
 
       // 3.4 Settings
       final cloudSettings = await _cloudRepo.getSettings();
       if (cloudSettings != null) {
-        if (_settings.isSynced == 1) {
-          _settings = cloudSettings;
-          await _localRepo!.saveSettings(_settings);
-        }
-      } else {
-        _syncSettings(_settings);
+        await _localRepo!.saveSettings(cloudSettings, isFromCloud: true);
+        _settings = await _localRepo!.getSettings() ?? _settings;
       }
 
       // 4. Re-read fresh state mutations back into current provider variable objects
@@ -575,29 +618,47 @@ class SupplementProvider with ChangeNotifier {
     }
 
     await _localRepo!.deleteSupplement(id);
+    await _localRepo!.addToDeletionQueue(id, 'ss_supplements');
     await _notificationService.cancelSupplementReminders(id, cancelLowStock: true);
-    try {
-      await _cloudRepo.deleteSupplement(id);
-    } catch (e) {
-      debugPrint("Cloud Delete Error: $e");
-    }
+    await _syncSupplementDelete(id);
     notifyListeners();
   }
 
+  Future<void> _syncSupplementDelete(String id) async {
+    try {
+      await _cloudRepo.deleteSupplement(id);
+      await _localRepo!.removeFromDeletionQueue(id);
+    } catch (e) {
+      debugPrint("Background Sync Error (Supplement Delete): $e");
+    }
+  }
+
   void addOrUpdateSupplement(Supplement item, {int? index}) async {
+    final now = DateTime.now();
+    final updatedItem = item.copyWith(
+      isSynced: 0,
+      updatedAt: now,
+    );
+
     if (index != null) {
-      _library[index] = item;
+      _library[index] = updatedItem;
     } else {
-      _library.add(item);
+      _library.add(updatedItem);
     }
     
     // Notify listeners IMMEDIATELY for instant UI feedback
     notifyListeners();
 
-    await _localRepo!.saveSupplement(item);
-    await _notificationService.scheduleSupplementReminders(item);
+    await _localRepo!.saveSupplement(updatedItem);
+    await _notificationService.scheduleSupplementReminders(updatedItem);
     try {
-      await _cloudRepo.saveSupplement(item);
+      await _cloudRepo.saveSupplement(updatedItem);
+      await _localRepo!.markSupplementSynced(updatedItem.id);
+      final idx = _library.indexWhere((s) => s.id == updatedItem.id);
+      if (idx != -1) {
+        _library[idx] = updatedItem.copyWith(isSynced: 1);
+        notifyListeners();
+      }
     } catch (e) {
       debugPrint("Cloud Save Error: $e");
     }
@@ -794,29 +855,49 @@ class SupplementProvider with ChangeNotifier {
 
     _supplementStacks.removeWhere((s) => s.id == stackId);
     await _localRepo!.deleteStack(stackId);
+    await _localRepo!.addToDeletionQueue(stackId, 'ss_stack');
     await _notificationService.cancelSupplementReminders(stackId, cancelLowStock: true);
-    try {
-      await _cloudRepo.deleteStack(stackId);
-    } catch (_) {}
+    await _syncStackDelete(stackId);
     notifyListeners();
   }
 
+  Future<void> _syncStackDelete(String id) async {
+    try {
+      await _cloudRepo.deleteStack(id);
+      await _localRepo!.removeFromDeletionQueue(id);
+    } catch (e) {
+      debugPrint("Background Sync Error (Stack Delete): $e");
+    }
+  }
+
   void addOrUpdateStack(SupplementStack stack) async {
-    final index = _supplementStacks.indexWhere((s) => s.id == stack.id);
+    final now = DateTime.now();
+    final updatedStack = stack.copyWith(
+      isSynced: 0,
+      updatedAt: now,
+    );
+
+    final index = _supplementStacks.indexWhere((s) => s.id == updatedStack.id);
     if (index != -1) {
-      _supplementStacks[index] = stack;
+      _supplementStacks[index] = updatedStack;
     } else {
-      _supplementStacks.add(stack);
+      _supplementStacks.add(updatedStack);
     }
     
     // Notify listeners IMMEDIATELY for instant UI feedback
     notifyListeners();
 
     try {
-      await _localRepo!.saveStack(stack);
-      await _notificationService.scheduleStackReminders(stack);
+      await _localRepo!.saveStack(updatedStack);
+      await _notificationService.scheduleStackReminders(updatedStack);
       try {
-        await _cloudRepo.saveStack(stack);
+        await _cloudRepo.saveStack(updatedStack);
+        await _localRepo!.markStackSynced(updatedStack.id);
+        final idx = _supplementStacks.indexWhere((s) => s.id == updatedStack.id);
+        if (idx != -1) {
+          _supplementStacks[idx] = updatedStack.copyWith(isSynced: 1);
+          notifyListeners();
+        }
       } catch (_) {}
 
       final dbStacks = await _localRepo!.getAllStacks(_library);
@@ -902,12 +983,17 @@ class SupplementProvider with ChangeNotifier {
       timestamp: timestamp,
       sourceId: sourceId,
       isSynced: 0,
+      updatedAt: DateTime.now(),
     );
 
     // 1. Commit to in-memory state and notify listeners IMMEDIATELY to keep UI responsive
     final suppIndex = _library.indexWhere((s) => s.id == supplement.id);
     if (suppIndex != -1) {
-      _library[suppIndex] = _library[suppIndex].copyWith(remainingStock: updatedStock);
+      _library[suppIndex] = _library[suppIndex].copyWith(
+        remainingStock: () => updatedStock,
+        isSynced: 0,
+        updatedAt: DateTime.now(),
+      );
     }
     
     // Also update history in-memory
@@ -1002,7 +1088,7 @@ class SupplementProvider with ChangeNotifier {
         final reversedStock = currentStock - entryToRemove.weightAdjustment;
 
         _library[suppIndex] = currentSupplement.copyWith(
-          remainingStock: reversedStock,
+          remainingStock: () => reversedStock,
         );
       }
 
@@ -1020,6 +1106,7 @@ class SupplementProvider with ChangeNotifier {
       }
 
       await _localRepo!.deleteSupplementItem(id);
+      await _localRepo!.addToDeletionQueue(id, 'ss_records');
     } catch (e) {
       debugPrint("Local data remediation process failed: $e");
     }
@@ -1035,6 +1122,7 @@ class SupplementProvider with ChangeNotifier {
           currentSupplement.remainingStock ?? 0.0,
         );
         await _cloudRepo.deleteSupplementItem(id);
+        await _localRepo!.removeFromDeletionQueue(id);
       } catch (e) {
         debugPrint("Cloud storage deletion tracking sync failure context: $e");
       }
@@ -1168,7 +1256,7 @@ class SupplementProvider with ChangeNotifier {
 
       // Update Library Item in-memory
       _library[libraryItemIndex] = libraryItem.copyWith(
-        remainingStock: (libraryItem.remainingStock ?? 0) + finalAdjustment
+        remainingStock: () => (libraryItem.remainingStock ?? 0) + finalAdjustment
       );
 
       // Create History Entry
@@ -1304,7 +1392,7 @@ class SupplementProvider with ChangeNotifier {
 
       // Update Library Item in-memory
       _library[libraryItemIndex] = libraryItem.copyWith(
-        remainingStock: (libraryItem.remainingStock ?? 0) + finalAdjustment
+        remainingStock: () => (libraryItem.remainingStock ?? 0) + finalAdjustment
       );
 
       // Create History Entry
@@ -1566,12 +1654,12 @@ class SupplementProvider with ChangeNotifier {
           servingUnit: supplement.servingUnit,
           weightPerServing: supplement.weightPerServing,
           weightUnit: supplement.weightUnit,
-          caloriesPerUnit: supplement.caloriesPerUnit,
-          proteinPerUnit: supplement.proteinPerUnit,
-          carbsPerUnit: supplement.carbsPerUnit,
-          fatsPerUnit: supplement.fatsPerUnit,
-          totalStock: supplement.totalStock,
-          remainingStock: supplement.remainingStock,
+          caloriesPerUnit: () => supplement.caloriesPerUnit,
+          proteinPerUnit: () => supplement.proteinPerUnit,
+          carbsPerUnit: () => supplement.carbsPerUnit,
+          fatsPerUnit: () => supplement.fatsPerUnit,
+          totalStock: () => supplement.totalStock,
+          remainingStock: () => supplement.remainingStock,
           ingredients: supplement.ingredients,
           sharedBy: sharedBy,
           isActive: true,

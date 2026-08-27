@@ -7,6 +7,7 @@ class Affirmation {
   final bool isCustom;
   final DateTime createdAt;
   final int isSynced;
+  final DateTime? updatedAt;
   final String? userId;
 
   final int displayOrder;
@@ -18,6 +19,7 @@ class Affirmation {
     this.isCustom = true,
     DateTime? createdAt,
     this.isSynced = 1,
+    this.updatedAt,
     this.displayOrder = 0,
     this.userId,
   })  : id = id ?? const Uuid().v4(),
@@ -32,6 +34,7 @@ class Affirmation {
       'is_custom': isCustom ? 1 : 0,
       'created_at': createdAt.toIso8601String(),
       'is_synced': isSynced,
+      'updated_at': updatedAt?.toIso8601String(),
       'display_order': displayOrder,
     };
   }
@@ -45,6 +48,7 @@ class Affirmation {
       isCustom: map['is_custom'] == 1 || map['is_custom'] == true,
       createdAt: DateTime.parse(map['created_at'] as String),
       isSynced: (map['is_synced'] as num?)?.toInt() ?? 1,
+      updatedAt: map['updated_at'] != null ? DateTime.tryParse(map['updated_at'].toString()) : null,
       displayOrder: (map['display_order'] as num?)?.toInt() ?? 0,
     );
   }
@@ -56,6 +60,7 @@ class Affirmation {
     bool? isCustom,
     DateTime? createdAt,
     int? isSynced,
+    DateTime? updatedAt,
     int? displayOrder,
     String? userId,
   }) {
@@ -66,6 +71,7 @@ class Affirmation {
       isCustom: isCustom ?? this.isCustom,
       createdAt: createdAt ?? this.createdAt,
       isSynced: isSynced ?? this.isSynced,
+      updatedAt: updatedAt ?? this.updatedAt,
       displayOrder: displayOrder ?? this.displayOrder,
       userId: userId ?? this.userId,
     );

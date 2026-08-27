@@ -12,6 +12,7 @@ class CalorieLog {
   final double? fats;
   final DateTime timestamp;
   final int isSynced;
+  final DateTime? updatedAt;
   final String? addedSupplementsJson;
   final String? addedStacksJson;
   final double servings;
@@ -27,6 +28,7 @@ class CalorieLog {
     this.fats,
     DateTime? timestamp,
     this.isSynced = 1,
+    this.updatedAt,
     this.addedSupplementsJson,
     this.addedStacksJson,
     this.servings = 1.0,
@@ -45,6 +47,7 @@ class CalorieLog {
       'fats': fats,
       'timestamp': timestamp.toIso8601String(),
       'is_synced': isSynced,
+      'updated_at': updatedAt?.toIso8601String(),
       'added_supplements_json': addedSupplementsJson,
       'added_stacks_json': addedStacksJson,
       'servings': servings,
@@ -71,6 +74,7 @@ class CalorieLog {
       fats: (map['fats'] as num?)?.toDouble(),
       timestamp: DateTime.parse(map['timestamp'] as String),
       isSynced: (map['is_synced'] as num?)?.toInt() ?? 1,
+      updatedAt: map['updated_at'] != null ? DateTime.tryParse(map['updated_at'].toString()) : null,
       addedSupplementsJson: suppsJson,
       addedStacksJson: stacksJson,
       servings: (map['servings'] as num?)?.toDouble() ?? 1.0,
@@ -88,6 +92,7 @@ class CalorieLog {
     double? fats,
     DateTime? timestamp,
     int? isSynced,
+    DateTime? updatedAt,
     String? addedSupplementsJson,
     bool clearSupplements = false,
     String? addedStacksJson,
@@ -105,6 +110,7 @@ class CalorieLog {
       fats: fats ?? this.fats,
       timestamp: timestamp ?? this.timestamp,
       isSynced: isSynced ?? this.isSynced,
+      updatedAt: updatedAt ?? this.updatedAt,
       addedSupplementsJson: clearSupplements ? null : (addedSupplementsJson ?? this.addedSupplementsJson),
       addedStacksJson: clearStacks ? null : (addedStacksJson ?? this.addedStacksJson),
       servings: servings ?? this.servings,

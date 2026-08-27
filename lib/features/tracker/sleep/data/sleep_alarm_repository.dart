@@ -14,6 +14,8 @@ class SleepAlarmSettings {
   final int wakeUpHour;
   final int wakeUpMinute;
   final String? wakeUpAudioPath;
+  final int isSynced;
+  final DateTime? updatedAt;
   final String? userId;
 
   SleepAlarmSettings({
@@ -25,6 +27,8 @@ class SleepAlarmSettings {
     this.wakeUpHour = 6,
     this.wakeUpMinute = 45,
     this.wakeUpAudioPath,
+    this.isSynced = 1,
+    this.updatedAt,
     this.userId,
   });
 
@@ -39,6 +43,8 @@ class SleepAlarmSettings {
       'wake_up_hour': wakeUpHour,
       'wake_up_minute': wakeUpMinute,
       'wake_up_audio_path': wakeUpAudioPath,
+      'is_synced': isSynced,
+      'updated_at': updatedAt?.toIso8601String(),
     };
   }
 
@@ -59,6 +65,8 @@ class SleepAlarmSettings {
       wakeUpHour: map['wake_up_hour'] as int? ?? 6,
       wakeUpMinute: map['wake_up_minute'] as int? ?? 45,
       wakeUpAudioPath: map['wake_up_audio_path'] as String?,
+      isSynced: (map['is_synced'] as num?)?.toInt() ?? 1,
+      updatedAt: map['updated_at'] != null ? DateTime.tryParse(map['updated_at'].toString()) : null,
       userId: map['user_id'] as String?,
     );
   }
@@ -72,6 +80,8 @@ class SleepAlarmSettings {
     int? wakeUpHour,
     int? wakeUpMinute,
     String? wakeUpAudioPath,
+    int? isSynced,
+    DateTime? updatedAt,
     String? userId,
   }) {
     return SleepAlarmSettings(
@@ -83,6 +93,8 @@ class SleepAlarmSettings {
       wakeUpHour: wakeUpHour ?? this.wakeUpHour,
       wakeUpMinute: wakeUpMinute ?? this.wakeUpMinute,
       wakeUpAudioPath: wakeUpAudioPath ?? this.wakeUpAudioPath,
+      isSynced: isSynced ?? this.isSynced,
+      updatedAt: updatedAt ?? this.updatedAt,
       userId: userId ?? this.userId,
     );
   }
@@ -144,8 +156,21 @@ class SleepAlarmRepository {
     return settings;
   }
 
-  Future<void> saveSettings(SleepAlarmSettings settings, {bool syncToCloud = true}) async {
+  Future<void> saveSettings(SleepAlarmSettings settings, {bool syncToCloud = true, bool isFromCloud = false}) async {
     final db = await _getDatabase();
+
+    if (isFromCloud) {
+      final List<Map<String, dynamic>> maps = await db.query('sleep_alarm_settings', where: 'id = 1 AND user_id = ?', whereArgs: [userId]);
+      if (maps.isNotEmpty) {
+        final localIsSynced = (maps.first['is_synced'] as num?)?.toInt() ?? 1;
+        final localUpdatedAt = maps.first['updated_at'] != null 
+            ? DateTime.tryParse(maps.first['updated_at'].toString()) 
+            : null;
+
+        if (localIsSynced == 0) return; // Dirty locally
+        if (settings.updatedAt != null && localUpdatedAt != null && settings.updatedAt!.isBefore(localUpdatedAt)) return;
+      }
+    }
     
     // Local Save: Always use id = 1 for the singleton settings row
     final localData = settings.toMap(forCloud: false);
@@ -161,15 +186,28 @@ class SleepAlarmRepository {
       try {
         final cloudData = settings.toMap(forCloud: true);
         cloudData['user_id'] = userId;
+        cloudData.remove('is_synced');
+        cloudData.remove('updated_at');
         
         debugPrint("SleepAlarmRepository: Upserting to cloud: $cloudData");
         
         // Cloud Upsert: Use user_id as the unique constraint
         await _supabase.from('sleep_alarm_settings').upsert(cloudData, onConflict: 'user_id');
         debugPrint("SleepAlarmRepository: Cloud save successful.");
+
+        // Mark local as synced
+        await db.update('sleep_alarm_settings', {'is_synced': 1}, where: 'id = 1 AND user_id = ?', whereArgs: [userId]);
       } catch (e) {
         debugPrint("SleepAlarmRepository: Cloud save error: $e");
+        rethrow;
       }
     }
+  }
+
+  Future<SleepAlarmSettings?> getUnsyncedSettings() async {
+    final db = await _getDatabase();
+    final List<Map<String, dynamic>> maps = await db.query('sleep_alarm_settings', where: 'is_synced = 0 AND id = 1 AND user_id = ?', whereArgs: [userId]);
+    if (maps.isNotEmpty) return SleepAlarmSettings.fromMap(maps.first);
+    return null;
   }
 }

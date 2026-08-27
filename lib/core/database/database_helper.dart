@@ -20,7 +20,7 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 1, 
+      version: 3, 
       onCreate: _createDB,
       onUpgrade: _onUpgrade,
       onConfigure: _onConfigure,
@@ -60,6 +60,7 @@ class DatabaseHelper {
         reminders_json TEXT,
         ingredients_json TEXT,
         is_synced INTEGER DEFAULT 1,
+        updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
         created_at TEXT DEFAULT CURRENT_TIMESTAMP
       )
     ''');
@@ -80,6 +81,7 @@ class DatabaseHelper {
         pinned_amounts_json TEXT,
         supplement_ids_json TEXT, 
         is_synced INTEGER DEFAULT 1,
+        updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
         created_at TEXT DEFAULT CURRENT_TIMESTAMP
       )
     ''');
@@ -97,6 +99,7 @@ class DatabaseHelper {
         timestamp TEXT NOT NULL,
         source_id TEXT,
         is_synced INTEGER DEFAULT 0,
+        updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
         created_at TEXT DEFAULT CURRENT_TIMESTAMP
       )
     ''');
@@ -110,6 +113,7 @@ class DatabaseHelper {
         amount_oz REAL NOT NULL,
         timestamp TEXT NOT NULL,
         is_synced INTEGER DEFAULT 1,
+        updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
         created_at TEXT DEFAULT CURRENT_TIMESTAMP
       )
     ''');
@@ -127,6 +131,7 @@ class DatabaseHelper {
         is_pinned_to_home INTEGER DEFAULT 1,
         reminders_json TEXT,
         is_synced INTEGER DEFAULT 1,
+        updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
         created_at TEXT DEFAULT CURRENT_TIMESTAMP
       )
     ''');
@@ -142,6 +147,7 @@ class DatabaseHelper {
         type TEXT NOT NULL,
         note TEXT,
         is_synced INTEGER DEFAULT 1,
+        updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
         created_at TEXT DEFAULT CURRENT_TIMESTAMP
       )
     ''');
@@ -160,6 +166,7 @@ class DatabaseHelper {
         wake_up_minute INTEGER DEFAULT 45,
         wake_up_audio_path TEXT,
         is_synced INTEGER DEFAULT 1,
+        updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
         created_at TEXT DEFAULT CURRENT_TIMESTAMP
       )
     ''');
@@ -180,6 +187,7 @@ class DatabaseHelper {
         added_stacks_json TEXT,
         servings REAL DEFAULT 1.0,
         is_synced INTEGER DEFAULT 1,
+        updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
         created_at TEXT DEFAULT CURRENT_TIMESTAMP
       )
     ''');
@@ -196,6 +204,7 @@ class DatabaseHelper {
         track_macros BOOLEAN DEFAULT TRUE,
         show_remaining BOOLEAN DEFAULT TRUE,
         is_synced INTEGER DEFAULT 1,
+        updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
         created_at TEXT DEFAULT CURRENT_TIMESTAMP
       )
     ''');
@@ -220,6 +229,7 @@ class DatabaseHelper {
         multiply_supps INTEGER DEFAULT 1,
         shared_by TEXT,
         is_synced INTEGER DEFAULT 1,
+        updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
         created_at TEXT DEFAULT CURRENT_TIMESTAMP
       )
     ''');
@@ -234,6 +244,7 @@ class DatabaseHelper {
         timestamp TEXT NOT NULL,
         unit TEXT DEFAULT 'kg',
         is_synced INTEGER DEFAULT 1,
+        updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
         created_at TEXT DEFAULT CURRENT_TIMESTAMP
       )
     ''');
@@ -246,6 +257,7 @@ class DatabaseHelper {
         timestamp TEXT NOT NULL,
         unit TEXT DEFAULT 'percentage',
         is_synced INTEGER DEFAULT 1,
+        updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
         created_at TEXT DEFAULT CURRENT_TIMESTAMP
       )
     ''');
@@ -258,6 +270,7 @@ class DatabaseHelper {
         timestamp TEXT NOT NULL,
         unit TEXT DEFAULT 'kg',
         is_synced INTEGER DEFAULT 1,
+        updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
         created_at TEXT DEFAULT CURRENT_TIMESTAMP
       )
     ''');
@@ -276,6 +289,7 @@ class DatabaseHelper {
         note TEXT,
         shared_by TEXT,
         is_synced INTEGER DEFAULT 1,
+        updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
         created_at TEXT DEFAULT CURRENT_TIMESTAMP
       )
     ''');
@@ -292,6 +306,7 @@ class DatabaseHelper {
         completed_at TEXT,
         note TEXT,
         is_synced INTEGER DEFAULT 1,
+        updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
         created_at TEXT DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (cycle_id) REFERENCES hit_cycles (id) ON DELETE CASCADE
       )
@@ -307,6 +322,7 @@ class DatabaseHelper {
         exercise_order INTEGER NOT NULL,
         target_muscles TEXT,
         is_synced INTEGER DEFAULT 1,
+        updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
         created_at TEXT DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (workout_id) REFERENCES hit_workouts (id) ON DELETE CASCADE
       )
@@ -327,6 +343,7 @@ class DatabaseHelper {
         comment TEXT,
         timestamp TEXT NOT NULL,
         is_synced INTEGER DEFAULT 1,
+        updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
         created_at TEXT DEFAULT CURRENT_TIMESTAMP
       )
     ''');
@@ -345,6 +362,7 @@ class DatabaseHelper {
         image_url TEXT,
         shared_by TEXT,
         is_synced INTEGER DEFAULT 1,
+        updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
         created_at TEXT DEFAULT CURRENT_TIMESTAMP
       )
     ''');
@@ -359,6 +377,7 @@ class DatabaseHelper {
         workout_reminders_enabled INTEGER DEFAULT 0,
         workout_reminder_interval INTEGER DEFAULT 2,
         is_synced INTEGER DEFAULT 1,
+        updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
         created_at TEXT DEFAULT CURRENT_TIMESTAMP
       )
     ''');
@@ -369,6 +388,7 @@ class DatabaseHelper {
         id TEXT PRIMARY KEY,
         user_id TEXT,
         table_name TEXT NOT NULL,
+        updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
         created_at TEXT DEFAULT CURRENT_TIMESTAMP
       )
     ''');
@@ -380,6 +400,7 @@ class DatabaseHelper {
         user_id TEXT,
         home_layout_json TEXT,
         is_synced INTEGER DEFAULT 1,
+        updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
         created_at TEXT DEFAULT CURRENT_TIMESTAMP
       )
     ''');
@@ -394,6 +415,7 @@ class DatabaseHelper {
         is_custom INTEGER DEFAULT 1,
         display_order INTEGER DEFAULT 0,
         created_at TEXT NOT NULL,
+        updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
         is_synced INTEGER DEFAULT 1
       )
     ''');
@@ -410,6 +432,7 @@ class DatabaseHelper {
         order_direction TEXT DEFAULT 'asc',
         custom_order_json TEXT,
         is_synced INTEGER DEFAULT 1,
+        updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
         created_at TEXT DEFAULT CURRENT_TIMESTAMP
       )
     ''');
@@ -422,6 +445,7 @@ class DatabaseHelper {
         email TEXT NOT NULL,
         is_verified INTEGER DEFAULT 0,
         is_synced INTEGER DEFAULT 1,
+        updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
         created_at TEXT DEFAULT CURRENT_TIMESTAMP
       )
     ''');
@@ -438,6 +462,7 @@ class DatabaseHelper {
         height REAL,
         weight REAL,
         is_synced INTEGER DEFAULT 1,
+        updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
         created_at TEXT DEFAULT CURRENT_TIMESTAMP
       )
     ''');
@@ -456,6 +481,7 @@ class DatabaseHelper {
         muscle_reminders_enabled INTEGER DEFAULT 0,
         muscle_reminders_json TEXT,
         is_synced INTEGER DEFAULT 1,
+        updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
         created_at TEXT DEFAULT CURRENT_TIMESTAMP
       )
     ''');
@@ -466,6 +492,7 @@ class DatabaseHelper {
         user_id TEXT PRIMARY KEY,
         use_24h_clock INTEGER DEFAULT 0,
         is_synced INTEGER DEFAULT 1,
+        updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
         created_at TEXT DEFAULT CURRENT_TIMESTAMP
       )
     ''');
@@ -479,12 +506,36 @@ class DatabaseHelper {
         hide_empty_stock INTEGER DEFAULT 0,
         pinned_order_json TEXT,
         is_synced INTEGER DEFAULT 1,
+        updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
         created_at TEXT DEFAULT CURRENT_TIMESTAMP
       )
     ''');
   }
 
   Future _onUpgrade(Database db, int oldVersion, int newVersion) async {
-    // Migration logic removed as version was reset to 1 for fresh install
+    if (oldVersion < 2) {
+      await db.execute('ALTER TABLE hit_cycles ADD COLUMN updated_at TEXT DEFAULT CURRENT_TIMESTAMP');
+      await db.execute('ALTER TABLE hit_workouts ADD COLUMN updated_at TEXT DEFAULT CURRENT_TIMESTAMP');
+      await db.execute('ALTER TABLE hit_exercises ADD COLUMN updated_at TEXT DEFAULT CURRENT_TIMESTAMP');
+      await db.execute('ALTER TABLE exercise_logs ADD COLUMN updated_at TEXT DEFAULT CURRENT_TIMESTAMP');
+    }
+    
+    if (oldVersion < 3) {
+      final tables = [
+        'ss_supplements', 'ss_stack', 'ss_records', 'hydration_logs', 'hydration_settings',
+        'sleep_logs', 'sleep_alarm_settings', 'calorie_meal_logs', 'calorie_settings', 'calorie_meals',
+        'body_comp_weight_logs', 'body_comp_fats_logs', 'body_comp_muscle_logs', 'exercise_templates',
+        'hit_settings', 'pending_deletions', 'home_widget_settings', 'affirmations',
+        'affirmation_settings', 'user_emails', 'profiles', 'body_comp_settings', 'sleep_settings', 'ss_settings'
+      ];
+      
+      for (var table in tables) {
+        try {
+          await db.execute('ALTER TABLE $table ADD COLUMN updated_at TEXT DEFAULT CURRENT_TIMESTAMP');
+        } catch (e) {
+          // Column might already exist if migration partially failed or was manually added
+        }
+      }
+    }
   }
 }

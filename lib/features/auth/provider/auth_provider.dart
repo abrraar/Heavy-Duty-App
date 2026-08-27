@@ -7,6 +7,9 @@ import '../../profile/model/user_email.dart';
 import '../../profile/data/profile_local_repository.dart';
 
 import 'package:heavy_duty/features/profile/model/profile_model.dart';
+import 'package:heavy_duty/core/services/connectivity_service.dart';
+
+import 'package:heavy_duty/core/providers/sync_provider.dart';
 
 class AuthProvider with ChangeNotifier {
   static final AuthProvider _instance = AuthProvider._internal();
@@ -20,6 +23,15 @@ class AuthProvider with ChangeNotifier {
       _initializeProfileRepo(_currentUser!.id);
     }
     _setupAuthListener();
+    ConnectivityService().addReconnectListener(_onReconnect);
+  }
+
+  void _onReconnect() {
+    if (_currentUser != null) {
+      debugPrint("AuthProvider: Internet restored. Triggering profile sync...");
+      _loadUserProfile();
+      refreshEmails();
+    }
   }
 
   final SupabaseClient _supabase = Supabase.instance.client;
@@ -147,20 +159,69 @@ class AuthProvider with ChangeNotifier {
   Future<void> _loadUserProfile() async {
     if (_profileRepo == null) return;
 
-    // 1. Load Local
-    _userProfile = await _profileRepo!.getProfile();
+    final syncProv = SyncProvider();
+    syncProv.startFeatureSync();
 
-    // 2. Load from Supabase Profiles Table
     try {
-      final cloudData = await _supabase.from('profiles').select().eq('id', _currentUser!.id).maybeSingle();
-      if (cloudData != null) {
-        _userProfile = UserProfile.fromMap(cloudData);
-        await _profileRepo!.saveProfile(_userProfile!);
+      // 1. Load Local
+      _userProfile = await _profileRepo!.getProfile();
+
+      final count = await _profileRepo!.getUnsyncedCount();
+      syncProv.addTotalItems(count);
+
+      // 2. MANDATORY: Push local offline changes BEFORE pulling from cloud
+      if (_userProfile != null && _userProfile!.isSynced == 0) {
+        try {
+          final Map<String, dynamic> profileUpdate = {
+            'full_name': _userProfile!.fullName,
+            'username': _userProfile!.username,
+            'height': _userProfile!.height,
+            'birthday': _userProfile!.birthday?.toIso8601String().split('T')[0], // Use YYYY-MM-DD for consistency
+            'gender': _userProfile!.gender,
+            'weight': _userProfile!.weight,
+          };
+          await _supabase.from('profiles').upsert({'id': _userProfile!.id, ...profileUpdate});
+          await _profileRepo!.saveProfile(_userProfile!.copyWith(isSynced: 1));
+          
+          // Update memory and UI after successful push
+          _userProfile = _userProfile!.copyWith(isSynced: 1);
+          notifyListeners();
+          syncProv.incrementCompleted();
+        } catch (e) {
+          debugPrint("AuthProvider: Background profile sync failed: $e");
+        }
       }
-    } catch (e) {
-      debugPrint("Cloud profile load failed: $e");
+
+      // 3. Load from Supabase Profiles Table
+      try {
+        final cloudData = await _supabase.from('profiles').select().eq('id', _currentUser!.id).maybeSingle();
+        if (cloudData != null) {
+          debugPrint("AuthProvider: Cloud birthday data: ${cloudData['birthday']}");
+          // CRITICAL: Use isFromCloud: true to protect local dirty state
+          await _profileRepo!.saveProfile(UserProfile.fromMap(cloudData), isFromCloud: true);
+          
+          // Re-load to get final reconciled state
+          _userProfile = await _profileRepo!.getProfile();
+          notifyListeners();
+        }
+      } catch (e) {
+        debugPrint("Cloud profile load failed: $e");
+      }
+    } finally {
+      syncProv.endFeatureSync();
     }
     notifyListeners();
+  }
+
+  Future<void> forceRefreshProfile() async {
+    if (_currentUser == null) return;
+    _setLoading(true);
+    try {
+      await _loadUserProfile();
+      await refreshEmails();
+    } finally {
+      _setLoading(false);
+    }
   }
 
   Future<void> _loadUserEmails() async {
@@ -202,7 +263,22 @@ class AuthProvider with ChangeNotifier {
     // 1. Refresh Auth User (Check verification status)
     await refreshUser();
 
-    // 2. Sync from Supabase user_emails table
+    // 2. MANDATORY: Push local offline changes BEFORE pulling from cloud
+    try {
+      final localEmails = await _profileRepo!.getEmails();
+      for (var local in localEmails) {
+        if (local.isSynced == 0) {
+          // Note: OTP verification codes aren't easily "pushed" back if lost, 
+          // but we can at least ensure the record exists.
+          await _supabase.from('user_emails').upsert(local.toMap()..remove('is_synced'));
+          await _profileRepo!.insertEmail(local.copyWith(isSynced: 1));
+        }
+      }
+    } catch (e) {
+      debugPrint("AuthProvider: Email upload sync failed: $e");
+    }
+
+    // 3. Sync from Supabase user_emails table
     try {
       final cloudData = await _supabase
           .from('user_emails')
@@ -265,7 +341,7 @@ class AuthProvider with ChangeNotifier {
     final String otp = (100000 + (DateTime.now().millisecond * 899999) ~/ 1000).toString();
     debugPrint("DEBUG: Generated OTP for $normalizedEmail: $otp");
 
-    final newEmail = UserEmail(email: email.trim(), isVerified: false);
+    final newEmail = UserEmail(email: email.trim(), isVerified: false, isSynced: 0);
     await _profileRepo!.insertEmail(newEmail);
 
     // 2. Save to the cloud table for persistence
@@ -277,8 +353,9 @@ class AuthProvider with ChangeNotifier {
         'is_verified': false,
         'verification_code': otp,
       });
+      await _profileRepo!.insertEmail(newEmail.copyWith(isSynced: 1));
     } catch (e) {
-      debugPrint("Supabase local record save failed: $e");
+      debugPrint("Supabase email save failed (offline?): $e");
     }
 
     // 3. DIRECT INVOCATION: Trigger the email sender immediately
@@ -706,23 +783,28 @@ class AuthProvider with ChangeNotifier {
 
       final String userId = user.id;
       final String? userEmail = user.email;
+      final now = DateTime.now();
 
-      // 1. Sync to Supabase Profiles Table (Unified identity management)
+      // 1. Prepare Update
       final Map<String, dynamic> profileUpdate = {};
       if (name != null) profileUpdate['full_name'] = name;
       if (username != null) profileUpdate['username'] = username;
       if (height != null) profileUpdate['height'] = height;
-      if (userEmail != null) profileUpdate['email'] = userEmail; // Ensure lookup works
+      if (userEmail != null) profileUpdate['email'] = userEmail;
 
       if (extraMetadata != null) {
-        if (extraMetadata['birthday'] != null) profileUpdate['birthday'] = extraMetadata['birthday'];
+        if (extraMetadata['birthday'] != null) {
+          // Store only the date part YYYY-MM-DD to avoid time zone issues and parsing errors
+          final bday = DateTime.tryParse(extraMetadata['birthday']);
+          if (bday != null) {
+            profileUpdate['birthday'] = bday.toIso8601String().split('T')[0];
+          }
+        }
         if (extraMetadata['gender'] != null) profileUpdate['gender'] = extraMetadata['gender'];
         if (extraMetadata['weight'] != null) profileUpdate['weight'] = extraMetadata['weight'];
       }
 
-      await _supabase.from('profiles').upsert({'id': userId, ...profileUpdate});
-
-      // 2. Sync to Local SQLite
+      // 2. OPTIMISTIC LOCAL SAVE (isSynced = 0)
       final currentLocal = await _profileRepo?.getProfile();
       final updatedLocal = UserProfile(
         id: userId,
@@ -733,11 +815,20 @@ class AuthProvider with ChangeNotifier {
         gender: extraMetadata?['gender'] ?? currentLocal?.gender,
         birthday: extraMetadata?['birthday'] != null ? DateTime.tryParse(extraMetadata!['birthday']) : currentLocal?.birthday,
         isSynced: 0,
+        updatedAt: now,
       );
       await _profileRepo?.saveProfile(updatedLocal);
       _userProfile = updatedLocal;
+      notifyListeners();
 
-      // 3. Fallback sync to Auth Metadata (Legacy support)
+      // 3. PUSH TO CLOUD
+      await _supabase.from('profiles').upsert({'id': userId, ...profileUpdate});
+      
+      // 4. MARK SYNCED
+      await _profileRepo?.saveProfile(updatedLocal.copyWith(isSynced: 1));
+      _userProfile = updatedLocal.copyWith(isSynced: 1);
+
+      // 5. Fallback sync to Auth Metadata (Legacy support)
       await _supabase.auth.updateUser(UserAttributes(data: profileUpdate));
 
       notifyListeners();

@@ -10,6 +10,7 @@ class SupplementItem {
   final DateTime timestamp;
   final String? sourceId; // NEW: Link to external triggers like Meal Logs
   int isSynced;
+  final DateTime? updatedAt;
   final String? userId;
 
   SupplementItem({
@@ -21,6 +22,7 @@ class SupplementItem {
     required this.weightAdjustment,
     required this.timestamp,
     required this.isSynced,
+    this.updatedAt,
     this.sourceId,
     this.userId,
   });
@@ -38,6 +40,7 @@ class SupplementItem {
       'timestamp': timestamp.toIso8601String(),
       'source_id': sourceId,
       'is_synced': isSynced,
+      'updated_at': updatedAt?.toIso8601String(),
     };
   }
 
@@ -54,6 +57,7 @@ class SupplementItem {
       timestamp: DateTime.parse(map['timestamp'] as String),
       sourceId: map['source_id'] as String?,
       isSynced: map['is_synced'] as int,
+      updatedAt: map['updated_at'] != null ? DateTime.tryParse(map['updated_at'].toString()) : null,
     );
   }
 
@@ -67,6 +71,7 @@ class SupplementItem {
     DateTime? timestamp,
     String? sourceId,
     int? isSynced,
+    DateTime? updatedAt,
     String? userId,
   }) {
     return SupplementItem(
@@ -78,6 +83,7 @@ class SupplementItem {
       weightAdjustment: weightAdjustment ?? this.weightAdjustment,
       timestamp: timestamp ?? this.timestamp,
       isSynced: isSynced ?? this.isSynced,
+      updatedAt: updatedAt ?? this.updatedAt,
       sourceId: sourceId ?? this.sourceId,
       userId: userId ?? this.userId,
     );

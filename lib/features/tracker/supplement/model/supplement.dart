@@ -178,6 +178,8 @@ class Supplement {
   // NEW: Shared by badge
   final String? sharedBy;
   final String? userId;
+  final int isSynced;
+  final DateTime? updatedAt;
 
   // --- SHORTCUT SETTINGS ---
   final bool isPinnedToHome;
@@ -206,6 +208,8 @@ class Supplement {
     this.fatsPerUnit,
     this.sharedBy,
     this.userId,
+    this.isSynced = 1,
+    this.updatedAt,
     this.isPinnedToHome = false,
     this.pinnedIntakeAmount = 1.0,
     this.pinnedUseServingsIntake = true,
@@ -238,10 +242,11 @@ class Supplement {
       'pinned_restock_amount': pinnedRestockAmount,
       'pinned_use_servings_restock': pinnedUseServingsRestock ? 1 : 0,
       'reminders_json': jsonEncode(reminders.map((r) => r.toMap()).toList()),
-      // NEW: Serialize array list data parameters straight to text mapping
       'ingredients_json': jsonEncode(
         ingredients.map((i) => i.toMap()).toList(),
       ),
+      'is_synced': isSynced,
+      'updated_at': updatedAt?.toIso8601String(),
     };
   }
 
@@ -290,6 +295,8 @@ class Supplement {
       ingredients: decodedIngredients
           .map((i) => SupplementIngredient.fromMap(i as Map<String, dynamic>))
           .toList(),
+      isSynced: (map['is_synced'] as num?)?.toInt() ?? 1,
+      updatedAt: map['updated_at'] != null ? DateTime.tryParse(map['updated_at'].toString()) : null,
     );
   }
 
@@ -300,19 +307,21 @@ class Supplement {
     double? weightPerServing,
     String? weightUnit,
     String? description,
-    double? totalStock,
-    double? remainingStock,
+    double? Function()? totalStock,
+    double? Function()? remainingStock,
     bool? isActive,
     bool? notificationsEnabled,
     List<SupplementReminder>? reminders,
     List<SupplementIngredient>? ingredients,
-    DateTime? expiryDate,
-    double? caloriesPerUnit,
-    double? proteinPerUnit,
-    double? carbsPerUnit,
-    double? fatsPerUnit,
+    DateTime? Function()? expiryDate,
+    double? Function()? caloriesPerUnit,
+    double? Function()? proteinPerUnit,
+    double? Function()? carbsPerUnit,
+    double? Function()? fatsPerUnit,
     String? sharedBy,
     String? userId,
+    int? isSynced,
+    DateTime? updatedAt,
     bool? isPinnedToHome,
     double? pinnedIntakeAmount,
     bool? pinnedUseServingsIntake,
@@ -326,19 +335,21 @@ class Supplement {
       weightPerServing: weightPerServing ?? this.weightPerServing,
       weightUnit: weightUnit ?? this.weightUnit,
       description: description ?? this.description,
-      totalStock: totalStock ?? this.totalStock,
-      remainingStock: remainingStock ?? this.remainingStock,
+      totalStock: totalStock != null ? totalStock() : this.totalStock,
+      remainingStock: remainingStock != null ? remainingStock() : this.remainingStock,
       isActive: isActive ?? this.isActive,
       notificationsEnabled: notificationsEnabled ?? this.notificationsEnabled,
       reminders: reminders ?? this.reminders,
       ingredients: ingredients ?? this.ingredients,
-      expiryDate: expiryDate ?? this.expiryDate,
-      caloriesPerUnit: caloriesPerUnit ?? this.caloriesPerUnit,
-      proteinPerUnit: proteinPerUnit ?? this.proteinPerUnit,
-      carbsPerUnit: carbsPerUnit ?? this.carbsPerUnit,
-      fatsPerUnit: fatsPerUnit ?? this.fatsPerUnit,
+      expiryDate: expiryDate != null ? expiryDate() : this.expiryDate,
+      caloriesPerUnit: caloriesPerUnit != null ? caloriesPerUnit() : this.caloriesPerUnit,
+      proteinPerUnit: proteinPerUnit != null ? proteinPerUnit() : this.proteinPerUnit,
+      carbsPerUnit: carbsPerUnit != null ? carbsPerUnit() : this.carbsPerUnit,
+      fatsPerUnit: fatsPerUnit != null ? fatsPerUnit() : this.fatsPerUnit,
       sharedBy: sharedBy ?? this.sharedBy,
       userId: userId ?? this.userId,
+      isSynced: isSynced ?? this.isSynced,
+      updatedAt: updatedAt ?? this.updatedAt,
       isPinnedToHome: isPinnedToHome ?? this.isPinnedToHome,
       pinnedIntakeAmount: pinnedIntakeAmount ?? this.pinnedIntakeAmount,
       pinnedUseServingsIntake:

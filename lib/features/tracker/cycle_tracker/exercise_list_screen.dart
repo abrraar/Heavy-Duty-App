@@ -6,8 +6,10 @@ import 'package:heavy_duty/core/widgets/elite_confirm_dialog.dart';
 import 'package:heavy_duty/features/tracker/cycle_tracker/cycle_exercise_detail_screen.dart';
 import 'package:heavy_duty/features/tracker/cycle_tracker/provider/cycle_provider.dart';
 import 'dart:async';
+import 'package:intl/intl.dart';
 import 'package:heavy_duty/features/tracker/cycle_tracker/widgets/exercise_picker_sheet.dart';
 import 'package:provider/provider.dart';
+import 'package:heavy_duty/core/widgets/elite_snackbar.dart';
 import 'model/exercise.dart';
 
 class ExerciseListScreen extends StatefulWidget {
@@ -564,34 +566,173 @@ class _ExerciseListScreenState extends State<ExerciseListScreen> {
     );
   }
 
+  Future<void> _selectWorkoutDate(BuildContext context, CycleProvider provider) async {
+    final range = provider.getWorkoutDateRange(widget.workoutId);
+    final firstDate = range['min'] ?? DateTime(2000, 1, 1);
+    final lastDate = range['max'] ?? DateTime.now();
+
+    // Check if the window is closed (e.g. neighbors are on consecutive days)
+    if (firstDate.isAfter(lastDate)) {
+      if (mounted) {
+        EliteSnackbar.show(
+          context, 
+          "NO AVAILABLE DATE: SURROUNDING WORKOUTS ARE TOO CLOSE IN TIME.",
+          isError: true
+        );
+      }
+      return;
+    }
+
+    // Find current workout date for initial selection
+    DateTime initialDate = DateTime.now();
+    try {
+      final workout = provider.workouts.firstWhere((w) => w.id == widget.workoutId);
+      if (workout.completedAt != null) {
+        initialDate = workout.completedAt!;
+      }
+    } catch (_) {}
+
+    // Ensure initial date is within bounds
+    if (initialDate.isBefore(firstDate)) initialDate = firstDate;
+    if (initialDate.isAfter(lastDate)) initialDate = lastDate;
+
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: initialDate,
+      firstDate: firstDate,
+      lastDate: lastDate,
+      helpText: "SELECT LOG DATE",
+      builder: (context, child) => Theme(
+        data: Theme.of(context).copyWith(
+          colorScheme: const ColorScheme.dark(
+            primary: AppColors.crimson,
+            onPrimary: Colors.white,
+            surface: AppColors.surface,
+            onSurface: Colors.white,
+          ),
+          textButtonTheme: TextButtonThemeData(
+            style: TextButton.styleFrom(foregroundColor: AppColors.crimson),
+          ),
+          dialogBackgroundColor: AppColors.background,
+        ),
+        child: child!,
+      ),
+    );
+
+    if (picked != null) {
+      await provider.updateWorkoutDate(widget.workoutId, picked);
+    }
+  }
+
+  void _removeWorkoutDate(CycleProvider provider) async {
+    debugPrint("ExerciseListScreen: Attempting to remove date for ${widget.workoutId}");
+    final confirm = await EliteConfirmDialog.show(
+      context,
+      title: "REMOVE DATE",
+      message: "ARE YOU SURE YOU WANT TO REMOVE THE LOG DATE FOR THIS SESSION?",
+      confirmText: "REMOVE",
+    );
+    
+    debugPrint("ExerciseListScreen: Confirm result: $confirm");
+    if (confirm == true) {
+      await provider.updateWorkoutDate(widget.workoutId, null);
+      debugPrint("ExerciseListScreen: updateWorkoutDate(null) called");
+    }
+  }
+
   Widget _buildHeader(CycleProvider provider) {
     String currentWorkoutName = widget.workoutName;
+    DateTime? completedAt;
     try {
       final workout = provider.workouts.firstWhere((w) => w.id == widget.workoutId);
       currentWorkoutName = workout.name;
+      completedAt = workout.completedAt;
     } catch (_) {}
 
     return Padding(
       padding: EdgeInsets.fromLTRB(24.r, 2.r, 24.r, 12.r),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildSectionHeader("EXERCISE SEQUENCE"),
-          const Spacer(),
-          IconButton(
-            onPressed: () => _editWorkoutHeaderName(currentWorkoutName),
-            icon: Icon(
-              Icons.edit_rounded,
-              color: AppColors.textSecondary,
-              size: 22.r,
-            ),
+          Row(
+            children: [
+              _buildSectionHeader("EXERCISE SEQUENCE"),
+              const Spacer(),
+              IconButton(
+                onPressed: () => _editWorkoutHeaderName(currentWorkoutName),
+                icon: Icon(
+                  Icons.edit_rounded,
+                  color: AppColors.textSecondary,
+                  size: 22.r,
+                ),
+              ),
+              IconButton(
+                onPressed: _showInstructions,
+                icon: Icon(
+                  Icons.info_outline_rounded,
+                  color: AppColors.textSecondary,
+                  size: 24.r,
+                ),
+              ),
+            ],
           ),
-          IconButton(
-            onPressed: _showInstructions,
-            icon: Icon(
-              Icons.info_outline_rounded,
-              color: AppColors.textSecondary,
-              size: 24.r,
-            ),
+          SizedBox(height: 8.h),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Main Date Picker Button
+              GestureDetector(
+                onTap: () => _selectWorkoutDate(context, provider),
+                child: Container(
+                  padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 10.h),
+                  decoration: BoxDecoration(
+                    color: AppColors.surfaceLight.withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.horizontal(
+                      left: Radius.circular(10.r),
+                      right: completedAt == null ? Radius.circular(10.r) : Radius.zero,
+                    ),
+                    border: Border.all(color: AppColors.white.withValues(alpha: 0.05)),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        completedAt != null ? Icons.calendar_today_rounded : Icons.edit_calendar_rounded,
+                        color: completedAt != null ? AppColors.crimson : AppColors.textSecondary.withValues(alpha: 0.5),
+                        size: 16.r,
+                      ),
+                      SizedBox(width: 10.w),
+                      Text(
+                        completedAt != null 
+                            ? DateFormat('EEEE, MMM dd, yyyy').format(completedAt).toUpperCase()
+                            : "ASSIGN DATE TO LOG",
+                        style: AppTextStyles.labelSmall.copyWith(
+                          color: completedAt != null ? AppColors.white : AppColors.textSecondary.withValues(alpha: 0.5),
+                          fontSize: 10.sp,
+                          fontWeight: completedAt != null ? FontWeight.bold : FontWeight.w400,
+                          letterSpacing: 1,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
+              // Separate Clear Date Button (only visible if date exists)
+              if (completedAt != null)
+                GestureDetector(
+                  onTap: () => _removeWorkoutDate(provider),
+                  child: Container(
+                    padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
+                    decoration: BoxDecoration(
+                      color: AppColors.error.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.horizontal(right: Radius.circular(10.r)),
+                      border: Border.all(color: AppColors.error.withValues(alpha: 0.2)),
+                    ),
+                    child: Icon(Icons.close_rounded, color: AppColors.error, size: 16.r),
+                  ),
+                ),
+            ],
           ),
         ],
       ),

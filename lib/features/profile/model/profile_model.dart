@@ -8,6 +8,7 @@ class UserProfile {
   final double? height;
   final double? weight;
   final int isSynced;
+  final DateTime? updatedAt;
 
   UserProfile({
     required this.id,
@@ -19,6 +20,7 @@ class UserProfile {
     this.height,
     this.weight,
     this.isSynced = 1,
+    this.updatedAt,
   });
 
   Map<String, dynamic> toMap() {
@@ -32,6 +34,7 @@ class UserProfile {
       'height': height,
       'weight': weight,
       'is_synced': isSynced,
+      'updated_at': updatedAt?.toIso8601String(),
     };
   }
 
@@ -46,6 +49,7 @@ class UserProfile {
       height: (map['height'] as num?)?.toDouble(),
       weight: (map['weight'] as num?)?.toDouble(),
       isSynced: map['is_synced'] ?? 1,
+      updatedAt: map['updated_at'] != null ? DateTime.tryParse(map['updated_at'].toString()) : null,
     );
   }
 
@@ -59,6 +63,7 @@ class UserProfile {
     double? height,
     double? weight,
     int? isSynced,
+    DateTime? updatedAt,
   }) {
     return UserProfile(
       id: id ?? this.id,
@@ -70,6 +75,7 @@ class UserProfile {
       height: height ?? this.height,
       weight: weight ?? this.weight,
       isSynced: isSynced ?? this.isSynced,
+      updatedAt: updatedAt ?? this.updatedAt,
     );
   }
 }

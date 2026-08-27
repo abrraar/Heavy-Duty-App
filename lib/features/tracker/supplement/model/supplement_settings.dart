@@ -5,6 +5,7 @@ class SupplementSettings {
   final bool hideEmptyStock;
   final List<String> pinnedOrder; // IDs of pinned supplements and stacks in order
   final int isSynced;
+  final DateTime? updatedAt;
   final String? userId;
 
   SupplementSettings({
@@ -12,6 +13,7 @@ class SupplementSettings {
     this.hideEmptyStock = false,
     this.pinnedOrder = const [],
     this.isSynced = 1,
+    this.updatedAt,
     this.userId,
   });
 
@@ -23,6 +25,7 @@ class SupplementSettings {
       'hide_empty_stock': hideEmptyStock ? 1 : 0,
       'pinned_order_json': pinnedOrder.join(','),
       'is_synced': isSynced,
+      'updated_at': updatedAt?.toIso8601String(),
     };
   }
 
@@ -40,6 +43,7 @@ class SupplementSettings {
       hideEmptyStock: toBool(map['hide_empty_stock']),
       pinnedOrder: orderRaw.isEmpty ? [] : orderRaw.split(','),
       isSynced: (map['is_synced'] as num?)?.toInt() ?? 1,
+      updatedAt: map['updated_at'] != null ? DateTime.tryParse(map['updated_at'].toString()) : null,
       userId: map['user_id'] as String?,
     );
   }
@@ -49,6 +53,7 @@ class SupplementSettings {
     bool? hideEmptyStock,
     List<String>? pinnedOrder,
     int? isSynced,
+    DateTime? updatedAt,
     String? userId,
   }) {
     return SupplementSettings(
@@ -56,6 +61,7 @@ class SupplementSettings {
       hideEmptyStock: hideEmptyStock ?? this.hideEmptyStock,
       pinnedOrder: pinnedOrder ?? this.pinnedOrder,
       isSynced: isSynced ?? this.isSynced,
+      updatedAt: updatedAt ?? this.updatedAt,
       userId: userId ?? this.userId,
     );
   }

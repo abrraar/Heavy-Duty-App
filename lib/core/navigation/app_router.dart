@@ -46,6 +46,59 @@ final GlobalKey<NavigatorState> _rootNavigatorKey = GlobalKey<NavigatorState>();
 bool _hasLoadedUserData = false;
 bool _isFirstLoad = true;
 
+int _lastNavIndex = 0;
+
+int _getNavIndex(String location) {
+  if (location == AppRoutes.home) return 0;
+  if (location == AppRoutes.exercises) return 1;
+  if (location.startsWith('/tracker')) return 2;
+  if (location == AppRoutes.profile) return 3;
+  return 0;
+}
+
+Page<dynamic> _directionalSlidePage({required Widget child, required GoRouterState state}) {
+  final int newIndex = _getNavIndex(state.uri.path);
+  final bool movingForward = newIndex > _lastNavIndex;
+  
+  // Update the global index tracking
+  _lastNavIndex = newIndex;
+
+  return CustomTransitionPage(
+    key: state.pageKey,
+    child: child,
+    transitionDuration: const Duration(milliseconds: 450),
+    reverseTransitionDuration: const Duration(milliseconds: 450),
+    transitionsBuilder: (context, animation, secondaryAnimation, child) {
+      // The animation for THIS page coming into view
+      final slideIn = Tween<Offset>(
+        begin: Offset(movingForward ? 1.0 : -1.0, 0.0),
+        end: Offset.zero,
+      ).animate(CurvedAnimation(
+        parent: animation,
+        curve: Curves.easeInOutCubic,
+      ));
+
+      // The animation for THIS page moving out of view when another tab is selected
+      // We use secondaryAnimation for the outgoing effect
+      final slideOut = Tween<Offset>(
+        begin: Offset.zero,
+        end: Offset(movingForward ? -1.0 : 1.0, 0.0),
+      ).animate(CurvedAnimation(
+        parent: secondaryAnimation,
+        curve: Curves.easeInOutCubic,
+      ));
+
+      return SlideTransition(
+        position: slideIn,
+        child: SlideTransition(
+          position: slideOut,
+          child: child,
+        ),
+      );
+    },
+  );
+}
+
 // ── Transition Helpers ────────────────────────────────
 
 Page<dynamic> _fadeTransitionPage({required Widget child, required GoRouterState state, int duration = 600}) {
@@ -71,6 +124,26 @@ Page<dynamic> _slideTransitionPage({required Widget child, required GoRouterStat
           end: Offset.zero,
         ).animate(CurvedAnimation(parent: animation, curve: Curves.easeOutCubic)),
         child: child,
+      );
+    },
+  );
+}
+
+Page<dynamic> _sharedAxisTransitionPage({required Widget child, required GoRouterState state, int duration = 300}) {
+  return CustomTransitionPage(
+    key: state.pageKey,
+    child: child,
+    transitionDuration: Duration(milliseconds: duration),
+    reverseTransitionDuration: Duration(milliseconds: duration),
+    transitionsBuilder: (context, animation, secondaryAnimation, child) {
+      return FadeTransition(
+        opacity: animation,
+        child: ScaleTransition(
+          scale: Tween<double>(begin: 0.96, end: 1.0).animate(
+            CurvedAnimation(parent: animation, curve: Curves.easeOutCubic),
+          ),
+          child: child,
+        ),
       );
     },
   );
@@ -317,15 +390,15 @@ final appRouter = GoRouter(
       routes: [
         GoRoute(
           path: AppRoutes.home,
-          pageBuilder: (context, state) => _fadeTransitionPage(child: const HomeScreen(), state: state, duration: 400),
+          pageBuilder: (context, state) => _directionalSlidePage(child: const HomeScreen(), state: state),
         ),
         GoRoute(
           path: AppRoutes.exercises,
-          pageBuilder: (context, state) => _fadeTransitionPage(child: const ExerciseScreen(), state: state, duration: 400),
+          pageBuilder: (context, state) => _directionalSlidePage(child: const ExerciseScreen(), state: state),
         ),
         GoRoute(
           path: AppRoutes.tracker,
-          pageBuilder: (context, state) => _fadeTransitionPage(child: const TrackerScreen(), state: state, duration: 400),
+          pageBuilder: (context, state) => _directionalSlidePage(child: const TrackerScreen(), state: state),
           routes: [
             GoRoute(
               path: 'cycle',
@@ -352,7 +425,7 @@ final appRouter = GoRouter(
         ),
         GoRoute(
           path: AppRoutes.profile,
-          pageBuilder: (context, state) => _fadeTransitionPage(child: const ProfileScreen(), state: state, duration: 400),
+          pageBuilder: (context, state) => _directionalSlidePage(child: const ProfileScreen(), state: state),
           routes: [
             GoRoute(
               path: 'edit',

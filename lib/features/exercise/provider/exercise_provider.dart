@@ -7,6 +7,8 @@ import '../model/exercise_template.dart';
 import '../data/exercise_local_repository.dart';
 import '../data/exercise_cloud_repository.dart';
 
+import 'package:heavy_duty/core/providers/sync_provider.dart';
+
 class ExerciseProvider with ChangeNotifier {
   ExerciseLocalRepository? _localRepo;
   final ExerciseCloudRepository _cloudRepo = ExerciseCloudRepository();
@@ -150,7 +152,14 @@ class ExerciseProvider with ChangeNotifier {
 
   Future<void> _syncWithCloud() async {
     if (_localRepo == null) return;
+
+    final syncProv = SyncProvider();
+    syncProv.startFeatureSync();
+
     try {
+      final count = await _localRepo!.getUnsyncedCount();
+      syncProv.addTotalItems(count);
+
       // 0. Push Deletions
       final pendingDeletions = await _localRepo!.getPendingDeletions();
       for (var del in pendingDeletions) {
@@ -158,42 +167,37 @@ class ExerciseProvider with ChangeNotifier {
         try {
           await _cloudRepo.deleteTemplate(id);
           await _localRepo!.removeFromDeletionQueue(id);
+          syncProv.incrementCompleted();
         } catch (_) {}
       }
 
-      // 1. PULL and PRUNE from Cloud
-      final cloudTemplates = await _cloudRepo.getAllTemplates();
-      final cloudIds = cloudTemplates.map((t) => t.id).toSet();
-      
-      final localTemplates = await _localRepo!.getAllTemplates();
-      
-      // PRUNE: Delete local custom templates that were previously synced but are now missing from the cloud
-      for (var localT in localTemplates) {
-        if (!localT.isDefault && localT.isSynced == 1 && !cloudIds.contains(localT.id)) {
-          debugPrint("ExerciseProvider: Pruning deleted template: ${localT.name}");
-          await _localRepo!.deleteTemplate(localT.id);
-        }
-      }
-
-      // SYNC: Add or Update templates from the cloud
-      for (var t in cloudTemplates) {
-        final localT = localTemplates.cast<ExerciseTemplate?>().firstWhere(
-          (lt) => lt?.id == t.id, 
-          orElse: () => null
-        );
-        
-        if (localT == null || localT.isSynced == 1) {
-          await _localRepo!.insertTemplate(t.copyWith(isSynced: 1));
-        }
-      }
-
-      // 2. PUSH unsynced local templates to Cloud
+      // 1. PUSH unsynced local templates to Cloud (MANDATORY BEFORE PULL)
       final unsynced = await _localRepo!.getUnsyncedTemplates();
       for (var t in unsynced) {
         if (!t.isDefault) {
-          await _cloudRepo.insertTemplate(t);
-          await _localRepo!.markTemplateSynced(t.id);
+          try {
+            await _cloudRepo.insertTemplate(t);
+            await _localRepo!.markTemplateSynced(t.id);
+            syncProv.incrementCompleted();
+          } catch (_) {}
         }
+      }
+
+      // 2. PULL from Cloud
+      final cloudTemplates = await _cloudRepo.getAllTemplates();
+      final localTemplates = await _localRepo!.getAllTemplates();
+      final cloudIds = cloudTemplates.map((t) => t.id).toSet();
+
+      // Deletion Reconciliation: Remove local synced templates missing from cloud
+      for (var localT in localTemplates) {
+        if (localT.isSynced == 1 && !localT.isDefault && !cloudIds.contains(localT.id)) {
+          await _localRepo!.deleteTemplate(localT.id);
+        }
+      }
+      
+      // SYNC: Add or Update templates from the cloud
+      for (var t in cloudTemplates) {
+        await _localRepo!.insertTemplate(t.copyWith(isSynced: 1), isFromCloud: true);
       }
 
       // 3. Final memory refresh
@@ -201,6 +205,8 @@ class ExerciseProvider with ChangeNotifier {
       notifyListeners();
     } catch (e) {
       debugPrint("Exercise Cloud Sync Error: $e");
+    } finally {
+      syncProv.endFeatureSync();
     }
   }
 

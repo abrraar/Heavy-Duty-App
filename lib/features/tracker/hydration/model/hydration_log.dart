@@ -6,6 +6,7 @@ class HydrationLog {
   final double amountOz;
   final DateTime timestamp;
   final int isSynced;
+  final DateTime? updatedAt;
   final String? userId;
 
   HydrationLog({
@@ -14,6 +15,7 @@ class HydrationLog {
     required this.amountOz,
     required this.timestamp,
     this.isSynced = 1,
+    this.updatedAt,
     this.userId,
   });
 
@@ -25,6 +27,7 @@ class HydrationLog {
       'amount_oz': amountOz,
       'timestamp': timestamp.toIso8601String(),
       'is_synced': isSynced,
+      'updated_at': updatedAt?.toIso8601String(),
     };
   }
 
@@ -44,6 +47,7 @@ class HydrationLog {
       amountOz: oz,
       timestamp: DateTime.parse(map['timestamp'] as String),
       isSynced: map['is_synced'] ?? 1,
+      updatedAt: map['updated_at'] != null ? DateTime.tryParse(map['updated_at'].toString()) : null,
       userId: map['user_id'] as String?,
     );
   }
@@ -54,6 +58,7 @@ class HydrationLog {
     double? amountOz,
     DateTime? timestamp,
     int? isSynced,
+    DateTime? updatedAt,
     String? userId,
   }) {
     return HydrationLog(
@@ -62,6 +67,7 @@ class HydrationLog {
       amountOz: amountOz ?? this.amountOz,
       timestamp: timestamp ?? this.timestamp,
       isSynced: isSynced ?? this.isSynced,
+      updatedAt: updatedAt ?? this.updatedAt,
       userId: userId ?? this.userId,
     );
   }

@@ -11,6 +11,7 @@ class SleepLog {
   final SleepType type;
   final String note;
   final int isSynced;
+  final DateTime? updatedAt;
   final String? userId;
 
   SleepLog({
@@ -21,6 +22,7 @@ class SleepLog {
     this.type = SleepType.night,
     this.note = "",
     this.isSynced = 1,
+    this.updatedAt,
     this.userId,
   });
 
@@ -36,6 +38,7 @@ class SleepLog {
       'type': type.name,
       'note': note,
       'is_synced': isSynced,
+      'updated_at': updatedAt?.toIso8601String(),
     };
   }
 
@@ -52,6 +55,7 @@ class SleepLog {
       ),
       note: map['note'] as String? ?? "",
       isSynced: map['is_synced'] ?? 1,
+      updatedAt: map['updated_at'] != null ? DateTime.tryParse(map['updated_at'].toString()) : null,
     );
   }
 
@@ -62,6 +66,7 @@ class SleepLog {
     SleepType? type,
     String? note,
     int? isSynced,
+    DateTime? updatedAt,
     String? userId,
   }) {
     return SleepLog(
@@ -72,6 +77,7 @@ class SleepLog {
       type: type ?? this.type,
       note: note ?? this.note,
       isSynced: isSynced ?? this.isSynced,
+      updatedAt: updatedAt ?? this.updatedAt,
       userId: userId ?? this.userId,
     );
   }

@@ -58,6 +58,7 @@ class BodyCompSettings {
   final List<BodyCompReminder> muscleReminders;
 
   final int isSynced;
+  final DateTime? updatedAt;
   final String? userId;
 
   BodyCompSettings({
@@ -70,6 +71,7 @@ class BodyCompSettings {
     this.muscleRemindersEnabled = false,
     this.muscleReminders = const [],
     this.isSynced = 1,
+    this.updatedAt,
     this.userId,
   });
 
@@ -86,6 +88,7 @@ class BodyCompSettings {
       'muscle_reminders_enabled': muscleRemindersEnabled ? 1 : 0,
       'muscle_reminders_json': jsonEncode(muscleReminders.map((r) => r.toMap()).toList()),
       'is_synced': isSynced,
+      'updated_at': updatedAt?.toIso8601String(),
     };
   }
 
@@ -117,6 +120,7 @@ class BodyCompSettings {
       muscleRemindersEnabled: map['muscle_reminders_enabled'] == 1,
       muscleReminders: parseReminders(map['muscle_reminders_json']),
       isSynced: (map['is_synced'] as num?)?.toInt() ?? 1,
+      updatedAt: map['updated_at'] != null ? DateTime.tryParse(map['updated_at'].toString()) : null,
       userId: map['user_id'] as String?,
     );
   }
@@ -131,6 +135,7 @@ class BodyCompSettings {
     bool? muscleRemindersEnabled,
     List<BodyCompReminder>? muscleReminders,
     int? isSynced,
+    DateTime? updatedAt,
     String? userId,
   }) {
     return BodyCompSettings(
@@ -143,6 +148,7 @@ class BodyCompSettings {
       muscleRemindersEnabled: muscleRemindersEnabled ?? this.muscleRemindersEnabled,
       muscleReminders: muscleReminders ?? this.muscleReminders,
       isSynced: isSynced ?? this.isSynced,
+      updatedAt: updatedAt ?? this.updatedAt,
       userId: userId ?? this.userId,
     );
   }

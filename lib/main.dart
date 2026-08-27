@@ -24,6 +24,8 @@ import 'features/affirmation/provider/affirmation_provider.dart';
 import 'core/providers/ui_provider.dart';
 import 'features/tracker/supplement/provider/supplement_provider.dart';
 import 'core/providers/update_provider.dart';
+import 'core/providers/sync_provider.dart';
+import 'core/widgets/sync_status_overlay.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized(); // Ensure this is first
@@ -59,6 +61,7 @@ void main() async {
   runApp(
     MultiProvider(
       providers: [
+        ChangeNotifierProvider(create: (_) => SyncProvider()),
         ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => SupplementProvider()),
         ChangeNotifierProvider(create: (_) => HydrationProvider()),
@@ -158,6 +161,12 @@ class MyApp extends StatelessWidget {
         debugShowCheckedModeBanner: false,
         routerConfig: appRouter,
         theme: AppPickerTheme.themeData,
+        builder: (context, routerChild) => Stack(
+          children: [
+            routerChild!,
+            const SyncStatusOverlay(),
+          ],
+        ),
       ),
     );
   }

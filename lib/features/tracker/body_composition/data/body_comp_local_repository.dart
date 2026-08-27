@@ -63,15 +63,45 @@ class BodyCompLocalRepository {
     return allLogs;
   }
 
-  Future<void> insertLog(BodyCompLog log) async {
+  Future<void> insertLog(BodyCompLog log, {bool isFromCloud = false}) async {
     final db = await _getDatabase();
     final logWithUser = log.copyWith(userId: userId);
+
+    if (isFromCloud) {
+      final existingLog = await db.query(_getTableName(log.type), where: 'id = ?', whereArgs: [log.id]);
+      if (existingLog.isNotEmpty) {
+        final localIsSynced = existingLog.first['is_synced'] as int;
+        final localUpdatedAt = existingLog.first['updated_at'] != null 
+            ? DateTime.tryParse(existingLog.first['updated_at'].toString()) 
+            : null;
+
+        if (localIsSynced == 0) return; // Dirty locally
+        if (log.updatedAt != null && localUpdatedAt != null && log.updatedAt!.isBefore(localUpdatedAt)) return;
+      }
+    }
+
     await db.insert(_getTableName(log.type), logWithUser.toMap(), conflictAlgorithm: ConflictAlgorithm.replace);
   }
 
   Future<void> deleteLog(String id, BodyMetricType type) async {
     final db = await _getDatabase();
     await db.delete(_getTableName(type), where: 'id = ? AND user_id = ?', whereArgs: [id, userId]);
+  }
+
+  Future<int> getUnsyncedCount() async {
+    final db = await _getDatabase();
+    int count = 0;
+    for (var type in BodyMetricType.values) {
+      final res = await db.rawQuery('SELECT COUNT(*) as cnt FROM ${_getTableName(type)} WHERE is_synced = 0 AND user_id = ?', [userId]);
+      count += Sqflite.firstIntValue(res) ?? 0;
+    }
+    final settings = await db.rawQuery('SELECT COUNT(*) as cnt FROM body_comp_settings WHERE is_synced = 0 AND user_id = ?', [userId]);
+    count += Sqflite.firstIntValue(settings) ?? 0;
+    
+    final dels = await db.rawQuery('SELECT COUNT(*) as cnt FROM pending_deletions WHERE user_id = ? AND table_name IN (?, ?, ?)', [userId, 'body_comp_weight_logs', 'body_comp_fats_logs', 'body_comp_muscle_logs']);
+    count += Sqflite.firstIntValue(dels) ?? 0;
+    
+    return count;
   }
 
   // --- Sync Helpers ---

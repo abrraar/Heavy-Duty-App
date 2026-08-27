@@ -8,6 +8,8 @@ import '../model/affirmation_settings.dart';
 import '../data/affirmation_local_repository.dart';
 import '../data/affirmation_cloud_repository.dart';
 
+import 'package:heavy_duty/core/providers/sync_provider.dart';
+
 class AffirmationProvider with ChangeNotifier {
   AffirmationLocalRepository? _localRepo;
   final AffirmationCloudRepository _cloudRepo = AffirmationCloudRepository();
@@ -111,6 +113,9 @@ class AffirmationProvider with ChangeNotifier {
     }
 
     try {
+      // MANDATORY: Push local offline changes BEFORE pulling from cloud
+      await _syncLocalToCloud();
+
       _customAffirmations = await _localRepo!.getAllAffirmations();
       _settings = await _localRepo!.getSettings();
       _updateCurrentAffirmation();
@@ -119,15 +124,25 @@ class AffirmationProvider with ChangeNotifier {
 
       final cloudAffs = await _cloudRepo.getAllAffirmations();
       if (cloudAffs != null) {
+        final localAffs = await _localRepo!.getAllAffirmations();
+        final cloudIds = cloudAffs.map((a) => a.id).toSet();
+
+        // Deletion Reconciliation: Remove local synced affirmations missing from cloud
+        for (var localA in localAffs) {
+          if (localA.isSynced == 1 && !cloudIds.contains(localA.id)) {
+            await _localRepo!.deleteAffirmation(localA.id);
+          }
+        }
+
         for (var aff in cloudAffs) {
-          await _localRepo!.insertAffirmation(aff.copyWith(isSynced: 1));
+          await _localRepo!.insertAffirmation(aff, isFromCloud: true);
         }
         _customAffirmations = await _localRepo!.getAllAffirmations();
       }
       final cloudSettings = await _cloudRepo.getSettings();
       if (cloudSettings != null) {
-        _settings = cloudSettings;
-        await _localRepo!.saveSettings(cloudSettings);
+        await _localRepo!.saveSettings(cloudSettings, isFromCloud: true);
+        _settings = await _localRepo!.getSettings();
       }
       _updateCurrentAffirmation();
       _startRotation();
@@ -189,6 +204,17 @@ class AffirmationProvider with ChangeNotifier {
     notifyListeners();
   }
 
+  void setManualAffirmation(Affirmation affirmation) {
+    _currentAffirmation = affirmation;
+    // Find index in current filtered list for 'continuous' mode tracking
+    final list = affirmations;
+    final idx = list.indexWhere((a) => a.id == affirmation.id);
+    if (idx != -1) _currentIndex = idx;
+    
+    notifyListeners();
+    _startRotation(); // Restart timer to give user full duration
+  }
+
   void _startRotation() {
     _rotationTimer?.cancel();
     _rotationTimer = Timer.periodic(Duration(minutes: _settings.rotationMinutes), (_) {
@@ -197,12 +223,19 @@ class AffirmationProvider with ChangeNotifier {
   }
 
   Future<void> updateSettings(AffirmationSettings settings) async {
-    _settings = settings;
+    final updatedSettings = settings.copyWith(
+      isSynced: 0,
+      updatedAt: DateTime.now(),
+    );
+    _settings = updatedSettings;
     notifyListeners();
     if (_localRepo != null) {
-      await _localRepo!.saveSettings(settings);
+      await _localRepo!.saveSettings(updatedSettings);
       try {
-        await _cloudRepo.saveSettings(settings);
+        await _cloudRepo.saveSettings(updatedSettings);
+        await _localRepo!.markSettingsSynced();
+        _settings = updatedSettings.copyWith(isSynced: 1);
+        notifyListeners();
       } catch (e) {
         debugPrint("Sync Settings Error: $e");
       }
@@ -232,6 +265,7 @@ class AffirmationProvider with ChangeNotifier {
       speaker: speaker,
       isCustom: true,
       isSynced: 0,
+      updatedAt: DateTime.now(),
       displayOrder: _customAffirmations.length,
     );
     _customAffirmations.add(affirmation);
@@ -248,11 +282,15 @@ class AffirmationProvider with ChangeNotifier {
     if (_localRepo == null) return;
     final index = _customAffirmations.indexWhere((a) => a.id == affirmation.id);
     if (index != -1) {
-      _customAffirmations[index] = affirmation.copyWith(isSynced: 0);
+      final updated = affirmation.copyWith(
+        isSynced: 0,
+        updatedAt: DateTime.now(),
+      );
+      _customAffirmations[index] = updated;
       notifyListeners();
       try {
-        await _localRepo!.insertAffirmation(_customAffirmations[index]);
-        await _cloudRepo.insertAffirmation(_customAffirmations[index]);
+        await _localRepo!.insertAffirmation(updated);
+        await _cloudRepo.insertAffirmation(updated);
         await _localRepo!.markAffirmationSynced(affirmation.id);
         _refreshList();
       } catch (e) { debugPrint("Update Error: $e"); }
@@ -273,12 +311,46 @@ class AffirmationProvider with ChangeNotifier {
 
   Future<void> _syncLocalToCloud() async {
     if (_localRepo == null) return;
-    final unsynced = await _localRepo!.getUnsyncedAffirmations();
-    for (var aff in unsynced) {
-      try {
-        await _cloudRepo.insertAffirmation(aff);
-        await _localRepo!.markAffirmationSynced(aff.id);
-      } catch (_) {}
+    
+    final syncProv = SyncProvider();
+    syncProv.startFeatureSync();
+
+    try {
+      final count = await _localRepo!.getUnsyncedCount();
+      syncProv.addTotalItems(count);
+
+      // 1. Push Deletions
+      final deletions = await _localRepo!.getPendingDeletions();
+      for (var del in deletions) {
+        final id = del['id'] as String;
+        final table = del['table_name'] as String;
+        try {
+          if (table == 'affirmations') await _cloudRepo.deleteAffirmation(id);
+          await _localRepo!.removeFromDeletionQueue(id);
+          syncProv.incrementCompleted();
+        } catch (_) {}
+      }
+
+      // 2. Push Changes
+      final unsynced = await _localRepo!.getUnsyncedAffirmations();
+      for (var aff in unsynced) {
+        try {
+          await _cloudRepo.insertAffirmation(aff);
+          await _localRepo!.markAffirmationSynced(aff.id);
+          syncProv.incrementCompleted();
+        } catch (_) {}
+      }
+
+      final unsyncedSettings = await _localRepo!.getUnsyncedSettings();
+      if (unsyncedSettings != null) {
+        try {
+          await _cloudRepo.saveSettings(unsyncedSettings);
+          await _localRepo!.markSettingsSynced();
+          syncProv.incrementCompleted();
+        } catch (_) {}
+      }
+    } finally {
+      syncProv.endFeatureSync();
     }
   }
 

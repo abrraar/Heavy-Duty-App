@@ -8,6 +8,8 @@ import '../model/body_comp_settings.dart';
 import '../data/body_comp_local_repository.dart';
 import '../data/body_comp_cloud_repository.dart';
 
+import 'package:heavy_duty/core/providers/sync_provider.dart';
+
 class BodyCompProvider with ChangeNotifier {
   BodyCompLocalRepository? _localRepo;
   final BodyCompCloudRepository _cloudRepo = BodyCompCloudRepository();
@@ -154,34 +156,47 @@ class BodyCompProvider with ChangeNotifier {
   Future<void> _syncLocalToCloud() async {
     if (_localRepo == null) return;
 
-    // 1. Push Unsynced Deletions
-    final deletions = await _localRepo!.getPendingDeletions();
-    for (var del in deletions) {
-      final id = del['id'] as String;
-      final table = del['table_name'] as String;
-      final type = _getTypeFromTable(table);
-      try {
-        await _cloudRepo.deleteLog(id, type);
-        await _localRepo!.removeFromDeletionQueue(id);
-      } catch (_) {}
-    }
+    final syncProv = SyncProvider();
+    syncProv.startFeatureSync();
 
-    // 2. Push Unsynced Logs
-    final unsyncedLogs = await _localRepo!.getUnsyncedLogs();
-    for (var log in unsyncedLogs) {
-      try {
-        await _cloudRepo.insertLog(log);
-        await _localRepo!.markLogSynced(log.id, log.type);
-      } catch (_) {}
-    }
+    try {
+      final count = await _localRepo!.getUnsyncedCount();
+      syncProv.addTotalItems(count);
 
-    // 3. Push Unsynced Settings
-    final unsyncedSettings = await _localRepo!.getUnsyncedSettings();
-    if (unsyncedSettings != null) {
-      try {
-        await _cloudRepo.saveSettings(unsyncedSettings);
-        await _localRepo!.markSettingsSynced();
-      } catch (_) {}
+      // 1. Push Unsynced Deletions
+      final deletions = await _localRepo!.getPendingDeletions();
+      for (var del in deletions) {
+        final id = del['id'] as String;
+        final table = del['table_name'] as String;
+        final type = _getTypeFromTable(table);
+        try {
+          await _cloudRepo.deleteLog(id, type);
+          await _localRepo!.removeFromDeletionQueue(id);
+          syncProv.incrementCompleted();
+        } catch (_) {}
+      }
+
+      // 2. Push Unsynced Logs
+      final unsyncedLogs = await _localRepo!.getUnsyncedLogs();
+      for (var log in unsyncedLogs) {
+        try {
+          await _cloudRepo.insertLog(log);
+          await _localRepo!.markLogSynced(log.id, log.type);
+          syncProv.incrementCompleted();
+        } catch (_) {}
+      }
+
+      // 3. Push Unsynced Settings
+      final unsyncedSettings = await _localRepo!.getUnsyncedSettings();
+      if (unsyncedSettings != null) {
+        try {
+          await _cloudRepo.saveSettings(unsyncedSettings);
+          await _localRepo!.markSettingsSynced();
+          syncProv.incrementCompleted();
+        } catch (_) {}
+      }
+    } finally {
+      syncProv.endFeatureSync();
     }
   }
 
@@ -193,6 +208,9 @@ class BodyCompProvider with ChangeNotifier {
     }
 
     try {
+      // MANDATORY: Push local offline changes BEFORE pulling from cloud
+      await _syncLocalToCloud();
+
       _settings = await _localRepo!.getSettings();
       _logs = await _localRepo!.getAllLogs();
       
@@ -217,17 +235,8 @@ class BodyCompProvider with ChangeNotifier {
       if (cloudLogs != null) {
         final localLogs = await _localRepo!.getAllLogs();
         final localMap = {for (var l in localLogs) l.id: l};
-        final cloudIds = cloudLogs.map((l) => l.id).toSet();
 
         bool logChanged = false;
-
-        // 1. Delete local logs that are synced but missing from cloud
-        for (var localLog in localLogs) {
-          if (localLog.isSynced == 1 && !cloudIds.contains(localLog.id)) {
-            await _localRepo!.deleteLog(localLog.id, localLog.type);
-            logChanged = true;
-          }
-        }
 
         // 2. Add/Update logs from cloud
         for (var log in cloudLogs) {
@@ -270,14 +279,18 @@ class BodyCompProvider with ChangeNotifier {
 
   Future<void> addLog(BodyCompLog log) async {
     if (_localRepo == null) return;
-    final localLog = log.copyWith(isSynced: 0, userId: _localRepo!.userId);
+    final localLog = log.copyWith(
+      isSynced: 0, 
+      userId: _localRepo!.userId,
+      updatedAt: DateTime.now(),
+    );
     _logs.add(localLog);
     _logs.sort((a, b) => b.timestamp.compareTo(a.timestamp));
     notifyListeners();
 
     try {
       await _localRepo!.insertLog(localLog);
-      _syncBodyCompLog(localLog);
+      await _syncBodyCompLog(localLog);
     } catch (e) {
       debugPrint("Error saving body comp log locally: $e");
     }
@@ -322,7 +335,10 @@ class BodyCompProvider with ChangeNotifier {
 
   Future<void> updateSettings(BodyCompSettings settings) async {
     if (_localRepo == null) return;
-    final localSettings = settings.copyWith(isSynced: 0);
+    final localSettings = settings.copyWith(
+      isSynced: 0,
+      updatedAt: DateTime.now(),
+    );
     _settings = localSettings;
     
     // Trigger notification scheduling
@@ -331,7 +347,7 @@ class BodyCompProvider with ChangeNotifier {
     notifyListeners();
     try {
       await _localRepo!.saveSettings(localSettings);
-      _syncBodyCompSettings(localSettings);
+      await _syncBodyCompSettings(localSettings);
     } catch (e) {
       debugPrint("Error saving body comp settings locally: $e");
     }

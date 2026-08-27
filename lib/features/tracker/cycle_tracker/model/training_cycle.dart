@@ -16,6 +16,7 @@ class TrainingCycle {
   final List<Workout> workouts;
   final String? sharedBy;
   final int isSynced;
+  final DateTime? updatedAt;
   final String? userId;
 
   TrainingCycle({
@@ -30,6 +31,7 @@ class TrainingCycle {
     this.workouts = const [],
     this.sharedBy,
     this.isSynced = 1,
+    this.updatedAt,
     this.userId,
   }) : id = id ?? const Uuid().v4();
 
@@ -46,6 +48,7 @@ class TrainingCycle {
       'note': note,
       'shared_by': sharedBy,
       'is_synced': isSynced,
+      'updated_at': updatedAt?.toIso8601String(),
     };
   }
 
@@ -73,7 +76,8 @@ class TrainingCycle {
       note: map['note']?.toString(),
       workouts: workouts,
       sharedBy: map['shared_by']?.toString(),
-      isSynced: map['is_synced'] ?? 1,
+      isSynced: (map['is_synced'] as num?)?.toInt() ?? 1,
+      updatedAt: map['updated_at'] != null ? DateTime.tryParse(map['updated_at'].toString()) : null,
     );
   }
 
@@ -100,12 +104,13 @@ class TrainingCycle {
     String? description,
     bool? isDefault,
     CycleStatus? status,
-    DateTime? startedAt,
-    DateTime? completedAt,
+    DateTime? Function()? startedAt,
+    DateTime? Function()? completedAt,
     String? note,
     List<Workout>? workouts,
     String? sharedBy,
     int? isSynced,
+    DateTime? updatedAt,
     String? userId,
   }) {
     return TrainingCycle(
@@ -114,12 +119,13 @@ class TrainingCycle {
       description: description ?? this.description,
       isDefault: isDefault ?? this.isDefault,
       status: status ?? this.status,
-      startedAt: startedAt ?? this.startedAt,
-      completedAt: completedAt ?? this.completedAt,
+      startedAt: startedAt != null ? startedAt() : this.startedAt,
+      completedAt: completedAt != null ? completedAt() : this.completedAt,
       note: note ?? this.note,
       workouts: workouts ?? this.workouts,
       sharedBy: sharedBy ?? this.sharedBy,
       isSynced: isSynced ?? this.isSynced,
+      updatedAt: updatedAt ?? this.updatedAt,
       userId: userId ?? this.userId,
     );
   }

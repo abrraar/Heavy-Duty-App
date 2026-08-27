@@ -13,6 +13,7 @@ class ExerciseTemplate {
   final String? aboutTheMovement;
   final String? sharedBy;
   final int isSynced;
+  final DateTime? updatedAt;
   final String? userId;
   
   // IN-MEMORY CACHE: For dynamic UI adjustments
@@ -29,6 +30,7 @@ class ExerciseTemplate {
     this.aboutTheMovement,
     this.sharedBy,
     this.isSynced = 1,
+    this.updatedAt,
     this.userId,
   }) : id = id ?? const Uuid().v4();
 
@@ -45,6 +47,7 @@ class ExerciseTemplate {
       'about_the_movement': aboutTheMovement,
       'shared_by': sharedBy,
       'is_synced': isSynced,
+      'updated_at': updatedAt?.toIso8601String(),
     };
   }
 
@@ -71,7 +74,8 @@ class ExerciseTemplate {
       imageUrl: map['image_url'] as String?,
       aboutTheMovement: map['about_the_movement'] as String?,
       sharedBy: map['shared_by'] as String?,
-      isSynced: map['is_synced'] as int? ?? 1,
+      isSynced: (map['is_synced'] as num?)?.toInt() ?? 1,
+      updatedAt: map['updated_at'] != null ? DateTime.tryParse(map['updated_at'].toString()) : null,
     );
   }
 
@@ -85,6 +89,7 @@ class ExerciseTemplate {
     String? aboutTheMovement,
     String? sharedBy,
     int? isSynced,
+    DateTime? updatedAt,
     String? userId,
   }) {
     return ExerciseTemplate(
@@ -98,6 +103,7 @@ class ExerciseTemplate {
       aboutTheMovement: aboutTheMovement ?? this.aboutTheMovement,
       sharedBy: sharedBy ?? this.sharedBy,
       isSynced: isSynced ?? this.isSynced,
+      updatedAt: updatedAt ?? this.updatedAt,
       userId: userId ?? this.userId,
     );
   }

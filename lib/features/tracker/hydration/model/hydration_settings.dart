@@ -14,6 +14,7 @@ class HydrationSettings {
   final bool isPinnedToHome;
   final List<HydrationReminder> reminders;
   final int isSynced;
+  final DateTime? updatedAt;
   final String? userId;
 
   HydrationSettings({
@@ -25,6 +26,7 @@ class HydrationSettings {
     this.isPinnedToHome = true,
     this.reminders = const [],
     this.isSynced = 1,
+    this.updatedAt,
     this.userId,
   });
 
@@ -42,6 +44,7 @@ class HydrationSettings {
       'is_pinned_to_home': isPinnedToHome ? 1 : 0,
       'reminders_json': jsonEncode(reminders.map((r) => r.toMap()).toList()),
       'is_synced': isSynced,
+      'updated_at': updatedAt?.toIso8601String(),
     };
   }
 
@@ -81,6 +84,7 @@ class HydrationSettings {
           .map((r) => HydrationReminder.fromMap(r as Map<String, dynamic>))
           .toList(),
       isSynced: (map['is_synced'] as num?)?.toInt() ?? 1,
+      updatedAt: map['updated_at'] != null ? DateTime.tryParse(map['updated_at'].toString()) : null,
       userId: map['user_id'] as String?,
     );
   }
@@ -94,6 +98,7 @@ class HydrationSettings {
     bool? isPinnedToHome,
     List<HydrationReminder>? reminders,
     int? isSynced,
+    DateTime? updatedAt,
     String? userId,
   }) {
     return HydrationSettings(
@@ -105,6 +110,7 @@ class HydrationSettings {
       isPinnedToHome: isPinnedToHome ?? this.isPinnedToHome,
       reminders: reminders ?? this.reminders,
       isSynced: isSynced ?? this.isSynced,
+      updatedAt: updatedAt ?? this.updatedAt,
       userId: userId ?? this.userId,
     );
   }

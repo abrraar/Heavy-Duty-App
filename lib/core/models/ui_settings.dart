@@ -3,6 +3,7 @@ import 'dart:convert';
 class UiSettings {
   final List<String> homeLayout;
   final int isSynced;
+  final DateTime? updatedAt;
 
   UiSettings({
     this.homeLayout = const [
@@ -15,6 +16,7 @@ class UiSettings {
       'workout_action',
     ],
     this.isSynced = 1,
+    this.updatedAt,
   });
 
   Map<String, dynamic> toMap() {
@@ -22,6 +24,7 @@ class UiSettings {
       'id': 1,
       'home_layout_json': jsonEncode(homeLayout),
       'is_synced': isSynced,
+      'updated_at': updatedAt?.toIso8601String(),
     };
   }
 
@@ -39,16 +42,19 @@ class UiSettings {
               'workout_action',
             ],
       isSynced: map['is_synced'] ?? 1,
+      updatedAt: map['updated_at'] != null ? DateTime.tryParse(map['updated_at'].toString()) : null,
     );
   }
 
   UiSettings copyWith({
     List<String>? homeLayout,
     int? isSynced,
+    DateTime? updatedAt,
   }) {
     return UiSettings(
       homeLayout: homeLayout ?? this.homeLayout,
       isSynced: isSynced ?? this.isSynced,
+      updatedAt: updatedAt ?? this.updatedAt,
     );
   }
 }

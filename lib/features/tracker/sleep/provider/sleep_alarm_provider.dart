@@ -132,21 +132,30 @@ class SleepAlarmProvider with ChangeNotifier {
     int? wakeUpMinute,
     String? wakeUpAudioPath,
   }) async {
-    _settings = SleepAlarmSettings(
-      bedtimeEnabled: bedtimeEnabled ?? _settings.bedtimeEnabled,
-      bedtimeHour: bedtimeHour ?? _settings.bedtimeHour,
-      bedtimeMinute: bedtimeMinute ?? _settings.bedtimeMinute,
-      bedtimeAudioPath: bedtimeAudioPath ?? _settings.bedtimeAudioPath,
-      wakeUpEnabled: wakeUpEnabled ?? _settings.wakeUpEnabled,
-      wakeUpHour: wakeUpHour ?? _settings.wakeUpHour,
-      wakeUpMinute: wakeUpMinute ?? _settings.wakeUpMinute,
-      wakeUpAudioPath: wakeUpAudioPath ?? _settings.wakeUpAudioPath,
+    final now = DateTime.now();
+    _settings = _settings.copyWith(
+      bedtimeEnabled: bedtimeEnabled,
+      bedtimeHour: bedtimeHour,
+      bedtimeMinute: bedtimeMinute,
+      bedtimeAudioPath: bedtimeAudioPath,
+      wakeUpEnabled: wakeUpEnabled,
+      wakeUpHour: wakeUpHour,
+      wakeUpMinute: wakeUpMinute,
+      wakeUpAudioPath: wakeUpAudioPath,
+      isSynced: 0,
+      updatedAt: now,
     );
 
     notifyListeners();
 
     if (_repo != null) {
-      await _repo!.saveSettings(_settings);
+      try {
+        await _repo!.saveSettings(_settings);
+        _settings = _settings.copyWith(isSynced: 1);
+        notifyListeners();
+      } catch (e) {
+        debugPrint("SleepAlarmProvider: Sync error: $e");
+      }
     }
 
     if (_settings.bedtimeEnabled) {

@@ -6,6 +6,7 @@ class CalorieSettings {
   final bool trackMacros;
   final bool showRemaining;
   final int isSynced;
+  final DateTime? updatedAt;
   final String? userId;
 
   CalorieSettings({
@@ -16,6 +17,7 @@ class CalorieSettings {
     this.trackMacros = true,
     this.showRemaining = true,
     this.isSynced = 1,
+    this.updatedAt,
     this.userId,
   });
 
@@ -30,6 +32,7 @@ class CalorieSettings {
       'track_macros': trackMacros,
       'show_remaining': showRemaining,
       'is_synced': isSynced,
+      'updated_at': updatedAt?.toIso8601String(),
     };
   }
 
@@ -48,6 +51,7 @@ class CalorieSettings {
       trackMacros: parseBool(map['track_macros']),
       showRemaining: parseBool(map['show_remaining']),
       isSynced: (map['is_synced'] as num?)?.toInt() ?? 1,
+      updatedAt: map['updated_at'] != null ? DateTime.tryParse(map['updated_at'].toString()) : null,
       userId: map['user_id'] as String?,
     );
   }
@@ -60,6 +64,7 @@ class CalorieSettings {
     bool? trackMacros,
     bool? showRemaining,
     int? isSynced,
+    DateTime? updatedAt,
     String? userId,
   }) {
     return CalorieSettings(
@@ -70,6 +75,7 @@ class CalorieSettings {
       trackMacros: trackMacros ?? this.trackMacros,
       showRemaining: showRemaining ?? this.showRemaining,
       isSynced: isSynced ?? this.isSynced,
+      updatedAt: updatedAt ?? this.updatedAt,
       userId: userId ?? this.userId,
     );
   }

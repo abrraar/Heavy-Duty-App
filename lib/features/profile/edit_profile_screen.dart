@@ -30,12 +30,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     final authProv = context.read<AuthProvider>();
     _nameController = TextEditingController(text: authProv.displayName);
     _heightController = TextEditingController(text: authProv.height?.toStringAsFixed(0) ?? "");
-    
-    final metadata = authProv.currentUser?.userMetadata ?? {};
-    if (metadata['birthday'] != null) {
-      _selectedBirthday = DateTime.tryParse(metadata['birthday'].toString());
-    }
-    _selectedGender = metadata['gender']?.toString();
+    _selectedBirthday = authProv.birthday;
+    _selectedGender = authProv.gender;
   }
 
   @override
@@ -83,10 +79,27 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       );
       // Auto-save logic: silence is golden. No success snackbar needed.
     } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("AUTO-SAVE FAILED: ${e.toString()}"), backgroundColor: AppColors.error),
-      );
+      // In an offline-first app, we suppress network-related auto-save errors.
+      // The provider will handle background synchronization silently.
+      final errorStr = e.toString().toLowerCase();
+      final isNetworkError = errorStr.contains('socketexception') || 
+                             errorStr.contains('clientexception') ||
+                             errorStr.contains('failed host lookup') ||
+                             errorStr.contains('errno = 7');
+      
+      if (!isNetworkError) {
+        debugPrint("EditProfile: Non-network auto-save error: $e");
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              "AUTO-SAVE FAILED: ${e.toString().toUpperCase()}",
+              style: AppTextStyles.labelSmall.copyWith(color: Colors.white),
+            ), 
+            backgroundColor: AppColors.error
+          ),
+        );
+      }
     }
   }
 

@@ -12,6 +12,7 @@ class BodyCompLog {
   final BodyMetricUnit unit;
   final DateTime timestamp;
   final int isSynced;
+  final DateTime? updatedAt;
 
   BodyCompLog({
     String? id,
@@ -22,6 +23,7 @@ class BodyCompLog {
     required this.unit,
     required this.timestamp,
     this.isSynced = 1,
+    this.updatedAt,
   }) : id = id ?? const Uuid().v4();
 
   // For backward compatibility and internal calculations
@@ -36,6 +38,7 @@ class BodyCompLog {
       'unit': unit.name,
       'timestamp': timestamp.toIso8601String(),
       'is_synced': isSynced,
+      'updated_at': updatedAt?.toIso8601String(),
     };
   }
 
@@ -67,6 +70,7 @@ class BodyCompLog {
       unit: unit,
       timestamp: DateTime.parse(map['timestamp'].toString()),
       isSynced: (map['is_synced'] as num?)?.toInt() ?? 1,
+      updatedAt: map['updated_at'] != null ? DateTime.tryParse(map['updated_at'].toString()) : null,
     );
   }
 
@@ -79,6 +83,7 @@ class BodyCompLog {
     BodyMetricUnit? unit,
     DateTime? timestamp,
     int? isSynced,
+    DateTime? updatedAt,
   }) {
     return BodyCompLog(
       id: id ?? this.id,
@@ -89,6 +94,7 @@ class BodyCompLog {
       unit: unit ?? this.unit,
       timestamp: timestamp ?? this.timestamp,
       isSynced: isSynced ?? this.isSynced,
+      updatedAt: updatedAt ?? this.updatedAt,
     );
   }
 }

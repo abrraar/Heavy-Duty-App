@@ -6,16 +6,12 @@ class AffirmationCloudRepository {
   final SupabaseClient _supabase = Supabase.instance.client;
 
   Future<List<Affirmation>?> getAllAffirmations() async {
-    try {
-      final response = await _supabase
-          .from('affirmations')
-          .select()
-          .order('display_order', ascending: true);
-      
-      return (response as List).map((map) => Affirmation.fromMap(map)).toList();
-    } catch (e) {
-      return null;
-    }
+    final response = await _supabase
+        .from('affirmations')
+        .select()
+        .order('display_order', ascending: true);
+    
+    return (response as List).map((map) => Affirmation.fromMap(map)).toList();
   }
 
   Future<void> insertAffirmation(Affirmation affirmation) async {
@@ -30,16 +26,12 @@ class AffirmationCloudRepository {
   }
 
   Future<AffirmationSettings?> getSettings() async {
-    try {
-      final response = await _supabase
-          .from('affirmation_settings')
-          .select()
-          .maybeSingle();
-      if (response != null) return AffirmationSettings.fromMap(response);
-      return null;
-    } catch (_) {
-      return null;
-    }
+    final response = await _supabase
+        .from('affirmation_settings')
+        .select()
+        .maybeSingle();
+    if (response != null) return AffirmationSettings.fromMap(response);
+    return null;
   }
 
   Future<void> saveSettings(AffirmationSettings settings) async {

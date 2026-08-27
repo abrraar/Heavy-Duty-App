@@ -36,15 +36,37 @@ class ProfileLocalRepository {
 
   Future<UserProfile?> getProfile() async {
     final db = await _getDb();
-    final List<Map<String, dynamic>> maps = await db.query('profiles', where: 'user_id = ?', whereArgs: [userId], limit: 1);
+    // Query by id (Primary Key) which is set to the user's UUID
+    final List<Map<String, dynamic>> maps = await db.query('profiles', where: 'id = ?', whereArgs: [userId], limit: 1);
     if (maps.isEmpty) return null;
     return UserProfile.fromMap(maps.first);
   }
 
-  Future<void> saveProfile(UserProfile profile) async {
+  Future<void> saveProfile(UserProfile profile, {bool isFromCloud = false}) async {
     final db = await _getDb();
+
+    if (isFromCloud) {
+      final existing = await db.query('profiles', where: 'id = ?', whereArgs: [profile.id]);
+      if (existing.isNotEmpty) {
+        final localIsSynced = existing.first['is_synced'] as int;
+        final localUpdatedAt = existing.first['updated_at'] != null 
+            ? DateTime.tryParse(existing.first['updated_at'].toString()) 
+            : null;
+
+        if (localIsSynced == 0) return; // Dirty locally
+        if (profile.updatedAt != null && localUpdatedAt != null && profile.updatedAt!.isBefore(localUpdatedAt)) return;
+      }
+    }
+
     final profileWithUser = profile.copyWith(userId: userId);
     await db.insert('profiles', profileWithUser.toMap(), conflictAlgorithm: ConflictAlgorithm.replace);
   }
 
+  Future<int> getUnsyncedCount() async {
+    final db = await _getDb();
+    final profile = await db.rawQuery('SELECT COUNT(*) as cnt FROM profiles WHERE is_synced = 0 AND user_id = ?', [userId]);
+    final emails = await db.rawQuery('SELECT COUNT(*) as cnt FROM user_emails WHERE is_synced = 0 AND user_id = ?', [userId]);
+    
+    return (Sqflite.firstIntValue(profile) ?? 0) + (Sqflite.firstIntValue(emails) ?? 0);
+  }
 }

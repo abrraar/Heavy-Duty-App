@@ -11,6 +11,10 @@ import 'package:heavy_duty/core/services/notification_service.dart';
 import 'package:heavy_duty/core/services/connectivity_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'package:heavy_duty/core/providers/sync_provider.dart';
+
+import 'package:heavy_duty/core/providers/sync_provider.dart';
+
 class HydrationProvider with ChangeNotifier {
   HydrationLocalRepository? _localRepo;
   final HydrationCloudRepository _cloudRepo = HydrationCloudRepository();
@@ -139,33 +143,46 @@ class HydrationProvider with ChangeNotifier {
   Future<void> _syncLocalToCloud() async {
     if (_localRepo == null) return;
 
-    // 1. Push Unsynced Deletions
-    final deletions = await _localRepo!.getPendingDeletions();
-    for (var del in deletions) {
-      final id = del['id'] as String;
-      final table = del['table_name'] as String;
-      try {
-        if (table == 'hydration_logs') await _cloudRepo.deleteLog(id);
-        await _localRepo!.removeFromDeletionQueue(id);
-      } catch (_) {}
-    }
+    final syncProv = SyncProvider();
+    syncProv.startFeatureSync();
+    
+    try {
+      final count = await _localRepo!.getUnsyncedCount();
+      syncProv.addTotalItems(count);
 
-    // 2. Push Unsynced Logs
-    final unsyncedLogs = await _localRepo!.getUnsyncedLogs();
-    for (var log in unsyncedLogs) {
-      try {
-        await _cloudRepo.insertLog(log);
-        await _localRepo!.markLogSynced(log.id);
-      } catch (_) {}
-    }
+      // 1. Push Unsynced Deletions
+      final deletions = await _localRepo!.getPendingDeletions();
+      for (var del in deletions) {
+        final id = del['id'] as String;
+        final table = del['table_name'] as String;
+        try {
+          if (table == 'hydration_logs') await _cloudRepo.deleteLog(id);
+          await _localRepo!.removeFromDeletionQueue(id);
+          syncProv.incrementCompleted();
+        } catch (_) {}
+      }
 
-    // 3. Push Unsynced Settings
-    final unsyncedSettings = await _localRepo!.getUnsyncedSettings();
-    if (unsyncedSettings != null) {
-      try {
-        await _cloudRepo.saveSettings(unsyncedSettings);
-        await _localRepo!.markSettingsSynced();
-      } catch (_) {}
+      // 2. Push Unsynced Logs
+      final unsyncedLogs = await _localRepo!.getUnsyncedLogs();
+      for (var log in unsyncedLogs) {
+        try {
+          await _cloudRepo.insertLog(log);
+          await _localRepo!.markLogSynced(log.id);
+          syncProv.incrementCompleted();
+        } catch (_) {}
+      }
+
+      // 3. Push Unsynced Settings
+      final unsyncedSettings = await _localRepo!.getUnsyncedSettings();
+      if (unsyncedSettings != null) {
+        try {
+          await _cloudRepo.saveSettings(unsyncedSettings);
+          await _localRepo!.markSettingsSynced();
+          syncProv.incrementCompleted();
+        } catch (_) {}
+      }
+    } finally {
+      syncProv.endFeatureSync();
     }
   }
 
@@ -177,42 +194,37 @@ class HydrationProvider with ChangeNotifier {
     }
 
     try {
+      // MANDATORY: Push local offline changes BEFORE pulling from cloud
+      await _syncLocalToCloud();
+
       _settings = await _localRepo!.getSettings();
       _logs = await _localRepo!.getAllLogs();
       notifyListeners();
 
       final cloudSettings = await _cloudRepo.getSettings();
       if (cloudSettings != null) {
-        // Only overwrite if it doesn't exist locally or if it's already synced
-        if (_settings.isSynced == 1) {
-          _settings = cloudSettings;
-          await _localRepo!.saveSettings(_settings);
-        }
+        await _localRepo!.saveSettings(cloudSettings, isFromCloud: true);
+        _settings = await _localRepo!.getSettings();
       }
 
       final cloudLogs = await _cloudRepo.getAllLogs();
       if (cloudLogs != null) {
         final localLogs = await _localRepo!.getAllLogs();
-        final localMap = {for (var log in localLogs) log.id: log};
         final cloudIds = cloudLogs.map((l) => l.id).toSet();
 
-        bool logChanged = false;
-
-        // 1. Delete local logs that are synced but missing from cloud
-        for (var localLog in localLogs) {
-          if (localLog.isSynced == 1 && !cloudIds.contains(localLog.id)) {
-            await _localRepo!.deleteLog(localLog.id);
-            logChanged = true;
+        // Deletion Reconciliation: Remove local synced logs missing from cloud
+        for (var localL in localLogs) {
+          if (localL.isSynced == 1 && !cloudIds.contains(localL.id)) {
+            await _localRepo!.deleteLog(localL.id);
           }
         }
 
+        bool logChanged = false;
+
         // 2. Add/Update logs from cloud
         for (var log in cloudLogs) {
-          final localLog = localMap[log.id];
-          if (localLog == null || localLog.isSynced == 1) {
-            await _localRepo!.insertLog(log);
-            logChanged = true;
-          }
+          await _localRepo!.insertLog(log, isFromCloud: true);
+          logChanged = true;
         }
         if (logChanged) _logs = await _localRepo!.getAllLogs();
       }
@@ -267,7 +279,7 @@ class HydrationProvider with ChangeNotifier {
         if (toDeduct <= 0) break;
         
         if (log.amountMl <= toDeduct) {
-          toDeduct -= log.amountMl;
+          toDeduct -= log.amountMl as int;
           await deleteLog(log.id);
         } else {
           final int newMl = log.amountMl - toDeduct;
@@ -286,7 +298,7 @@ class HydrationProvider with ChangeNotifier {
           
           try {
             await _localRepo!.insertLog(updatedLog);
-            _syncSingleHydrationLog(updatedLog);
+            await _syncSingleHydrationLog(updatedLog);
           } catch (e) {
             debugPrint("Error updating hydration log locally: $e");
           }
@@ -303,6 +315,7 @@ class HydrationProvider with ChangeNotifier {
       amountOz: amountInMl * mlToOzFactor,
       timestamp: targetDate,
       isSynced: 0,
+      updatedAt: DateTime.now(),
     );
 
     _logs.insert(0, log);
@@ -311,7 +324,7 @@ class HydrationProvider with ChangeNotifier {
 
     try {
       await _localRepo!.insertLog(log);
-      _syncSingleHydrationLog(log);
+      await _syncSingleHydrationLog(log);
     } catch (e) {
       debugPrint("Error saving hydration log locally: $e");
     }
@@ -374,13 +387,17 @@ class HydrationProvider with ChangeNotifier {
       }
     }
 
-    final localSettings = newSettings.copyWith(reminders: validatedReminders, isSynced: 0);
+    final localSettings = newSettings.copyWith(
+      reminders: validatedReminders, 
+      isSynced: 0,
+      updatedAt: DateTime.now(),
+    );
     _settings = localSettings;
     notifyListeners();
 
     try {
       await _localRepo!.saveSettings(localSettings);
-      _syncHydrationSettings(localSettings);
+      await _syncHydrationSettings(localSettings);
       _notificationService.scheduleHydrationReminders(_settings);
     } catch (e) {
       debugPrint("Error saving hydration settings locally: $e");

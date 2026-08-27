@@ -3,6 +3,8 @@ import '../data/ui_local_repository.dart';
 import '../data/ui_cloud_repository.dart';
 import '../models/ui_settings.dart';
 
+import 'package:heavy_duty/core/providers/sync_provider.dart';
+
 class UiProvider with ChangeNotifier {
   UiLocalRepository? _localRepo;
   final UiCloudRepository _cloudRepo = UiCloudRepository();
@@ -22,24 +24,53 @@ class UiProvider with ChangeNotifier {
     _isLoading = true;
     notifyListeners();
 
+    final syncProv = SyncProvider();
+    syncProv.startFeatureSync();
+
     try {
-      // 1. Load Local
+      // 1. Initial Local Load
       final localMap = await _localRepo!.getSettings();
       if (localMap != null) {
         _settings = UiSettings.fromMap(localMap);
         notifyListeners();
       }
 
-      // 2. Sync from Cloud
-      final cloudMap = await _cloudRepo.getSettings();
-      if (cloudMap != null) {
-        _settings = UiSettings.fromMap(cloudMap);
-        await _localRepo!.saveSettings(_settings.toMap());
-        notifyListeners();
+      final count = await _localRepo!.getUnsyncedCount();
+      syncProv.addTotalItems(count);
+
+      // 2. MANDATORY: Push local offline changes BEFORE pulling
+      if (_settings.isSynced == 0) {
+        try {
+          await _cloudRepo.saveSettings(_settings.toMap());
+          await _localRepo!.markSettingsSynced();
+          _settings = _settings.copyWith(isSynced: 1);
+          notifyListeners();
+          syncProv.incrementCompleted();
+        } catch (e) {
+          debugPrint("UiProvider: Background settings sync failed: $e");
+        }
       }
+
+      // 3. Pull from Cloud
+      try {
+        final cloudMap = await _cloudRepo.getSettings();
+        if (cloudMap != null) {
+          await _localRepo!.saveSettings(cloudMap, isFromCloud: true);
+          
+          // Re-load after safe reconciliation
+          final refreshedLocal = await _localRepo!.getSettings();
+          if (refreshedLocal != null) {
+            _settings = UiSettings.fromMap(refreshedLocal);
+          }
+        }
+      } catch (e) {
+        debugPrint("UiProvider: Cloud settings load failed: $e");
+      }
+
     } catch (e) {
       debugPrint("Error loading UI settings: $e");
     } finally {
+      syncProv.endFeatureSync();
       _isLoading = false;
       notifyListeners();
     }
@@ -50,7 +81,11 @@ class UiProvider with ChangeNotifier {
   }
 
   Future<void> updateHomeLayout(List<String> newLayout) async {
-    _settings = _settings.copyWith(homeLayout: newLayout, isSynced: 0);
+    _settings = _settings.copyWith(
+      homeLayout: newLayout, 
+      isSynced: 0,
+      updatedAt: DateTime.now(),
+    );
     notifyListeners();
 
     if (_localRepo != null) {

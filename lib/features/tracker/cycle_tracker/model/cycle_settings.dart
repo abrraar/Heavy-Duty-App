@@ -9,6 +9,7 @@ class CycleSettings {
   final bool workoutRemindersEnabled;
   final int workoutReminderInterval;
   final int isSynced;
+  final DateTime? updatedAt;
   final String? userId;
 
   CycleSettings({
@@ -17,6 +18,7 @@ class CycleSettings {
     this.workoutRemindersEnabled = false,
     this.workoutReminderInterval = 2,
     this.isSynced = 1,
+    this.updatedAt,
     this.userId,
   });
 
@@ -29,6 +31,7 @@ class CycleSettings {
       'workout_reminders_enabled': workoutRemindersEnabled ? 1 : 0,
       'workout_reminder_interval': workoutReminderInterval,
       'is_synced': isSynced,
+      'updated_at': updatedAt?.toIso8601String(),
     };
   }
 
@@ -58,6 +61,7 @@ class CycleSettings {
       workoutRemindersEnabled: map['workout_reminders_enabled'] == 1,
       workoutReminderInterval: map['workout_reminder_interval'] ?? 2,
       isSynced: map['is_synced'] ?? 1,
+      updatedAt: map['updated_at'] != null ? DateTime.tryParse(map['updated_at'].toString()) : null,
       userId: map['user_id'] as String?,
     );
   }
@@ -68,6 +72,7 @@ class CycleSettings {
     bool? workoutRemindersEnabled,
     int? workoutReminderInterval,
     int? isSynced,
+    DateTime? updatedAt,
     String? userId,
   }) {
     return CycleSettings(
@@ -76,6 +81,7 @@ class CycleSettings {
       workoutRemindersEnabled: workoutRemindersEnabled ?? this.workoutRemindersEnabled,
       workoutReminderInterval: workoutReminderInterval ?? this.workoutReminderInterval,
       isSynced: isSynced ?? this.isSynced,
+      updatedAt: updatedAt ?? this.updatedAt,
       userId: userId ?? this.userId,
     );
   }

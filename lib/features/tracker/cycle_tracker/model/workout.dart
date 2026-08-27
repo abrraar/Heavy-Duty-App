@@ -15,6 +15,7 @@ class Workout {
   final String? note;
   final List<Exercise> exercises;
   final int isSynced;
+  final DateTime? updatedAt;
   final String? userId;
 
   Workout({
@@ -27,6 +28,7 @@ class Workout {
     this.note,
     this.exercises = const [],
     this.isSynced = 1,
+    this.updatedAt,
     this.userId,
   }) : id = id ?? const Uuid().v4();
 
@@ -41,6 +43,7 @@ class Workout {
       'completed_at': completedAt?.toIso8601String(),
       'note': note,
       'is_synced': isSynced,
+      'updated_at': updatedAt?.toIso8601String(),
     };
   }
 
@@ -59,6 +62,7 @@ class Workout {
       note: map['note']?.toString(),
       exercises: exercises,
       isSynced: (map['is_synced'] as num?)?.toInt() ?? 1,
+      updatedAt: map['updated_at'] != null ? DateTime.tryParse(map['updated_at'].toString()) : null,
     );
   }
 
@@ -86,10 +90,11 @@ class Workout {
     String? name,
     int? order,
     WorkoutStatus? status,
-    DateTime? completedAt,
+    DateTime? Function()? completedAt,
     String? note,
     List<Exercise>? exercises,
     int? isSynced,
+    DateTime? updatedAt,
     String? userId,
   }) {
     return Workout(
@@ -98,10 +103,11 @@ class Workout {
       name: name ?? this.name,
       order: order ?? this.order,
       status: status ?? this.status,
-      completedAt: completedAt ?? this.completedAt,
+      completedAt: completedAt != null ? completedAt() : this.completedAt,
       note: note ?? this.note,
       exercises: exercises ?? this.exercises,
       isSynced: isSynced ?? this.isSynced,
+      updatedAt: updatedAt ?? this.updatedAt,
       userId: userId ?? this.userId,
     );
   }

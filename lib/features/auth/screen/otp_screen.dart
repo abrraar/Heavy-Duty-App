@@ -10,8 +10,33 @@ import 'package:heavy_duty/core/theme/app_text_styles.dart';
 import 'package:heavy_duty/core/navigation/app_routes.dart';
 import 'package:heavy_duty/core/constants/dimensions.dart';
 import 'package:heavy_duty/core/widgets/elite_snackbar.dart';
+import 'package:flutter/widget_previews.dart';
 import 'package:heavy_duty/features/auth/provider/auth_provider.dart';
 import 'package:heavy_duty/features/auth/widgets/auth_components.dart';
+
+@Preview()
+Widget previewOtpScreen() {
+  // Dummy initialization for the previewer environment to prevent Supabase crash
+  try {
+    Supabase.initialize(
+      url: 'https://placeholder.supabase.co',
+      anonKey: 'dummy',
+    );
+  } catch (_) {}
+
+  return ScreenUtilInit(
+    designSize: const Size(390, 844),
+    minTextAdapt: true,
+    splitScreenMode: true,
+    builder: (context, child) {
+      return MaterialApp(
+        debugShowCheckedModeBanner: false,
+        theme: ThemeData.dark(),
+        home: const Scaffold(body: OtpScreen()),
+      );
+    },
+  );
+}
 
 class OtpScreen extends StatefulWidget {
   const OtpScreen({super.key});
@@ -24,10 +49,27 @@ class _OtpScreenState extends State<OtpScreen> {
   final List<TextEditingController> _controllers = List.generate(6, (_) => TextEditingController());
   final List<FocusNode> _focusNodes = List.generate(6, (_) => FocusNode());
   bool _isVerifying = false;
+  bool _isOtpComplete = false;
+
+  @override
+  void initState() {
+    super.initState();
+    for (var controller in _controllers) {
+      controller.addListener(_validateOtpState);
+    }
+  }
+
+  void _validateOtpState() {
+    final complete = _controllers.every((c) => c.text.isNotEmpty);
+    if (complete != _isOtpComplete) {
+      setState(() => _isOtpComplete = complete);
+    }
+  }
 
   @override
   void dispose() {
     for (final c in _controllers) {
+      c.removeListener(_validateOtpState);
       c.dispose();
     }
     for (final f in _focusNodes) {
@@ -95,8 +137,13 @@ class _OtpScreenState extends State<OtpScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final authProvider = context.watch<AuthProvider>();
-    final isLoading = authProvider.isLoading || _isVerifying;
+    // In preview mode, provide dummy values if AuthProvider is not initialized
+    AuthProvider? authProvider;
+    try {
+      authProvider = context.watch<AuthProvider>();
+    } catch (_) {}
+
+    final isLoading = (authProvider?.isLoading ?? false) || _isVerifying;
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -175,8 +222,12 @@ class _OtpScreenState extends State<OtpScreen> {
   }
 
   Widget _buildOtpForm(bool isLoading, {bool isWideLayout = false}) {
-    final authProv = context.watch<AuthProvider>();
-    final int cooldown = authProv.emailCooldownSeconds;
+    AuthProvider? authProv;
+    try {
+      authProv = context.watch<AuthProvider>();
+    } catch (_) {}
+
+    final int cooldown = authProv?.emailCooldownSeconds ?? 0;
 
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -193,6 +244,7 @@ class _OtpScreenState extends State<OtpScreen> {
         AuthPrimaryButton(
           label: 'VERIFY CODE',
           isLoading: isLoading,
+          isEnabled: _isOtpComplete,
           onTap: _verifyOtp,
           isWideLayout: isWideLayout,
         ),
@@ -265,7 +317,7 @@ class _OtpScreenState extends State<OtpScreen> {
         decoration: InputDecoration(
           counterText: "",
           filled: true,
-          fillColor: AppColors.surfaceLight.withValues(alpha: 0.3),
+          fillColor: AppColors.surface,
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(10.r),
             borderSide: BorderSide.none,

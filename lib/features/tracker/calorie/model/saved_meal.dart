@@ -90,6 +90,7 @@ class SavedMeal {
   final bool multiplySupps;
   final String? sharedBy;
   final int isSynced;
+  final DateTime? updatedAt;
 
   SavedMeal({
     String? id,
@@ -109,6 +110,7 @@ class SavedMeal {
     this.multiplySupps = true,
     this.sharedBy,
     this.isSynced = 1,
+    this.updatedAt,
   }) : id = id ?? const Uuid().v4();
 
   Map<String, dynamic> toMap() {
@@ -130,6 +132,7 @@ class SavedMeal {
       'shared_by': sharedBy,
       'multiply_supps': multiplySupps ? 1 : 0,
       'is_synced': isSynced,
+      'updated_at': updatedAt?.toIso8601String(),
     };
   }
 
@@ -168,6 +171,7 @@ class SavedMeal {
       sharedBy: map['shared_by'] as String?,
       multiplySupps: map['multiply_supps'] == null || map['multiply_supps'] == true || map['multiply_supps'] == 1,
       isSynced: (map['is_synced'] as num?)?.toInt() ?? 1,
+      updatedAt: map['updated_at'] != null ? DateTime.tryParse(map['updated_at'].toString()) : null,
     );
   }
 
@@ -191,6 +195,7 @@ class SavedMeal {
     bool? multiplySupps,
     String? sharedBy,
     int? isSynced,
+    DateTime? updatedAt,
   }) {
     return SavedMeal(
       id: id ?? this.id,
@@ -210,6 +215,7 @@ class SavedMeal {
       multiplySupps: multiplySupps ?? this.multiplySupps,
       sharedBy: sharedBy ?? this.sharedBy,
       isSynced: isSynced ?? this.isSynced,
+      updatedAt: updatedAt ?? this.updatedAt,
     );
   }
 }

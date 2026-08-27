@@ -14,6 +14,8 @@ class SupplementStack {
 
   final String? sharedBy;
   final String? userId;
+  final int isSynced;
+  final DateTime? updatedAt;
 
   // NEW: Snapshot fields to store specific card configurations
   final Map<String, bool>
@@ -32,6 +34,8 @@ class SupplementStack {
     this.reminders = const [],
     this.sharedBy,
     this.userId,
+    this.isSynced = 1,
+    this.updatedAt,
     this.pinnedRecordModes = const {},
     this.pinnedUseServings = const {},
     this.pinnedAmounts = const {},
@@ -55,6 +59,8 @@ class SupplementStack {
       ),
       // NEW: Extract only the IDs from your items and encode them as a list of strings
       'supplement_ids_json': jsonEncode(items.map((item) => item.id).toList()),
+      'is_synced': isSynced,
+      'updated_at': updatedAt?.toIso8601String(),
     };
   }
 
@@ -94,6 +100,8 @@ class SupplementStack {
       pinnedRecordModes: rawModes.map((key, value) => MapEntry(key, value as bool)),
       pinnedUseServings: rawServings.map((key, value) => MapEntry(key, value as bool)),
       pinnedAmounts: rawAmounts.map((key, value) => MapEntry(key, double.parse(value.toString()))),
+      isSynced: (map['is_synced'] as num?)?.toInt() ?? 1,
+      updatedAt: map['updated_at'] != null ? DateTime.tryParse(map['updated_at'].toString()) : null,
     );
   }
 
@@ -106,6 +114,8 @@ class SupplementStack {
     List<SupplementReminder>? reminders,
     String? sharedBy,
     String? userId,
+    int? isSynced,
+    DateTime? updatedAt,
     Map<String, bool>? pinnedRecordModes,
     Map<String, bool>? pinnedUseServings,
     Map<String, double>? pinnedAmounts,
@@ -120,6 +130,8 @@ class SupplementStack {
       reminders: reminders ?? this.reminders,
       sharedBy: sharedBy ?? this.sharedBy,
       userId: userId ?? this.userId,
+      isSynced: isSynced ?? this.isSynced,
+      updatedAt: updatedAt ?? this.updatedAt,
       pinnedRecordModes: pinnedRecordModes ?? this.pinnedRecordModes,
       pinnedUseServings: pinnedUseServings ?? this.pinnedUseServings,
       pinnedAmounts: pinnedAmounts ?? this.pinnedAmounts,

@@ -34,25 +34,17 @@ class HydrationCloudRepository {
     final uid = _currentUserId;
     if (uid == null) return;
 
-    try {
-      final data = log.toMap();
-      data['user_id'] = uid;
-      data.remove('is_synced');
-      await _supabase.from('hydration_logs').upsert(data, onConflict: 'id');
-    } catch (e) {
-      debugPrint("Cloud Hydration Error (insertLog): $e");
-    }
+    final data = log.toMap();
+    data['user_id'] = uid;
+    data.remove('is_synced');
+    await _supabase.from('hydration_logs').upsert(data, onConflict: 'id');
   }
 
   Future<void> deleteLog(String id) async {
     final uid = _currentUserId;
     if (uid == null) return;
 
-    try {
-      await _supabase.from('hydration_logs').delete().eq('id', id).eq('user_id', uid);
-    } catch (e) {
-      debugPrint("Cloud Hydration Error (deleteLog): $e");
-    }
+    await _supabase.from('hydration_logs').delete().eq('id', id).eq('user_id', uid);
   }
 
   // --- Settings ---
@@ -81,14 +73,10 @@ class HydrationCloudRepository {
     final uid = _currentUserId;
     if (uid == null) return;
 
-    try {
-      final data = settings.toMap();
-      data['user_id'] = uid;
-      data['is_synced'] = 1;
-      data.remove('id'); 
-      await _supabase.from('hydration_settings').upsert(data, onConflict: 'user_id');
-    } catch (e) {
-      debugPrint("Cloud Hydration Error (saveSettings): $e");
-    }
+    final data = settings.toMap();
+    data['user_id'] = uid;
+    data['is_synced'] = 1;
+    data.remove('id'); 
+    await _supabase.from('hydration_settings').upsert(data, onConflict: 'user_id');
   }
 }

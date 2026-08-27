@@ -11,18 +11,13 @@ class ExerciseCloudRepository {
     final uid = _currentUserId;
     if (uid == null) return [];
 
-    try {
-      final List<Map<String, dynamic>> response = await _supabase
-          .from('exercise_templates')
-          .select()
-          .eq('user_id', uid)
-          .order('name', ascending: true);
+    final List<Map<String, dynamic>> response = await _supabase
+        .from('exercise_templates')
+        .select()
+        .eq('user_id', uid)
+        .order('name', ascending: true);
 
-      return response.map((map) => ExerciseTemplate.fromMap(map)).toList();
-    } catch (e) {
-      debugPrint("Cloud Exercise Error (getAllTemplates): $e");
-      return [];
-    }
+    return response.map((map) => ExerciseTemplate.fromMap(map)).toList();
   }
 
   Future<void> insertTemplate(ExerciseTemplate template) async {
@@ -60,10 +55,6 @@ class ExerciseCloudRepository {
     final uid = _currentUserId;
     if (uid == null) return;
 
-    try {
-      await _supabase.from('exercise_templates').delete().eq('id', id).eq('user_id', uid);
-    } catch (e) {
-      debugPrint("Cloud Exercise Error (deleteTemplate): $e");
-    }
+    await _supabase.from('exercise_templates').delete().eq('id', id).eq('user_id', uid);
   }
 }

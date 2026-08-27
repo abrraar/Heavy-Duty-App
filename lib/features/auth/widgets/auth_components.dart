@@ -66,6 +66,7 @@ class AuthPrimaryButton extends StatelessWidget {
   final VoidCallback onTap;
   final bool isLoading;
   final bool isWideLayout;
+  final bool isEnabled;
 
   const AuthPrimaryButton({
     super.key,
@@ -73,44 +74,51 @@ class AuthPrimaryButton extends StatelessWidget {
     required this.onTap,
     this.isLoading = false,
     this.isWideLayout = false,
+    this.isEnabled = true,
   });
 
   @override
   Widget build(BuildContext context) {
+    final bool effectiveEnabled = isEnabled && !isLoading;
+
     return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: double.infinity,
-        height: isWideLayout ? 60 : 56.h,
-        decoration: BoxDecoration(
-          color: AppColors.crimson,
-          borderRadius: BorderRadius.circular(12.r),
-          boxShadow: [
-            BoxShadow(
-              color: AppColors.crimson.withValues(alpha: 0.3),
-              blurRadius: 15,
-              offset: const Offset(0, 8),
-            ),
-          ],
-        ),
-        alignment: Alignment.center,
-        child: isLoading
-            ? SizedBox(
-                height: 24,
-                width: 24,
-                child: const CircularProgressIndicator(
-                  color: Colors.white,
-                  strokeWidth: 2.5,
-                ),
-              )
-            : Text(
-                label,
-                style: AppTextStyles.labelMedium.copyWith(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w500,
-                  fontSize: isWideLayout ? 18 : 16.sp,
-                ),
+      onTap: effectiveEnabled ? onTap : null,
+      child: AnimatedOpacity(
+        duration: const Duration(milliseconds: 200),
+        opacity: effectiveEnabled ? 1.0 : 0.5,
+        child: Container(
+          width: double.infinity,
+          height: isWideLayout ? 60 : 56.h,
+          decoration: BoxDecoration(
+            color: AppColors.crimson,
+            borderRadius: BorderRadius.circular(12.r),
+            boxShadow: effectiveEnabled ? [
+              BoxShadow(
+                color: AppColors.crimson.withValues(alpha: 0.3),
+                blurRadius: 15,
+                offset: const Offset(0, 8),
               ),
+            ] : null,
+          ),
+          alignment: Alignment.center,
+          child: isLoading
+              ? SizedBox(
+                  height: 24,
+                  width: 24,
+                  child: const CircularProgressIndicator(
+                    color: Colors.white,
+                    strokeWidth: 2.5,
+                  ),
+                )
+              : Text(
+                  label,
+                  style: AppTextStyles.labelMedium.copyWith(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w500,
+                    fontSize: isWideLayout ? 18 : 16.sp,
+                  ),
+                ),
+        ),
       ),
     );
   }

@@ -17,9 +17,23 @@ class HydrationLocalRepository {
 
   // --- Logs ---
 
-  Future<void> insertLog(HydrationLog log) async {
+  Future<void> insertLog(HydrationLog log, {bool isFromCloud = false}) async {
     final db = await _getDatabase();
     final logWithUser = log.copyWith(userId: userId);
+
+    if (isFromCloud) {
+      final existingLog = await db.query('hydration_logs', where: 'id = ?', whereArgs: [log.id]);
+      if (existingLog.isNotEmpty) {
+        final localIsSynced = existingLog.first['is_synced'] as int;
+        final localUpdatedAt = existingLog.first['updated_at'] != null 
+            ? DateTime.tryParse(existingLog.first['updated_at'].toString()) 
+            : null;
+
+        if (localIsSynced == 0) return; // Dirty locally
+        if (log.updatedAt != null && localUpdatedAt != null && log.updatedAt!.isBefore(localUpdatedAt)) return;
+      }
+    }
+
     await db.insert('hydration_logs', logWithUser.toMap(), conflictAlgorithm: ConflictAlgorithm.replace);
   }
 
@@ -67,12 +81,37 @@ class HydrationLocalRepository {
     return defaultSettings;
   }
 
-  Future<void> saveSettings(HydrationSettings settings) async {
+  Future<void> saveSettings(HydrationSettings settings, {bool isFromCloud = false}) async {
     final db = await _getDatabase();
+
+    if (isFromCloud) {
+      final results = await db.query('hydration_settings', where: 'id = 1 AND user_id = ?', whereArgs: [userId]);
+      if (results.isNotEmpty) {
+        final localIsSynced = results.first['is_synced'] as int;
+        final localUpdatedAt = results.first['updated_at'] != null 
+            ? DateTime.tryParse(results.first['updated_at'].toString()) 
+            : null;
+
+        if (localIsSynced == 0) return; // Dirty locally
+        if (settings.updatedAt != null && localUpdatedAt != null && settings.updatedAt!.isBefore(localUpdatedAt)) return;
+      }
+    }
+
     final settingsWithUser = settings.copyWith(userId: userId);
     final map = settingsWithUser.toMap();
     map['id'] = 1;
     await db.insert('hydration_settings', map, conflictAlgorithm: ConflictAlgorithm.replace);
+  }
+
+  Future<int> getUnsyncedCount() async {
+    final db = await _getDatabase();
+    final logs = await db.rawQuery('SELECT COUNT(*) as cnt FROM hydration_logs WHERE is_synced = 0 AND user_id = ?', [userId]);
+    final settings = await db.rawQuery('SELECT COUNT(*) as cnt FROM hydration_settings WHERE is_synced = 0 AND user_id = ?', [userId]);
+    final dels = await db.rawQuery('SELECT COUNT(*) as cnt FROM pending_deletions WHERE user_id = ? AND table_name = ?', [userId, 'hydration_logs']);
+    
+    return (Sqflite.firstIntValue(logs) ?? 0) + 
+           (Sqflite.firstIntValue(settings) ?? 0) + 
+           (Sqflite.firstIntValue(dels) ?? 0);
   }
 
   // --- Sync Helpers ---
@@ -90,7 +129,11 @@ class HydrationLocalRepository {
 
   Future<List<Map<String, dynamic>>> getPendingDeletions() async {
     final db = await _getDatabase();
-    return await db.query('pending_deletions', where: 'user_id = ?', whereArgs: [userId]);
+    return await db.query(
+      'pending_deletions', 
+      where: 'user_id = ? AND table_name = ?', 
+      whereArgs: [userId, 'hydration_logs']
+    );
   }
 
   Future<List<HydrationLog>> getUnsyncedLogs() async {

@@ -12,6 +12,7 @@ class ExerciseLog {
   final String? comment;
   final DateTime timestamp;
   final int isSynced;
+  final DateTime? updatedAt;
   final String? userId;
 
   ExerciseLog({
@@ -26,6 +27,7 @@ class ExerciseLog {
     this.comment,
     DateTime? timestamp,
     this.isSynced = 1,
+    this.updatedAt,
     this.userId,
   }) : id = id ?? const Uuid().v4(),
        timestamp = timestamp ?? DateTime.now();
@@ -44,6 +46,7 @@ class ExerciseLog {
       'comment': comment,
       'timestamp': timestamp.toIso8601String(),
       'is_synced': isSynced,
+      'updated_at': updatedAt?.toIso8601String(),
     };
   }
 
@@ -72,6 +75,7 @@ class ExerciseLog {
       comment: map['comment']?.toString(),
       timestamp: DateTime.tryParse(map['timestamp'].toString()) ?? DateTime.now(),
       isSynced: map['is_synced'] ?? 1,
+      updatedAt: map['updated_at'] != null ? DateTime.tryParse(map['updated_at'].toString()) : null,
     );
   }
 
@@ -84,9 +88,10 @@ class ExerciseLog {
     int? staticHoldSeconds,
     int? negativeReps,
     int? forcedReps,
-    String? comment,
-    DateTime? timestamp,
+    String? Function()? comment,
+    DateTime? Function()? timestamp,
     int? isSynced,
+    DateTime? updatedAt,
     String? userId,
   }) {
     return ExerciseLog(
@@ -98,9 +103,10 @@ class ExerciseLog {
       staticHoldSeconds: staticHoldSeconds ?? this.staticHoldSeconds,
       negativeReps: negativeReps ?? this.negativeReps,
       forcedReps: forcedReps ?? this.forcedReps,
-      comment: comment ?? this.comment,
-      timestamp: timestamp ?? this.timestamp,
+      comment: comment != null ? comment() : this.comment,
+      timestamp: timestamp != null ? timestamp() ?? DateTime.now() : this.timestamp,
       isSynced: isSynced ?? this.isSynced,
+      updatedAt: updatedAt ?? this.updatedAt,
       userId: userId ?? this.userId,
     );
   }

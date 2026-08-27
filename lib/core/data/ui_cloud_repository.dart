@@ -4,20 +4,16 @@ class UiCloudRepository {
   final _supabase = Supabase.instance.client;
 
   Future<Map<String, dynamic>?> getSettings() async {
-    try {
-      final userId = _supabase.auth.currentUser?.id;
-      if (userId == null) return null;
+    final userId = _supabase.auth.currentUser?.id;
+    if (userId == null) return null;
 
-      final response = await _supabase
-          .from('home_widget_settings')
-          .select()
-          .eq('user_id', userId)
-          .maybeSingle();
-      
-      return response;
-    } catch (e) {
-      return null;
-    }
+    final response = await _supabase
+        .from('home_widget_settings')
+        .select()
+        .eq('user_id', userId)
+        .maybeSingle();
+    
+    return response;
   }
 
   Future<void> saveSettings(Map<String, dynamic> settings) async {

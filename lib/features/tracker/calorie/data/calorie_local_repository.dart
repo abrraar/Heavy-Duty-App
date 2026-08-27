@@ -27,9 +27,27 @@ class CalorieLocalRepository {
     return maps.map((map) => CalorieLog.fromMap(map)).toList();
   }
 
-  Future<void> insertLog(CalorieLog log) async {
+  Future<void> insertLog(CalorieLog log, {bool isFromCloud = false}) async {
     final db = await _getDatabase();
     final logWithUser = log.copyWith(userId: userId);
+
+    if (isFromCloud) {
+      final pendingDels = await db.query('pending_deletions', where: 'user_id = ?', whereArgs: [userId]);
+      final pendingIds = pendingDels.map((d) => d['id'] as String).toSet();
+      if (pendingIds.contains(log.id)) return;
+
+      final existing = await db.query('calorie_meal_logs', where: 'id = ?', whereArgs: [log.id]);
+      if (existing.isNotEmpty) {
+        final localIsSynced = existing.first['is_synced'] as int;
+        final localUpdatedAt = existing.first['updated_at'] != null 
+            ? DateTime.tryParse(existing.first['updated_at'].toString()) 
+            : null;
+
+        if (localIsSynced == 0) return; // Dirty locally
+        if (log.updatedAt != null && localUpdatedAt != null && log.updatedAt!.isBefore(localUpdatedAt)) return;
+      }
+    }
+
     await db.insert('calorie_meal_logs', logWithUser.toMap(), conflictAlgorithm: ConflictAlgorithm.replace);
   }
 
@@ -49,8 +67,22 @@ class CalorieLocalRepository {
     return CalorieSettings(userId: userId);
   }
 
-  Future<void> saveSettings(CalorieSettings settings) async {
+  Future<void> saveSettings(CalorieSettings settings, {bool isFromCloud = false}) async {
     final db = await _getDatabase();
+
+    if (isFromCloud) {
+      final results = await db.query('calorie_settings', where: 'id = 1 AND user_id = ?', whereArgs: [userId]);
+      if (results.isNotEmpty) {
+        final localIsSynced = results.first['is_synced'] as int;
+        final localUpdatedAt = results.first['updated_at'] != null 
+            ? DateTime.tryParse(results.first['updated_at'].toString()) 
+            : null;
+
+        if (localIsSynced == 0) return; // Dirty locally
+        if (settings.updatedAt != null && localUpdatedAt != null && settings.updatedAt!.isBefore(localUpdatedAt)) return;
+      }
+    }
+
     final settingsWithUser = settings.copyWith(userId: userId);
     final data = settingsWithUser.toMap();
     data['id'] = 1;
@@ -70,9 +102,27 @@ class CalorieLocalRepository {
     return maps.map((map) => SavedMeal.fromMap(map)).toList();
   }
 
-  Future<void> insertSavedMeal(SavedMeal meal) async {
+  Future<void> insertSavedMeal(SavedMeal meal, {bool isFromCloud = false}) async {
     final db = await _getDatabase();
     final mealWithUser = meal.copyWith(userId: userId);
+
+    if (isFromCloud) {
+      final pendingDels = await db.query('pending_deletions', where: 'user_id = ?', whereArgs: [userId]);
+      final pendingIds = pendingDels.map((d) => d['id'] as String).toSet();
+      if (pendingIds.contains(meal.id)) return;
+
+      final existing = await db.query('calorie_meals', where: 'id = ?', whereArgs: [meal.id]);
+      if (existing.isNotEmpty) {
+        final localIsSynced = existing.first['is_synced'] as int;
+        final localUpdatedAt = existing.first['updated_at'] != null 
+            ? DateTime.tryParse(existing.first['updated_at'].toString()) 
+            : null;
+
+        if (localIsSynced == 0) return; // Dirty locally
+        if (meal.updatedAt != null && localUpdatedAt != null && meal.updatedAt!.isBefore(localUpdatedAt)) return;
+      }
+    }
+
     await db.insert('calorie_meals', mealWithUser.toMap(), conflictAlgorithm: ConflictAlgorithm.replace);
   }
 
@@ -82,6 +132,17 @@ class CalorieLocalRepository {
   }
 
   // --- Sync Helpers ---
+
+  Future<int> getUnsyncedCount() async {
+    final db = await _getDatabase();
+    final logs = await db.rawQuery('SELECT COUNT(*) as cnt FROM calorie_meal_logs WHERE is_synced = 0 AND user_id = ?', [userId]);
+    final meals = await db.rawQuery('SELECT COUNT(*) as cnt FROM calorie_meals WHERE is_synced = 0 AND user_id = ?', [userId]);
+    final dels = await db.rawQuery('SELECT COUNT(*) as cnt FROM pending_deletions WHERE user_id = ? AND table_name IN (?, ?)', [userId, 'calorie_meal_logs', 'calorie_meals']);
+    
+    return (Sqflite.firstIntValue(logs) ?? 0) + 
+           (Sqflite.firstIntValue(meals) ?? 0) + 
+           (Sqflite.firstIntValue(dels) ?? 0);
+  }
 
   Future<void> addToDeletionQueue(String id, String tableName) async {
     final db = await _getDatabase();
@@ -96,7 +157,11 @@ class CalorieLocalRepository {
 
   Future<List<Map<String, dynamic>>> getPendingDeletions() async {
     final db = await _getDatabase();
-    return await db.query('pending_deletions', where: 'user_id = ?', whereArgs: [userId]);
+    return await db.query(
+      'pending_deletions', 
+      where: 'user_id = ? AND table_name IN (?, ?)', 
+      whereArgs: [userId, 'calorie_meal_logs', 'calorie_meals']
+    );
   }
 
   Future<List<CalorieLog>> getUnsyncedLogs() async {

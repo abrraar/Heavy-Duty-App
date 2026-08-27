@@ -29,14 +29,51 @@ class ProfileScreen extends StatelessWidget {
       builder: (context, authProv, bodyProv, cycleProv, _) {
         final lastWeightLog = bodyProv.logs.where((l) => l.type == BodyMetricType.weight).firstOrNull;
         final lastFatLog = bodyProv.logs.where((l) => l.type == BodyMetricType.fat).firstOrNull;
+        final lastMuscleLog = bodyProv.logs.where((l) => l.type == BodyMetricType.muscle).firstOrNull;
         
-        final height = authProv.height ?? 170.0;
-        final weight = lastWeightLog?.value ?? 0.0;
-        final bodyFat = lastFatLog?.value ?? 0.0;
+        final height = authProv.height;
+        final weight = lastWeightLog?.value;
+        final bodyFat = lastFatLog?.value;
+        final muscleMass = lastMuscleLog?.value;
         
         double bmi = 0;
-        if (height > 0 && weight > 0) {
+        if (height != null && height > 0 && weight != null && weight > 0) {
           bmi = weight / ((height / 100) * (height / 100));
+        }
+
+        // Calculate BMR & TDEE
+        int? age;
+        if (authProv.birthday != null) {
+          final now = DateTime.now();
+          age = now.year - authProv.birthday!.year;
+          if (now.month < authProv.birthday!.month || (now.month == authProv.birthday!.month && now.day < authProv.birthday!.day)) {
+            age--;
+          }
+        }
+
+        double? bmr;
+        if (weight != null && height != null && age != null && authProv.gender != null) {
+          final gender = authProv.gender!.toLowerCase();
+          if (gender == 'male' || gender == 'man') {
+            bmr = (10 * weight) + (6.25 * height) - (5 * age) + 5;
+          } else {
+            bmr = (10 * weight) + (6.25 * height) - (5 * age) - 161;
+          }
+        }
+
+        double? tdee;
+        if (bmr != null) {
+          tdee = bmr * 1.2; // Default Activity Multiplier (Sedentary)
+        }
+
+        double? musclePercent;
+        if (muscleMass != null && weight != null && weight > 0) {
+          if (lastMuscleLog?.unit == BodyMetricUnit.percentage) {
+            musclePercent = muscleMass;
+          } else {
+            // Calculate percentage from weight
+            musclePercent = (muscleMass / weight) * 100;
+          }
         }
 
         // Calculate Elite Records
@@ -74,95 +111,103 @@ class ProfileScreen extends StatelessWidget {
         final double displayHeaviestWeight = isLbs ? (heaviestWeightKg * 2.205) : heaviestWeightKg;
         final String weightLabel = isLbs ? "LBS" : "KG";
 
-        return SingleChildScrollView(
-          physics: const BouncingScrollPhysics(),
-          padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 10.h),
-          child: Column(
-            children: [
-              // 1. Sleek Profile Info Card (Glassmorphism style)
-              _buildGlassCard(
-                title: 'PROFILE INFORMATION',
-                icon: Icons.person_rounded,
-                action: GestureDetector(
-                  onTap: () => context.push(AppRoutes.editProfile),
-                  child: Container(
-                    padding: EdgeInsets.all(8.r),
-                    decoration: BoxDecoration(
-                      color: AppColors.crimson.withValues(alpha: 0.1),
-                      shape: BoxShape.circle,
+        return RefreshIndicator(
+          onRefresh: () => authProv.forceRefreshProfile(),
+          color: AppColors.crimson,
+          backgroundColor: AppColors.surface,
+          child: SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+            padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 10.h),
+            child: Column(
+              children: [
+                // 1. Sleek Profile Info Card (Glassmorphism style)
+                _buildGlassCard(
+                  title: 'PROFILE INFORMATION',
+                  icon: Icons.person_rounded,
+                  action: GestureDetector(
+                    onTap: () => context.push(AppRoutes.editProfile),
+                    child: Container(
+                      padding: EdgeInsets.all(8.r),
+                      decoration: BoxDecoration(
+                        color: AppColors.crimson.withValues(alpha: 0.1),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(Icons.edit_rounded, color: AppColors.crimson, size: 18.r),
                     ),
-                    child: Icon(Icons.edit_rounded, color: AppColors.crimson, size: 18.r),
+                  ),
+                  child: Column(
+                    children: [
+                      _buildInfoTile('Name', authProv.displayName),
+                      _buildInfoTile('Gender', authProv.gender?.toUpperCase() ?? "NOT SET"),
+                      _buildInfoTile(
+                        'Birthday', 
+                        authProv.birthday != null 
+                          ? DateFormat('MMM dd, yyyy').format(authProv.birthday!).toUpperCase() 
+                          : "NOT SET"
+                      ),
+                      _buildInfoTile(
+                        'Height', 
+                        height != null ? "${height.toStringAsFixed(0)} cm" : "NOT SET",
+                        isLast: true,
+                      ),
+                    ],
                   ),
                 ),
-                child: Column(
-                  children: [
-                    _buildInfoTile('Name', authProv.displayName),
-                    _buildInfoTile('Gender', authProv.gender?.toUpperCase() ?? "NOT SET"),
-                    _buildInfoTile(
-                      'Birthday', 
-                      authProv.birthday != null 
-                        ? DateFormat('MMM dd, yyyy').format(authProv.birthday!).toUpperCase() 
-                        : "NOT SET"
-                    ),
-                    _buildInfoTile(
-                      'Height', 
-                      "${height.toStringAsFixed(0)} cm",
-                      isLast: true,
-                    ),
-                  ],
-                ),
-              ),
-              SizedBox(height: 20.h),
+                SizedBox(height: 20.h),
 
-              // 2. Body Metrics Grid
-              _buildGlassCard(
-                title: 'BODY COMPOSITION',
-                icon: Icons.analytics_outlined,
-                child: GridView.count(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  crossAxisCount: 2,
-                  mainAxisSpacing: 12.h,
-                  crossAxisSpacing: 12.w,
-                  childAspectRatio: 2.2,
-                  children: [
-                    _buildMetricBox('Height', height.toStringAsFixed(0), 'cm'),
-                    _buildMetricBox('Weight', weight > 0 ? weight.toStringAsFixed(1) : '--', 'kg'),
-                    _buildMetricBox('Body Fat', bodyFat > 0 ? bodyFat.toStringAsFixed(1) : '--', '%'),
-                    _buildMetricBox('BMI', bmi > 0 ? bmi.toStringAsFixed(1) : '--', 'pts'),
-                  ],
+                // 2. Body Metrics Grid
+                _buildGlassCard(
+                  title: 'CURRENT BODY COMPOSITION AND STATUS',
+                  icon: Icons.analytics_outlined,
+                  child: GridView.count(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    crossAxisCount: 2,
+                    mainAxisSpacing: 12.h,
+                    crossAxisSpacing: 12.w,
+                    childAspectRatio: 2.2,
+                    children: [
+                      _buildMetricBox('Height', height != null ? height.toStringAsFixed(0) : '--', 'cm'),
+                      _buildMetricBox('Weight', weight != null && weight > 0 ? weight.toStringAsFixed(1) : '--', 'kg'),
+                      _buildMetricBox('Body Fat', bodyFat != null && bodyFat > 0 ? bodyFat.toStringAsFixed(1) : '--', '%'),
+                      _buildMetricBox('Muscle Mass', musclePercent != null && musclePercent > 0 ? musclePercent.toStringAsFixed(1) : '--', '%'),
+                      _buildMetricBox('BMI', bmi > 0 ? bmi.toStringAsFixed(1) : '--', 'pts'),
+                      _buildMetricBox('BMR', bmr != null ? bmr.toStringAsFixed(0) : '--', 'kcal'),
+                      _buildMetricBox('TDEE', tdee != null ? tdee.toStringAsFixed(0) : '--', 'kcal'),
+                    ],
+                  ),
                 ),
-              ),
-              SizedBox(height: 20.h),
+                SizedBox(height: 20.h),
 
-              // 3. Strength Records (Elite Tier List)
-              _buildGlassCard(
-                title: 'ELITE RECORDS',
-                icon: Icons.emoji_events_rounded,
-                child: Column(
-                  children: [
-                    _buildRecordTile(
-                      label: 'Heaviest Lift',
-                      exercise: heaviestExercise.toUpperCase(),
-                      value: heaviestWeightKg > 0 
-                          ? '${displayHeaviestWeight.toStringAsFixed(1)} $weightLabel'
-                          : 'NO RECORDS',
-                      isHot: heaviestWeightKg > 0,
-                    ),
-                    _buildRecordTile(
-                      label: 'Best Strength Gain',
-                      exercise: bestGainExercise.toUpperCase(),
-                      value: bestGain > 0 
-                          ? '+${(bestGain * 100).toStringAsFixed(1)}%'
-                          : 'N/A',
-                      isHot: bestGain > 0,
-                    ),
-                  ],
+                // 3. Strength Records (Elite Tier List)
+                _buildGlassCard(
+                  title: 'ELITE RECORDS',
+                  icon: Icons.emoji_events_rounded,
+                  child: Column(
+                    children: [
+                      _buildRecordTile(
+                        label: 'Heaviest Lift',
+                        exercise: heaviestExercise.toUpperCase(),
+                        value: heaviestWeightKg > 0 
+                            ? '${displayHeaviestWeight.toStringAsFixed(1)} $weightLabel'
+                            : 'NO RECORDS',
+                        isHot: heaviestWeightKg > 0,
+                      ),
+                      _buildRecordTile(
+                        label: 'Best Strength Gain',
+                        exercise: bestGainExercise.toUpperCase(),
+                        value: bestGain > 0 
+                            ? '+${(bestGain * 100).toStringAsFixed(1)}%'
+                            : 'N/A',
+                        isHot: bestGain > 0,
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-              
-              SizedBox(height: 50.h),
-            ],
+                
+                SizedBox(height: 50.h),
+              ],
+            ),
           ),
         );
       },
