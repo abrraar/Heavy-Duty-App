@@ -5,6 +5,7 @@ import 'package:heavy_duty/core/theme/app_text_styles.dart';
 import 'package:heavy_duty/features/tracker/cycle_tracker/provider/cycle_provider.dart';
 import 'package:heavy_duty/core/widgets/elite_confirm_dialog.dart';
 import 'package:heavy_duty/features/tracker/cycle_tracker/widgets/exercise_picker_sheet.dart';
+import 'package:heavy_duty/core/utils/adaptive_utils.dart';
 import 'package:heavy_duty/core/widgets/elite_snackbar.dart';
 import 'package:provider/provider.dart';
 import 'package:uuid/uuid.dart';
@@ -52,133 +53,152 @@ class _CreateCycleScreenState extends State<CreateCycleScreen> {
     TextEditingController titleController = TextEditingController();
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: AppColors.surface,
-        surfaceTintColor: Colors.transparent,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(28.r),
-        ),
-        title: Column(
-          children: [
-            Container(
-              padding: EdgeInsets.all(12.r),
-              decoration: BoxDecoration(
-                color: AppColors.crimson.withOpacity(0.1),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(
-                Icons.add_rounded,
-                color: AppColors.crimson,
-                size: 28.r,
-              ),
-            ),
-            SizedBox(height: 16.h),
-            Text(
-              "WORKOUT NAME",
-              style: AppTextStyles.h3.copyWith(
-                fontSize: 16.sp,
-                letterSpacing: 1.2,
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: titleController,
-              autofocus: true,
-              textAlign: TextAlign.center,
-              style: AppTextStyles.h3.copyWith(color: AppColors.white, fontSize: 16.sp),
-              decoration: InputDecoration(
-                hintText: "e.g. CHEST & BACK",
-                hintStyle: AppTextStyles.labelSmall.copyWith(
-                  color: AppColors.textSecondary,
-                  fontSize: 12.sp,
+      builder: (context) => LayoutBuilder(
+        builder: (context, constraints) {
+          final bool isCompact = constraints.maxWidth < 600;
+          return Center(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(maxWidth: isCompact ? double.infinity : 400),
+              child: AlertDialog(
+                backgroundColor: AppColors.surface,
+                surfaceTintColor: Colors.transparent,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(isCompact ? 28.r : 20.0),
                 ),
-                enabledBorder: const UnderlineInputBorder(
-                  borderSide: BorderSide(color: AppColors.crimson, width: 2),
-                ),
-                focusedBorder: const UnderlineInputBorder(
-                  borderSide: BorderSide(color: AppColors.crimson, width: 2),
-                ),
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          Padding(
-            padding: EdgeInsets.fromLTRB(12.w, 0, 12.w, 16.h),
-            child: Row(
-              children: [
-                Expanded(
-                  child: GestureDetector(
-                    onTap: () => Navigator.pop(context),
-                    child: Container(
-                      padding: EdgeInsets.symmetric(vertical: 12.h),
+                title: Column(
+                  children: [
+                    Container(
+                      padding: EdgeInsets.all(isCompact ? 12.r : 12.0),
                       decoration: BoxDecoration(
-                        color: Colors.transparent,
-                        borderRadius: BorderRadius.circular(12.r),
-                        border: Border.all(color: AppColors.white.withOpacity(0.1)),
+                        color: AppColors.crimson.withValues(alpha : 0.1),
+                        shape: BoxShape.circle,
                       ),
-                      alignment: Alignment.center,
-                      child: Text(
-                        "CANCEL",
-                        style: AppTextStyles.labelSmall.copyWith(
+                      child: Icon(
+                        Icons.add_rounded,
+                        color: AppColors.crimson,
+                        size: isCompact ? 28.r : 28.0,
+                      ),
+                    ),
+                    SizedBox(height: isCompact ? 16.h : 16.0),
+                    Text(
+                      "WORKOUT NAME",
+                      style: AppTextStyles.h3.copyWith(
+                        fontSize: isCompact ? 16.sp : 15.0,
+                        letterSpacing: 1.2,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                ),
+                content: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TextField(
+                      controller: titleController,
+                      autofocus: true,
+                      textAlign: TextAlign.center,
+                      style: AppTextStyles.h3.copyWith(
+                        color: AppColors.white, 
+                        fontSize: isCompact ? 16.sp : 15.0
+                      ),
+                      decoration: InputDecoration(
+                        hintText: "e.g. CHEST & BACK",
+                        hintStyle: AppTextStyles.labelSmall.copyWith(
                           color: AppColors.textSecondary,
-                          fontWeight: FontWeight.w500,
+                          fontSize: isCompact ? 12.sp : 12.0,
+                        ),
+                        enabledBorder: const UnderlineInputBorder(
+                          borderSide: BorderSide(color: AppColors.crimson, width: 2),
+                        ),
+                        focusedBorder: const UnderlineInputBorder(
+                          borderSide: BorderSide(color: AppColors.crimson, width: 2),
                         ),
                       ),
                     ),
-                  ),
+                  ],
                 ),
-                SizedBox(width: 12.w),
-                Expanded(
-                  child: GestureDetector(
-                    onTap: () {
-                      if (titleController.text.isNotEmpty) {
-                        setState(() {
-                          _workouts.add({
-                            "name": titleController.text.toUpperCase(),
-                            "exercises": <String>[],
-                          });
-                        });
-                        Navigator.pop(context);
-                      }
-                    },
-                    child: Container(
-                      padding: EdgeInsets.symmetric(vertical: 12.h),
-                      decoration: BoxDecoration(
-                        color: AppColors.crimson.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(12.r),
-                        border: Border.all(color: AppColors.crimson.withOpacity(0.5)),
-                      ),
-                      alignment: Alignment.center,
-                      child: Text(
-                        "ADD",
-                        style: AppTextStyles.labelSmall.copyWith(
-                          color: AppColors.crimson,
-                          fontWeight: FontWeight.w500,
+                actions: [
+                  Padding(
+                    padding: EdgeInsets.fromLTRB(
+                      isCompact ? 12.w : 12.0, 
+                      0, 
+                      isCompact ? 12.w : 12.0, 
+                      isCompact ? 16.h : 16.0
+                    ),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: GestureDetector(
+                            onTap: () => Navigator.pop(context),
+                            child: Container(
+                              padding: EdgeInsets.symmetric(vertical: isCompact ? 12.h : 12.0),
+                              decoration: BoxDecoration(
+                                color: Colors.transparent,
+                                borderRadius: BorderRadius.circular(isCompact ? 12.r : 10.0),
+                                border: Border.all(color: AppColors.white.withValues(alpha : 0.1)),
+                              ),
+                              alignment: Alignment.center,
+                              child: Text(
+                                "CANCEL",
+                                style: AppTextStyles.labelSmall.copyWith(
+                                  color: AppColors.textSecondary,
+                                  fontWeight: FontWeight.w500,
+                                  fontSize: isCompact ? null : 12.0,
+                                ),
+                              ),
+                            ),
+                          ),
                         ),
-                      ),
+                        SizedBox(width: isCompact ? 12.w : 12.0),
+                        Expanded(
+                          child: GestureDetector(
+                            onTap: () {
+                              if (titleController.text.isNotEmpty) {
+                                setState(() {
+                                  _workouts.add({
+                                    "name": titleController.text.toUpperCase(),
+                                    "exercises": <String>[],
+                                  });
+                                });
+                                Navigator.pop(context);
+                              }
+                            },
+                            child: Container(
+                              padding: EdgeInsets.symmetric(vertical: isCompact ? 12.h : 12.0),
+                              decoration: BoxDecoration(
+                                color: AppColors.crimson.withValues(alpha : 0.1),
+                                borderRadius: BorderRadius.circular(isCompact ? 12.r : 10.0),
+                                border: Border.all(color: AppColors.crimson.withValues(alpha : 0.5)),
+                              ),
+                              alignment: Alignment.center,
+                              child: Text(
+                                "ADD",
+                                style: AppTextStyles.labelSmall.copyWith(
+                                  color: AppColors.crimson,
+                                  fontWeight: FontWeight.w500,
+                                  fontSize: isCompact ? null : 12.0,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-        ],
+          );
+        }
       ),
     );
   }
 
   void _addExerciseToWorkout(Map<String, dynamic> workout) {
-    showModalBottomSheet(
+    AdaptiveUtils.showAdaptiveSheet(
       context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => ExercisePickerSheet(
+      sheetBuilder: (sheetContext, isSideSheet) => ExercisePickerSheet(
+        isSideSheet: isSideSheet,
         onSelected: (name) {
           setState(() {
             workout['exercises'].add(name);
@@ -192,123 +212,150 @@ class _CreateCycleScreenState extends State<CreateCycleScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      body: Column(
-        children: [
-          Padding(
-            padding: EdgeInsets.symmetric(vertical: 24.h, horizontal: 8.w),
-            child: IntrinsicHeight(
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  IconButton(
-                    icon: const Icon(
-                      Icons.arrow_back_ios_new_rounded,
-                      color: AppColors.white,
-                    ),
-                    onPressed: () => Navigator.pop(context),
-                  ),
-                  Expanded(
-                    child: Text(
-                      'CREATE CUSTOM CYCLE',
-                      textAlign: TextAlign.center,
-                      style: AppTextStyles.h2.copyWith(
-                        color: AppColors.white,
-                        fontWeight: FontWeight.w400,
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          final bool isCompact = constraints.maxWidth < 600;
+          return Column(
+            children: [
+              Padding(
+                padding: EdgeInsets.symmetric(
+                  vertical: isCompact ? 24.h : 24.0, 
+                  horizontal: isCompact ? 24.w : 24.0
+                ),
+                child: IntrinsicHeight(
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      IconButton(
+                        icon: Icon(
+                          Icons.arrow_back_ios_new_rounded,
+                          color: AppColors.white,
+                          size: isCompact ? null : 20.0,
+                        ),
+                        onPressed: () => Navigator.pop(context),
                       ),
-                    ),
+                      Expanded(
+                        child: Text(
+                          'CREATE CUSTOM CYCLE',
+                          textAlign: TextAlign.center,
+                          style: AppTextStyles.h2.copyWith(
+                            color: AppColors.white,
+                            fontWeight: FontWeight.w500,
+                            fontSize: isCompact ? null : 20.0,
+                          ),
+                        ),
+                      ),
+                      const Opacity(
+                        opacity: 0,
+                        child: IconButton(
+                          icon: Icon(Icons.info_outline_rounded),
+                          onPressed: null,
+                        ),
+                      ),
+                    ],
                   ),
-                  const Opacity(
-                    opacity: 0,
-                    child: IconButton(
-                      icon: Icon(Icons.info_outline_rounded),
-                      onPressed: null,
-                    ),
-                  ),
-                ],
+                ),
               ),
-            ),
-          ),
-          Expanded(
-            child: SingleChildScrollView(
-              padding: EdgeInsets.all(24.r),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildSectionHeader("CYCLE IDENTITY"),
-                  SizedBox(height: 16.h),
-                  _buildTextField("CYCLE NAME", _nameController),
-                  SizedBox(height: 16.h),
-                  _buildTextField(
-                    "DESCRIPTION (OPTIONAL)", 
-                    _descriptionController, 
-                    maxLines: 2,
-                    hint: "e.g. FOCUS ON PROGRESSIVE OVERLOAD AND RECOVERY",
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: EdgeInsets.symmetric(
+                    vertical: isCompact ? 24.h : 24.0, 
+                    horizontal: isCompact ? 24.w : 24.0
                   ),
-                  SizedBox(height: 32.h),
-                  _buildSectionHeader("WORKOUT ARCHITECTURE"),
-                  SizedBox(height: 16.h),
-                  ..._workouts.map((w) => _buildWorkoutFormCard(w)),
-                  _buildAddWorkoutButton(),
-                  SizedBox(height: 40.h),
-                  _buildSaveButton(),
-                ],
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildSectionHeader("CYCLE IDENTITY", isCompact),
+                      SizedBox(height: isCompact ? 16.h : 16.0),
+                      _buildTextField("CYCLE NAME", _nameController, isCompact: isCompact),
+                      SizedBox(height: isCompact ? 16.h : 16.0),
+                      _buildTextField(
+                        "DESCRIPTION (OPTIONAL)",
+                        _descriptionController,
+                        maxLines: 2,
+                        hint: "e.g. FOCUS ON PROGRESSIVE OVERLOAD AND RECOVERY",
+                        isCompact: isCompact,
+                      ),
+                      SizedBox(height: isCompact ? 32.h : 32.0),
+                      _buildSectionHeader("WORKOUT ARCHITECTURE", isCompact),
+                      SizedBox(height: isCompact ? 16.h : 16.0),
+                      ..._workouts.map((w) => _buildWorkoutFormCard(w, isCompact)),
+                      _buildAddWorkoutButton(isCompact),
+                      SizedBox(height: isCompact ? 40.h : 40.0),
+                      _buildSaveButton(isCompact),
+                    ],
+                  ),
+                ),
               ),
-            ),
-          ),
-        ],
+            ],
+          );
+        }
       ),
     );
   }
 
-  Widget _buildWorkoutFormCard(Map<String, dynamic> workout) {
+  Widget _buildWorkoutFormCard(Map<String, dynamic> workout, bool isCompact) {
     return Container(
-      margin: EdgeInsets.only(bottom: 16.h),
-      padding: EdgeInsets.all(16.r),
+      margin: EdgeInsets.only(bottom: isCompact ? 16.h : 16.0),
+      padding: EdgeInsets.all(isCompact ? 16.r : 16.0),
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.circular(12.r),
-        border: Border.all(color: AppColors.white.withOpacity(0.05)),
+        borderRadius: BorderRadius.circular(isCompact ? 12.r : 10.0),
+        border: Border.all(color: AppColors.white.withValues(alpha : 0.05)),
       ),
       child: Column(
         children: [
           Row(
             children: [
-              Expanded(child: Text(workout['name'], style: AppTextStyles.labelSmall.copyWith(color: Colors.white, fontWeight: FontWeight.w500))),
-              IconButton(onPressed: () => setState(() => _workouts.remove(workout)), icon: const Icon(Icons.delete_outline, color: AppColors.crimson, size: 20)),
+              Expanded(child: Text(workout['name'], style: AppTextStyles.labelSmall.copyWith(
+                color: Colors.white, 
+                fontWeight: FontWeight.w500,
+                fontSize: isCompact ? null : 12.0,
+              ))),
+              IconButton(
+                onPressed: () => setState(() => _workouts.remove(workout)), 
+                icon: Icon(Icons.delete_outline, color: AppColors.crimson, size: isCompact ? 20.r : 20.0)
+              ),
             ],
           ),
           ...List.generate(workout['exercises'].length, (i) => Padding(
-            padding: EdgeInsets.only(top: 8.h),
+            padding: EdgeInsets.only(top: isCompact ? 8.h : 8.0),
             child: Row(
               children: [
                 const Icon(Icons.circle, size: 6, color: AppColors.crimson),
-                SizedBox(width: 12.w),
-                Expanded(child: Text(workout['exercises'][i], style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary))),
+                SizedBox(width: isCompact ? 12.w : 12.0),
+                Expanded(child: Text(workout['exercises'][i], style: AppTextStyles.labelSmall.copyWith(
+                  color: AppColors.textSecondary,
+                  fontSize: isCompact ? null : 11.0,
+                ))),
                 IconButton(
                   onPressed: () => setState(() => workout['exercises'].removeAt(i)),
-                  icon: const Icon(Icons.remove_circle_outline, color: AppColors.textSecondary, size: 14),
+                  icon: Icon(Icons.remove_circle_outline, color: AppColors.textSecondary, size: isCompact ? 14.r : 14.0),
                   padding: EdgeInsets.zero,
                   constraints: const BoxConstraints(),
                 ),
               ],
             ),
           )),
-          SizedBox(height: 12.h),
+          SizedBox(height: isCompact ? 12.h : 12.0),
           GestureDetector(
             onTap: () => _addExerciseToWorkout(workout),
             child: Container(
-              padding: EdgeInsets.symmetric(vertical: 8.h),
+              padding: EdgeInsets.symmetric(vertical: isCompact ? 8.h : 8.0),
               decoration: BoxDecoration(
-                border: Border.all(color: AppColors.crimson.withOpacity(0.3), style: BorderStyle.solid),
-                borderRadius: BorderRadius.circular(8.r),
+                border: Border.all(color: AppColors.crimson.withValues(alpha : 0.3), style: BorderStyle.solid),
+                borderRadius: BorderRadius.circular(isCompact ? 8.r : 6.0),
               ),
               child: Center(
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Icon(Icons.add, color: AppColors.crimson, size: 14),
-                    SizedBox(width: 8.w),
-                    Text("ADD EXERCISE", style: AppTextStyles.labelSmall.copyWith(color: AppColors.crimson, fontSize: 9.sp)),
+                    Icon(Icons.add, color: AppColors.crimson, size: isCompact ? 14.r : 14.0),
+                    SizedBox(width: isCompact ? 8.w : 8.0),
+                    Text("ADD EXERCISE", style: AppTextStyles.labelSmall.copyWith(
+                      color: AppColors.crimson, 
+                      fontSize: isCompact ? 9.sp : 10.0
+                    )),
                   ],
                 ),
               ),
@@ -319,14 +366,14 @@ class _CreateCycleScreenState extends State<CreateCycleScreen> {
     );
   }
 
-  Widget _buildAddWorkoutButton() {
+  Widget _buildAddWorkoutButton(bool isCompact) {
     return GestureDetector(
       onTap: _addWorkout,
       child: Container(
-        padding: EdgeInsets.symmetric(vertical: 16.h),
+        padding: EdgeInsets.symmetric(vertical: isCompact ? 16.h : 16.0),
         decoration: BoxDecoration(
-          border: Border.all(color: AppColors.white.withOpacity(0.1), style: BorderStyle.solid),
-          borderRadius: BorderRadius.circular(12.r),
+          border: Border.all(color: AppColors.white.withValues(alpha : 0.1), style: BorderStyle.solid),
+          borderRadius: BorderRadius.circular(isCompact ? 12.r : 10.0),
         ),
         child: const Center(child: Icon(Icons.add, color: AppColors.textSecondary)),
       ),
@@ -348,7 +395,7 @@ class _CreateCycleScreenState extends State<CreateCycleScreen> {
     return "";
   }
 
-  Widget _buildSaveButton() {
+  Widget _buildSaveButton(bool isCompact) {
     final bool isValid = _isCycleValid;
     final String valText = _validationText;
 
@@ -358,38 +405,38 @@ class _CreateCycleScreenState extends State<CreateCycleScreen> {
           onTap: isValid ? () => _handleSave(shouldInitialize: false) : null,
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 200),
-            height: 50.h,
+            height: isCompact ? 50.h : 50.0,
             width: double.infinity,
             decoration: BoxDecoration(
               color: Colors.transparent,
-              borderRadius: BorderRadius.circular(12.r),
+              borderRadius: BorderRadius.circular(isCompact ? 12.r : 10.0),
               border: Border.all(
-                color: isValid ? AppColors.white.withOpacity(0.1) : AppColors.white.withOpacity(0.03),
+                color: isValid ? AppColors.white.withValues(alpha : 0.1) : AppColors.white.withValues(alpha : 0.03),
               ),
             ),
             alignment: Alignment.center,
             child: Text(
               isValid ? "SAVE TO LIBRARY" : valText,
               style: AppTextStyles.buttonPrimary.copyWith(
-                color: isValid ? AppColors.white : AppColors.textSecondary.withOpacity(0.3),
-                fontSize: 12.sp,
+                color: isValid ? AppColors.white : AppColors.textSecondary.withValues(alpha : 0.3),
+                fontSize: isCompact ? 12.sp : 13.0,
               ),
             ),
           ),
         ),
-        SizedBox(height: 12.h),
+        SizedBox(height: isCompact ? 12.h : 12.0),
         GestureDetector(
           onTap: isValid ? () => _handleSave(shouldInitialize: true) : null,
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 200),
-            height: 54.h,
+            height: isCompact ? 54.h : 54.0,
             width: double.infinity,
             decoration: BoxDecoration(
-              color: isValid ? AppColors.crimson : AppColors.surfaceLight.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(12.r),
+              color: isValid ? AppColors.crimson : AppColors.surfaceLight.withValues(alpha : 0.1),
+              borderRadius: BorderRadius.circular(isCompact ? 12.r : 10.0),
               boxShadow: isValid ? [
                 BoxShadow(
-                  color: AppColors.crimson.withOpacity(0.2),
+                  color: AppColors.crimson.withValues(alpha : 0.2),
                   blurRadius: 10,
                   offset: const Offset(0, 4),
                 )
@@ -399,9 +446,9 @@ class _CreateCycleScreenState extends State<CreateCycleScreen> {
             child: Text(
               isValid ? "SAVE AND INITIALIZE" : valText,
               style: AppTextStyles.buttonPrimary.copyWith(
-                color: isValid ? Colors.white : AppColors.textSecondary.withOpacity(0.3),
-                fontSize: 12.sp,
-                fontWeight: isValid ? FontWeight.w500 : FontWeight.normal,
+                color: isValid ? Colors.white : AppColors.textSecondary.withValues(alpha : 0.3),
+                fontSize: isCompact ? 12.sp : 13.0,
+                fontWeight: FontWeight.w500,
               ),
             ),
           ),
@@ -446,7 +493,7 @@ class _CreateCycleScreenState extends State<CreateCycleScreen> {
               children: [
                 Container(
                   padding: EdgeInsets.all(12.r),
-                  decoration: BoxDecoration(color: Colors.greenAccent.withOpacity(0.1), shape: BoxShape.circle),
+                  decoration: BoxDecoration(color: Colors.greenAccent.withValues(alpha : 0.1), shape: BoxShape.circle),
                   child: const Icon(Icons.bolt_rounded, color: Colors.greenAccent, size: 28),
                 ),
                 SizedBox(height: 16.h),
@@ -473,7 +520,7 @@ class _CreateCycleScreenState extends State<CreateCycleScreen> {
                         onTap: () => Navigator.pop(ctx, false),
                         child: Container(
                           padding: EdgeInsets.symmetric(vertical: 12.h),
-                          decoration: BoxDecoration(color: Colors.transparent, borderRadius: BorderRadius.circular(12.r), border: Border.all(color: AppColors.white.withOpacity(0.1))),
+                          decoration: BoxDecoration(color: Colors.transparent, borderRadius: BorderRadius.circular(12.r), border: Border.all(color: AppColors.white.withValues(alpha : 0.1))),
                           alignment: Alignment.center,
                           child: Text("CANCEL", style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary, fontWeight: FontWeight.w500)),
                         ),
@@ -485,7 +532,7 @@ class _CreateCycleScreenState extends State<CreateCycleScreen> {
                         onTap: () => Navigator.pop(ctx, true),
                         child: Container(
                           padding: EdgeInsets.symmetric(vertical: 12.h),
-                          decoration: BoxDecoration(color: Colors.greenAccent.withOpacity(0.1), borderRadius: BorderRadius.circular(12.r), border: Border.all(color: Colors.greenAccent.withOpacity(0.5))),
+                          decoration: BoxDecoration(color: Colors.greenAccent.withValues(alpha : 0.1), borderRadius: BorderRadius.circular(12.r), border: Border.all(color: Colors.greenAccent.withValues(alpha : 0.5))),
                           alignment: Alignment.center,
                           child: Text("ACTIVATE", style: AppTextStyles.labelSmall.copyWith(color: Colors.greenAccent, fontWeight: FontWeight.w500)),
                         ),
@@ -567,35 +614,38 @@ class _CreateCycleScreenState extends State<CreateCycleScreen> {
     }
   }
 
-  Widget _buildSectionHeader(String title) {
+  Widget _buildSectionHeader(String title, bool isCompact) {
     return Row(
       children: [
         Container(
-          width: 2.5.w,
-          height: 12.h,
+          width: isCompact ? 2.5.w : 2.5,
+          height: isCompact ? 12.h : 12.0,
           decoration: BoxDecoration(
             color: AppColors.crimson,
-            borderRadius: BorderRadius.circular(2.r),
+            borderRadius: BorderRadius.circular(isCompact ? 2.r : 2.0),
           ),
         ),
-        SizedBox(width: 8.w),
+        SizedBox(width: isCompact ? 8.w : 8.0),
         Text(
           title,
           style: AppTextStyles.labelSmall.copyWith(
             color: AppColors.textSecondary.withValues(alpha: 0.8),
-            fontSize: 12.sp,
+            fontSize: isCompact ? 12.sp : 12.0,
           ),
         ),
       ],
     );
   }
 
-  Widget _buildTextField(String label, TextEditingController controller, {int? maxLines, String? hint}) {
+  Widget _buildTextField(String label, TextEditingController controller, {int? maxLines, String? hint, required bool isCompact}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary, fontSize: 10.sp)),
-        SizedBox(height: 8.h),
+        Text(label, style: AppTextStyles.labelSmall.copyWith(
+          color: AppColors.textSecondary, 
+          fontSize: isCompact ? 10.sp : 11.0
+        )),
+        SizedBox(height: isCompact ? 8.h : 8.0),
         TextField(
           controller: controller,
           maxLines: maxLines ?? 1,
@@ -612,13 +662,22 @@ class _CreateCycleScreenState extends State<CreateCycleScreen> {
             }
             setState(() {});
           },
-          style: const TextStyle(color: Colors.white),
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: isCompact ? null : 14.0,
+          ),
           decoration: InputDecoration(
             hintText: hint,
-            hintStyle: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary.withOpacity(0.3), fontSize: 10.sp),
+            hintStyle: AppTextStyles.labelSmall.copyWith(
+              color: AppColors.textSecondary.withValues(alpha : 0.3), 
+              fontSize: isCompact ? 10.sp : 11.0
+            ),
             filled: true,
             fillColor: AppColors.surface,
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12.r), borderSide: BorderSide.none),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(isCompact ? 12.r : 10.0), 
+              borderSide: BorderSide.none
+            ),
           ),
         ),
       ],

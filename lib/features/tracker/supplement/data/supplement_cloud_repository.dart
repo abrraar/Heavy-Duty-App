@@ -9,7 +9,7 @@ import '../model/supplement_item.dart';
 import '../model/supplement_settings.dart';
 
 class SupplementCloudRepository {
-  final SupabaseClient _supabase = Supabase.instance.client;
+  SupabaseClient get _supabase => Supabase.instance.client;
 
   /// Helper to get the currently authenticated User's ID safely.
   String? get _currentUserId => _supabase.auth.currentUser?.id;

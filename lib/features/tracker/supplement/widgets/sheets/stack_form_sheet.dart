@@ -12,8 +12,9 @@ import 'package:uuid/uuid.dart';
 
 class StackFormSheet extends StatefulWidget {
   final SupplementStack? existingStack;
+  final bool isSideSheet;
 
-  const StackFormSheet({super.key, this.existingStack});
+  const StackFormSheet({super.key, this.existingStack, this.isSideSheet = false});
 
   @override
   State<StackFormSheet> createState() => _StackFormSheetState();
@@ -192,86 +193,120 @@ class _StackFormSheetState extends State<StackFormSheet> {
       }
     }
 
-    return Material(
-      color: Colors.transparent,
-      child: Container(
-        constraints: BoxConstraints(
-          maxHeight: MediaQuery.of(context).size.height * 0.9,
-        ),
-        padding: EdgeInsets.only(
-          bottom: MediaQuery.of(context).viewInsets.bottom,
-        ),
-        decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(32.r)),
-          border: Border.all(color: AppColors.white.withOpacity(0.05)),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            _buildHandle(),
-            Padding(
-              padding: EdgeInsets.fromLTRB(24.w, 0, 24.w, 8.h),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Container(
-                        padding: EdgeInsets.all(10.r),
-                        decoration: BoxDecoration(
-                          color: AppColors.crimson.withOpacity(0.1),
-                          shape: BoxShape.circle,
-                        ),
-                        child: Icon(
-                          Icons.layers_rounded,
-                          color: AppColors.crimson,
-                          size: 24.r,
-                        ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final bool isCompact = constraints.maxWidth < 600 && !widget.isSideSheet;
+        final double sheetWidth = widget.isSideSheet ? constraints.maxWidth : (isCompact ? constraints.maxWidth : 600.0);
+
+        return Align(
+          alignment: widget.isSideSheet ? Alignment.center : Alignment.bottomCenter,
+          child: SizedBox(
+            width: sheetWidth,
+            child: Material(
+              color: Colors.transparent,
+              child: Container(
+                height: widget.isSideSheet ? double.infinity : null,
+                constraints: BoxConstraints(
+                  maxHeight: MediaQuery.of(context).size.height * 0.9,
+                ),
+                padding: EdgeInsets.only(
+                  bottom: MediaQuery.of(context).viewInsets.bottom,
+                ),
+                decoration: BoxDecoration(
+                  color: AppColors.surface,
+                  borderRadius: widget.isSideSheet 
+                    ? const BorderRadius.horizontal(left: Radius.circular(24.0))
+                    : BorderRadius.vertical(top: Radius.circular(isCompact ? 32.r : 24.0)),
+                  border: Border.all(color: AppColors.white.withOpacity(0.05)),
+                ),
+                child: Column(
+                  mainAxisSize: widget.isSideSheet ? MainAxisSize.max : MainAxisSize.min,
+                  children: [
+                    if (widget.isSideSheet) SizedBox(height: 24.0),
+                    if (!widget.isSideSheet) _buildHandle(isCompact),
+                    Padding(
+                      padding: EdgeInsets.fromLTRB(
+                        isCompact ? 24.w : 24.0, 
+                        0, 
+                        isCompact ? 24.w : 24.0, 
+                        isCompact ? 8.h : 8.0
                       ),
-                      SizedBox(width: 12.w),
-                      Text(
-                        widget.existingStack == null
-                            ? "NEW STACK"
-                            : "EDIT STACK",
-                        style: AppTextStyles.h3,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Row(
+                                children: [
+                                  Container(
+                                    padding: EdgeInsets.all(isCompact ? 10.r : 10.0),
+                                    decoration: BoxDecoration(
+                                      color: AppColors.crimson.withOpacity(0.1),
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: Icon(
+                                      Icons.layers_rounded,
+                                      color: AppColors.crimson,
+                                      size: isCompact ? 24.r : 24.0,
+                                    ),
+                                  ),
+                                  SizedBox(width: isCompact ? 12.w : 12.0),
+                                  Text(
+                                    widget.existingStack == null
+                                        ? "NEW STACK"
+                                        : "EDIT STACK",
+                                    style: AppTextStyles.h3.copyWith(
+                                      fontSize: isCompact ? null : 18.0,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              if (widget.isSideSheet)
+                                IconButton(
+                                  icon: const Icon(Icons.close, color: AppColors.textSecondary, size: 20),
+                                  onPressed: () => Navigator.pop(context),
+                                ),
+                            ],
+                          ),
+                          SizedBox(height: isCompact ? 24.h : 20.0),
+                          _buildTextField("STACK NAME", _stackNameController, isCompact),
+                          SizedBox(height: isCompact ? 20.h : 16.0),
+                          Text(
+                            "SELECT SUPPLEMENTS",
+                            style: AppTextStyles.labelSmall.copyWith(
+                              color: AppColors.textSecondary,
+                              fontSize: isCompact ? 10.sp : 10.0,
+                              letterSpacing: 1.2,
+                            ),
+                          ),
+                          SizedBox(height: isCompact ? 12.h : 10.0),
+                        ],
                       ),
-                    ],
-                  ),
-                  SizedBox(height: 24.h),
-                  _buildTextField("STACK NAME", _stackNameController),
-                  SizedBox(height: 20.h),
-                  Text(
-                    "SELECT SUPPLEMENTS",
-                    style: AppTextStyles.labelSmall.copyWith(
-                      color: AppColors.textSecondary,
-                      fontSize: 10.sp,
-                      letterSpacing: 1.2,
                     ),
-                  ),
-                  SizedBox(height: 12.h),
-                ],
+                    Flexible(
+                      child: ListView.builder(
+                        padding: EdgeInsets.symmetric(horizontal: isCompact ? 24.w : 24.0),
+                        itemCount: unifiedPool.length,
+                        itemBuilder: (context, index) {
+                          final item = unifiedPool[index];
+                          final isSelected = _selectedIds.contains(item.id);
+
+                          final bool isDeactivated =
+                              !item.isActive || !activeLibraryIds.contains(item.id);
+
+                          return _buildSelectionTile(item, isSelected, isDeactivated, isCompact);
+                        },
+                      ),
+                    ),
+                    _buildSaveButton(unifiedPool, stackAlreadyExists, isCompact),
+                  ],
+                ),
               ),
             ),
-            Flexible(
-              child: ListView.builder(
-                padding: EdgeInsets.symmetric(horizontal: 24.w),
-                itemCount: unifiedPool.length,
-                itemBuilder: (context, index) {
-                  final item = unifiedPool[index];
-                  final isSelected = _selectedIds.contains(item.id);
-
-                  final bool isDeactivated =
-                      !item.isActive || !activeLibraryIds.contains(item.id);
-
-                  return _buildSelectionTile(item, isSelected, isDeactivated);
-                },
-              ),
-            ),
-            _buildSaveButton(unifiedPool, stackAlreadyExists),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 
@@ -279,6 +314,7 @@ class _StackFormSheetState extends State<StackFormSheet> {
     Supplement item,
     bool isSelected,
     bool isDeactivated,
+    bool isCompact,
   ) {
     return GestureDetector(
       onTap: () => setState(() {
@@ -294,13 +330,13 @@ class _StackFormSheetState extends State<StackFormSheet> {
       }),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        margin: EdgeInsets.only(bottom: 12.h),
-        padding: EdgeInsets.all(16.r),
+        margin: EdgeInsets.only(bottom: isCompact ? 12.h : 10.0),
+        padding: EdgeInsets.all(isCompact ? 16.r : 16.0),
         decoration: BoxDecoration(
           color: isDeactivated
               ? AppColors.crimson.withOpacity(0.04)
               : AppColors.background.withOpacity(0.5),
-          borderRadius: BorderRadius.circular(20.r),
+          borderRadius: BorderRadius.circular(isCompact ? 20.r : 16.0),
           border: Border.all(
             color: isSelected
                 ? AppColors.crimson.withOpacity(0.5)
@@ -320,9 +356,9 @@ class _StackFormSheetState extends State<StackFormSheet> {
                   : (isDeactivated
                         ? AppColors.crimson.withOpacity(0.4)
                         : AppColors.textSecondary),
-              size: 24.r,
+              size: isCompact ? 24.r : 24.0,
             ),
-            SizedBox(width: 12.w),
+            SizedBox(width: isCompact ? 12.w : 12.0),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -332,8 +368,8 @@ class _StackFormSheetState extends State<StackFormSheet> {
                         ? "[DEACTIVATED] ${item.name.toUpperCase()}"
                         : item.name.toUpperCase(),
                     style: AppTextStyles.labelSmall.copyWith(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 13.sp,
+                      fontWeight: FontWeight.w500,
+                      fontSize: isCompact ? 13.sp : 12.0,
                       decoration: isDeactivated && !isSelected
                           ? TextDecoration.lineThrough
                           : TextDecoration.none,
@@ -345,14 +381,14 @@ class _StackFormSheetState extends State<StackFormSheet> {
                     ),
                   ),
                   if (isDeactivated) ...[
-                    SizedBox(height: 4.h),
+                    SizedBox(height: isCompact ? 4.h : 4.0),
                     Text(
                       "CURRENTLY DEACTIVATED IN LIBRARY",
                       style: AppTextStyles.labelSmall.copyWith(
-                        fontSize: 9.sp,
+                        fontSize: isCompact ? 9.sp : 9.0,
                         color: AppColors.crimson,
                         letterSpacing: 0.5,
-                        fontWeight: FontWeight.bold,
+                        fontWeight: FontWeight.w500,
                       ),
                     ),
                   ],
@@ -368,6 +404,7 @@ class _StackFormSheetState extends State<StackFormSheet> {
   Widget _buildSaveButton(
     List<Supplement> combinedPool,
     bool stackAlreadyExists,
+    bool isCompact,
   ) {
     final bool staticEdit =
         widget.existingStack != null && !_hasUnsavedModifications();
@@ -376,17 +413,22 @@ class _StackFormSheetState extends State<StackFormSheet> {
         staticEdit;
 
     return Padding(
-      padding: EdgeInsets.fromLTRB(24.w, 12.h, 24.w, 32.h),
+      padding: EdgeInsets.fromLTRB(
+        isCompact ? 24.w : 24.0, 
+        isCompact ? 12.h : 12.0, 
+        isCompact ? 24.w : 24.0, 
+        isCompact ? 32.h : 24.0
+      ),
       child: GestureDetector(
         onTap: validAction ? () => _handleSave(combinedPool) : null,
         child: Container(
-          height: 60.h,
+          height: isCompact ? 60.h : 52.0,
           width: double.infinity,
           decoration: BoxDecoration(
             color: validAction
                 ? AppColors.crimson
                 : AppColors.background.withOpacity(0.5),
-            borderRadius: BorderRadius.circular(16.r),
+            borderRadius: BorderRadius.circular(isCompact ? 16.r : 12.0),
             boxShadow: validAction
                 ? [
                     BoxShadow(
@@ -402,7 +444,7 @@ class _StackFormSheetState extends State<StackFormSheet> {
             _getButtonText(stackAlreadyExists),
             style: AppTextStyles.buttonPrimary.copyWith(
               color: validAction ? Colors.white : Colors.white24,
-              fontSize: 16.sp,
+              fontSize: isCompact ? 16.sp : 14.0,
             ),
           ),
         ),
@@ -410,29 +452,32 @@ class _StackFormSheetState extends State<StackFormSheet> {
     );
   }
 
-  Widget _buildTextField(String label, TextEditingController controller) {
+  Widget _buildTextField(String label, TextEditingController controller, bool isCompact) {
     return Container(
       decoration: BoxDecoration(
         color: AppColors.background.withOpacity(0.5),
-        borderRadius: BorderRadius.circular(20.r),
+        borderRadius: BorderRadius.circular(isCompact ? 20.r : 16.0),
         border: Border.all(color: AppColors.white.withOpacity(0.05)),
       ),
-      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 4.h),
+      padding: EdgeInsets.symmetric(
+        horizontal: isCompact ? 16.w : 16.0, 
+        vertical: isCompact ? 4.h : 4.0
+      ),
       child: TextField(
         controller: controller,
         cursorColor: AppColors.crimson,
         onChanged: (_) => setState(() {}),
         textCapitalization: TextCapitalization.none,
-        style: AppTextStyles.labelSmall.copyWith(fontSize: 15.sp),
+        style: AppTextStyles.labelSmall.copyWith(fontSize: isCompact ? 15.sp : 14.0),
         decoration: InputDecoration(
           labelText: label,
           labelStyle: AppTextStyles.labelSmall.copyWith(
             color: AppColors.textSecondary,
-            fontSize: 12.sp,
+            fontSize: isCompact ? 12.sp : 12.0,
           ),
           floatingLabelStyle: AppTextStyles.labelSmall.copyWith(
             color: AppColors.crimson,
-            fontSize: 12.sp,
+            fontSize: isCompact ? 12.sp : 12.0,
           ),
           border: InputBorder.none,
         ),
@@ -440,13 +485,13 @@ class _StackFormSheetState extends State<StackFormSheet> {
     );
   }
 
-  Widget _buildHandle() => Container(
+  Widget _buildHandle(bool isCompact) => Container(
     width: double.infinity,
-    padding: EdgeInsets.symmetric(vertical: 16.h),
+    padding: EdgeInsets.symmetric(vertical: isCompact ? 16.h : 16.0),
     alignment: Alignment.center,
     child: Container(
-      width: 40.w,
-      height: 4.h,
+      width: isCompact ? 40.w : 40.0,
+      height: isCompact ? 4.h : 4.0,
       decoration: BoxDecoration(
         color: AppColors.textSecondary.withOpacity(0.4),
         borderRadius: BorderRadius.circular(3.r),

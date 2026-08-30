@@ -8,6 +8,7 @@ class CycleMetricTile extends StatelessWidget {
   final String value;
   final IconData icon;
   final String? date;
+  final bool isCompact;
 
   const CycleMetricTile({
     super.key,
@@ -15,15 +16,16 @@ class CycleMetricTile extends StatelessWidget {
     required this.value,
     required this.icon,
     this.date,
+    this.isCompact = false,
   });
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: EdgeInsets.all(20.r),
+      padding: EdgeInsets.all(isCompact ? 20.r : 20.0),
       decoration: BoxDecoration(
         color: AppColors.surfaceLight.withOpacity(0.6),
-        borderRadius: BorderRadius.circular(20.r),
+        borderRadius: BorderRadius.circular(isCompact ? 20.r : 20.0),
         border: Border.all(color: AppColors.white.withOpacity(0.1)),
         boxShadow: [
           BoxShadow(color: Colors.black26, blurRadius: 8, offset: const Offset(0, 4)),
@@ -31,48 +33,51 @@ class CycleMetricTile extends StatelessWidget {
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Icon(icon, color: AppColors.crimson, size: 20.r),
-          SizedBox(height: 8.r), // Standardized spacing
+          Icon(
+            icon, 
+            color: AppColors.crimson, 
+            size: isCompact ? 20.r : 20.0,
+          ),
+          const SizedBox(height: 12),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
                 label.toUpperCase(),
                 style: AppTextStyles.labelSmall.copyWith(
-                  fontSize: 9.sp,
                   color: AppColors.textSecondary,
+                  fontSize: isCompact ? 12.sp : 10.0,
                   letterSpacing: 1.5,
                   fontWeight: FontWeight.w500,
                 ),
               ),
-              SizedBox(height: 4.r),
+              const SizedBox(height: 4),
               Text(
-                value,
-                maxLines: 2,
+                value.toUpperCase(),
+                maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: AppTextStyles.labelMedium.copyWith(
-                  fontSize: 14.sp,
-                  fontWeight: FontWeight.w500,
+                style: AppTextStyles.h3.copyWith(
+                  fontSize: isCompact ? 20.sp : 18.0,
                   color: Colors.white,
-                  height: 1.2,
+                  fontWeight: FontWeight.w500,
+                  height: 1.1,
                 ),
               ),
+              if (date != null) ...[
+                const SizedBox(height: 2),
+                Text(
+                  date!,
+                  style: AppTextStyles.labelSmall.copyWith(
+                    color: AppColors.crimson,
+                    fontSize: isCompact ? 11.sp : 9.0,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
             ],
           ),
-          const Spacer(),
-          if (date != null)
-            Padding(
-              padding: EdgeInsets.only(top: 8.r),
-              child: Text(
-                date!,
-                style: AppTextStyles.labelSmall.copyWith(
-                  fontSize: 9.sp,
-                  color: AppColors.textSecondary.withOpacity(0.6),
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ),
         ],
       ),
     );

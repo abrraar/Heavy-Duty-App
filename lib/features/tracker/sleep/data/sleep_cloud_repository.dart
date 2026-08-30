@@ -6,7 +6,7 @@ import '../model/sleep_log.dart';
 import '../model/sleep_settings.dart';
 
 class SleepCloudRepository {
-  final SupabaseClient _supabase = Supabase.instance.client;
+  SupabaseClient get _supabase => Supabase.instance.client;
 
   String? get _currentUserId => _supabase.auth.currentUser?.id;
 

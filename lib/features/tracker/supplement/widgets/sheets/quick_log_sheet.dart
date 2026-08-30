@@ -9,6 +9,7 @@ import '../../model/supplement.dart';
 
 class QuickLogSheet extends StatefulWidget {
   final Supplement supplement;
+  final bool isSideSheet;
   final Function({
     required bool isPinned,
     required double intakeVal,
@@ -22,6 +23,7 @@ class QuickLogSheet extends StatefulWidget {
     super.key,
     required this.supplement,
     required this.onSave,
+    this.isSideSheet = false,
   });
 
   @override
@@ -92,145 +94,179 @@ class _QuickLogSheetState extends State<QuickLogSheet> {
       onPopInvokedWithResult: (didPop, result) {
         if (didPop) _handleSaveAndExit();
       },
-      child: Container(
-        decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(32.r)),
-          border: Border.all(color: AppColors.white.withOpacity(0.05)),
-        ),
-        padding: EdgeInsets.fromLTRB(24.w, 16.h, 24.w, 40.h),
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Handle Bar
-              Container(
-                width: 40.w,
-                height: 4.h,
-                decoration: BoxDecoration(
-                  color: AppColors.textSecondary.withOpacity(0.3),
-                  borderRadius: BorderRadius.circular(2.r),
-                ),
-              ),
-              SizedBox(height: 20.h),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final bool isCompact = constraints.maxWidth < 600 && !widget.isSideSheet;
+          final double sheetWidth = widget.isSideSheet ? constraints.maxWidth : (isCompact ? constraints.maxWidth : 500.0);
 
-              // Header Block
-              Row(
-                children: [
-                  Container(
-                    padding: EdgeInsets.all(10.r),
-                    decoration: BoxDecoration(
-                      color: AppColors.crimson.withOpacity(0.1),
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(
-                      Icons.push_pin_rounded,
-                      color: AppColors.crimson,
-                      size: 22.r,
-                    ),
-                  ),
-                  SizedBox(width: 12.w),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text("QUICK LOG SETTINGS", style: AppTextStyles.h3),
-                        Text(
-                          widget.supplement.name.toUpperCase(),
-                          style: AppTextStyles.labelSmall.copyWith(
-                            color: AppColors.textSecondary,
-                            letterSpacing: 1.2,
+          return Align(
+            alignment: widget.isSideSheet ? Alignment.center : Alignment.bottomCenter,
+            child: SizedBox(
+              width: sheetWidth,
+              child: Container(
+                height: widget.isSideSheet ? double.infinity : null,
+                decoration: BoxDecoration(
+                  color: AppColors.surface,
+                  borderRadius: widget.isSideSheet 
+                    ? const BorderRadius.horizontal(left: Radius.circular(24.0))
+                    : BorderRadius.vertical(top: Radius.circular(isCompact ? 32.r : 24.0)),
+                  border: Border.all(color: AppColors.white.withOpacity(0.05)),
+                ),
+                padding: EdgeInsets.fromLTRB(
+                  isCompact ? 24.w : 24.0, 
+                  widget.isSideSheet ? 0 : (isCompact ? 16.h : 12.0), 
+                  isCompact ? 24.w : 24.0, 
+                  isCompact ? 40.h : 32.0
+                ),
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: widget.isSideSheet ? MainAxisSize.max : MainAxisSize.min,
+                    children: [
+                      if (widget.isSideSheet) SizedBox(height: 24.0),
+                      if (!widget.isSideSheet)
+                        // Handle Bar
+                        Container(
+                          width: isCompact ? 40.w : 40.0,
+                          height: isCompact ? 4.h : 4.0,
+                          decoration: BoxDecoration(
+                            color: AppColors.textSecondary.withOpacity(0.3),
+                            borderRadius: BorderRadius.circular(2.r),
                           ),
                         ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
+                      if (!widget.isSideSheet) SizedBox(height: isCompact ? 20.h : 16.0),
 
-              SizedBox(height: 16.h),
+                      // Header Block
+                      Row(
+                        children: [
+                          Container(
+                            padding: EdgeInsets.all(isCompact ? 10.r : 10.0),
+                            decoration: BoxDecoration(
+                              color: AppColors.crimson.withOpacity(0.1),
+                              shape: BoxShape.circle,
+                            ),
+                            child: Icon(
+                              Icons.push_pin_rounded,
+                              color: AppColors.crimson,
+                              size: isCompact ? 22.r : 20.0,
+                            ),
+                          ),
+                          SizedBox(width: isCompact ? 12.w : 12.0),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  "QUICK LOG SETTINGS", 
+                                  style: AppTextStyles.h3.copyWith(fontSize: isCompact ? null : 18.0)
+                                ),
+                                Text(
+                                  widget.supplement.name.toUpperCase(),
+                                  style: AppTextStyles.labelSmall.copyWith(
+                                    color: AppColors.textSecondary,
+                                    letterSpacing: 1.2,
+                                    fontSize: isCompact ? null : 10.0,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          if (widget.isSideSheet)
+                            IconButton(
+                              icon: const Icon(Icons.close, color: AppColors.textSecondary, size: 20),
+                              onPressed: () => Navigator.pop(context),
+                            ),
+                        ],
+                      ),
 
-              // Info Help Notice card block
-              Container(
-                padding: EdgeInsets.all(12.r),
-                decoration: BoxDecoration(
-                  color: AppColors.crimson.withOpacity(0.08),
-                  borderRadius: BorderRadius.circular(12.r),
-                  border: Border.all(color: AppColors.crimson.withOpacity(0.2)),
-                ),
-                child: Row(
-                  children: [
-                    Icon(
-                      Icons.info_outline_rounded,
-                      color: AppColors.crimson,
-                      size: 18.r,
-                    ),
-                    SizedBox(width: 10.w),
-                    Expanded(
-                      child: Text(
-                        "Activating a toggle and setting values greater than 0 pins this shortcut card onto your dashboard space. Empty fields will auto-disable upon exit.",
-                        style: AppTextStyles.labelSmall.copyWith(
-                          color: Colors.white70,
-                          fontSize: 11.sp,
+                      SizedBox(height: isCompact ? 16.h : 12.0),
+
+                      // Info Help Notice card block
+                      Container(
+                        padding: EdgeInsets.all(isCompact ? 12.r : 12.0),
+                        decoration: BoxDecoration(
+                          color: AppColors.crimson.withOpacity(0.08),
+                          borderRadius: BorderRadius.circular(isCompact ? 12.r : 12.0),
+                          border: Border.all(color: AppColors.crimson.withOpacity(0.2)),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.info_outline_rounded,
+                              color: AppColors.crimson,
+                              size: isCompact ? 18.r : 16.0,
+                            ),
+                            SizedBox(width: isCompact ? 10.w : 10.0),
+                            Expanded(
+                              child: Text(
+                                "Activating a toggle and setting values greater than 0 pins this shortcut card onto your dashboard space. Empty fields will auto-disable upon exit.",
+                                style: AppTextStyles.labelSmall.copyWith(
+                                  color: Colors.white70,
+                                  fontSize: isCompact ? 11.sp : 11.0,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                    ),
-                  ],
+
+                      SizedBox(height: isCompact ? 24.h : 20.0),
+
+                      // Daily Intake Segment
+                      _buildActionSection(
+                        title: "DAILY INTAKE",
+                        isActive: recordEnabled,
+                        controller: intakeController,
+                        useServings: useServingsIntake,
+                        isCompact: isCompact,
+                        onToggleChanged: (val) {
+                          setState(() {
+                            recordEnabled = val;
+                            if (val) {
+                              final double currentVal =
+                                  double.tryParse(intakeController.text) ?? 0;
+                              if (currentVal <= 0) {
+                                intakeController.text = "1.0";
+                              }
+                            } else {
+                              intakeController.clear();
+                            }
+                          });
+                        },
+                        onUnitToggle: (v) => setState(() => useServingsIntake = v),
+                      ),
+
+                      SizedBox(height: isCompact ? 16.h : 12.0),
+
+                      // Common Restock Segment
+                      _buildActionSection(
+                        title: "COMMON RESTOCK",
+                        isActive: restockEnabled,
+                        controller: restockController,
+                        useServings: useServingsRestock,
+                        isCompact: isCompact,
+                        onToggleChanged: (val) {
+                          setState(() {
+                            restockEnabled = val;
+                            if (val) {
+                              final double currentVal =
+                                  double.tryParse(restockController.text) ?? 0;
+                              if (currentVal <= 0) {
+                                restockController.text = "1.0";
+                              }
+                            } else {
+                              restockController.clear();
+                            }
+                          });
+                        },
+                        onUnitToggle: (v) => setState(() => useServingsRestock = v),
+                      ),
+                    ],
+                  ),
                 ),
               ),
-
-              SizedBox(height: 24.h),
-
-              // Daily Intake Segment
-              _buildActionSection(
-                title: "DAILY INTAKE",
-                isActive: recordEnabled,
-                controller: intakeController,
-                useServings: useServingsIntake,
-                onToggleChanged: (val) {
-                  setState(() {
-                    recordEnabled = val;
-                    if (val) {
-                      final double currentVal =
-                          double.tryParse(intakeController.text) ?? 0;
-                      if (currentVal <= 0) {
-                        intakeController.text = "1.0";
-                      }
-                    } else {
-                      intakeController.clear();
-                    }
-                  });
-                },
-                onUnitToggle: (v) => setState(() => useServingsIntake = v),
-              ),
-
-              SizedBox(height: 16.h),
-
-              // Common Restock Segment
-              _buildActionSection(
-                title: "COMMON RESTOCK",
-                isActive: restockEnabled,
-                controller: restockController,
-                useServings: useServingsRestock,
-                onToggleChanged: (val) {
-                  setState(() {
-                    restockEnabled = val;
-                    if (val) {
-                      final double currentVal =
-                          double.tryParse(restockController.text) ?? 0;
-                      if (currentVal <= 0) {
-                        restockController.text = "1.0";
-                      }
-                    } else {
-                      restockController.clear();
-                    }
-                  });
-                },
-                onUnitToggle: (v) => setState(() => useServingsRestock = v),
-              ),
-            ],
-          ),
-        ),
+            ),
+          );
+        },
       ),
     );
   }
@@ -242,13 +278,14 @@ class _QuickLogSheetState extends State<QuickLogSheet> {
     required bool useServings,
     required Function(bool) onToggleChanged,
     required Function(bool) onUnitToggle,
+    required bool isCompact,
   }) {
     return AnimatedContainer(
       duration: const Duration(milliseconds: 200),
-      padding: EdgeInsets.all(16.r),
+      padding: EdgeInsets.all(isCompact ? 16.r : 16.0),
       decoration: BoxDecoration(
         color: AppColors.background.withOpacity(0.5),
-        borderRadius: BorderRadius.circular(20.r),
+        borderRadius: BorderRadius.circular(isCompact ? 20.r : 16.0),
         border: Border.all(
           color: isActive
               ? AppColors.crimson.withOpacity(0.2)
@@ -264,8 +301,9 @@ class _QuickLogSheetState extends State<QuickLogSheet> {
               Text(
                 title,
                 style: AppTextStyles.labelSmall.copyWith(
-                  fontWeight: FontWeight.bold,
+                  fontWeight: FontWeight.w500,
                   color: isActive ? Colors.white : AppColors.textSecondary,
+                  fontSize: isCompact ? null : 11.0,
                 ),
               ),
               Transform.scale(
@@ -279,16 +317,16 @@ class _QuickLogSheetState extends State<QuickLogSheet> {
             ],
           ),
           if (isActive) ...[
-            SizedBox(height: 16.h),
+            SizedBox(height: isCompact ? 16.h : 12.0),
             Row(
               children: [
                 Expanded(
                   child: Container(
-                    height: 48.h,
-                    padding: EdgeInsets.symmetric(horizontal: 16.w),
+                    height: isCompact ? 48.h : 44.0,
+                    padding: EdgeInsets.symmetric(horizontal: isCompact ? 16.w : 16.0),
                     decoration: BoxDecoration(
                       color: AppColors.surface,
-                      borderRadius: BorderRadius.circular(12.r),
+                      borderRadius: BorderRadius.circular(isCompact ? 12.r : 10.0),
                       border: Border.all(
                         color: AppColors.white.withOpacity(0.05),
                       ),
@@ -303,13 +341,14 @@ class _QuickLogSheetState extends State<QuickLogSheet> {
                           RegExp(r'(^\d*\.?\d*)'),
                         ),
                       ],
-                      style: AppTextStyles.labelSmall.copyWith(fontSize: 16.sp),
+                      style: AppTextStyles.labelSmall.copyWith(fontSize: isCompact ? 16.sp : 14.0),
                       decoration: InputDecoration(
                         border: InputBorder.none,
                         isDense: true,
                         hintText: "1.0",
                         hintStyle: AppTextStyles.labelSmall.copyWith(
                           color: AppColors.textSecondary.withOpacity(0.3),
+                          fontSize: isCompact ? null : 11.0,
                         ),
                         contentPadding: const EdgeInsets.symmetric(
                           vertical: 12,
@@ -318,11 +357,12 @@ class _QuickLogSheetState extends State<QuickLogSheet> {
                     ),
                   ),
                 ),
-                SizedBox(width: 12.w),
+                SizedBox(width: isCompact ? 12.w : 12.0),
                 _buildSegmentedSelector(
                   [widget.supplement.servingUnit, widget.supplement.weightUnit],
                   useServings ? 0 : 1,
                   (i) => onUnitToggle(i == 0),
+                  isCompact: isCompact,
                 ),
               ],
             ),
@@ -336,13 +376,14 @@ class _QuickLogSheetState extends State<QuickLogSheet> {
     List<String> labels,
     int activeIndex,
     Function(int) onTap,
+    {required bool isCompact}
   ) {
     return Container(
-      height: 48.h,
-      padding: EdgeInsets.all(4.r),
+      height: isCompact ? 48.h : 44.0,
+      padding: EdgeInsets.all(isCompact ? 4.r : 4.0),
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.circular(12.r),
+        borderRadius: BorderRadius.circular(isCompact ? 12.r : 10.0),
         border: Border.all(color: AppColors.white.withOpacity(0.05)),
       ),
       child: Row(
@@ -352,19 +393,19 @@ class _QuickLogSheetState extends State<QuickLogSheet> {
           (i) => GestureDetector(
             onTap: () => onTap(i),
             child: Container(
-              padding: EdgeInsets.symmetric(horizontal: 12.w),
+              padding: EdgeInsets.symmetric(horizontal: isCompact ? 12.w : 12.0),
               alignment: Alignment.center,
               decoration: BoxDecoration(
                 color: activeIndex == i
                     ? AppColors.crimson
                     : Colors.transparent,
-                borderRadius: BorderRadius.circular(8.r),
+                borderRadius: BorderRadius.circular(isCompact ? 8.r : 8.0),
               ),
               child: Text(
                 labels[i].toUpperCase(),
                 style: AppTextStyles.labelSmall.copyWith(
-                  fontSize: 10.sp,
-                  fontWeight: FontWeight.bold,
+                  fontSize: isCompact ? 10.sp : 9.0,
+                  fontWeight: FontWeight.w500,
                   color: activeIndex == i
                       ? Colors.white
                       : AppColors.textSecondary,

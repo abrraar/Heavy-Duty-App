@@ -14,8 +14,8 @@ class WaterGlassWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      width: size.r,
-      height: size.r,
+      width: size,
+      height: size,
       child: TweenAnimationBuilder<double>(
         tween: Tween<double>(begin: 0, end: progress),
         duration: const Duration(milliseconds: 1000),
@@ -42,7 +42,7 @@ class _GlassPainter extends CustomPainter {
 
     // Colors
     const waterColor = Colors.blueAccent;
-    final glassColor = Colors.white.withOpacity(0.2);
+    final glassColor = Colors.white.withValues(alpha : 0.2);
 
     // Path for the glass shape (tapered with rounded bottom)
     final glassPath = Path();
@@ -63,7 +63,7 @@ class _GlassPainter extends CustomPainter {
 
     // Draw the inner glass background
     final bgPaint = Paint()
-      ..color = Colors.white.withOpacity(0.03)
+      ..color = Colors.white.withValues(alpha : 0.03)
       ..style = PaintingStyle.fill;
     canvas.drawPath(glassPath, bgPaint);
 
@@ -79,7 +79,7 @@ class _GlassPainter extends CustomPainter {
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
           colors: [
-            waterColor.withOpacity(0.7),
+            waterColor.withValues(alpha : 0.7),
             waterColor,
           ],
         ).createShader(Rect.fromLTRB(0, height - waterHeight, width, height))
@@ -90,13 +90,13 @@ class _GlassPainter extends CustomPainter {
       // Subtle top surface of the water
       if (progress < 1.0) {
         final surfacePaint = Paint()
-          ..color = Colors.white.withOpacity(0.5)
+          ..color = Colors.white.withValues(alpha : 0.5)
           ..style = PaintingStyle.fill;
           
         final Rect topSurfaceRect = Rect.fromCenter(
           center: Offset(width / 2, height - waterHeight),
           width: (width * 0.5) + (width * 0.2 * progress), // Width changes with taper
-          height: 4.r,
+          height: 4.0,
         );
         canvas.drawOval(topSurfaceRect, surfacePaint);
       }
@@ -114,7 +114,7 @@ class _GlassPainter extends CustomPainter {
     
     // Draw reflection highlight on the glass
     final highlightPaint = Paint()
-      ..color = Colors.white.withOpacity(0.1)
+      ..color = Colors.white.withValues(alpha : 0.1)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 3.0;
     

@@ -6,6 +6,7 @@ import 'package:heavy_duty/core/theme/app_text_styles.dart';
 import 'package:heavy_duty/features/tracker/cycle_tracker/model/cycle_settings.dart';
 import 'package:heavy_duty/features/tracker/cycle_tracker/provider/cycle_provider.dart';
 import 'package:intl/intl.dart';
+import 'package:heavy_duty/core/utils/adaptive_utils.dart';
 import 'package:provider/provider.dart';
 import '../../tracker/cycle_tracker/model/exercise_log.dart';
 
@@ -310,7 +311,7 @@ class _ExerciseAnalyticalGraphState extends State<ExerciseAnalyticalGraph> {
               label,
               style: AppTextStyles.labelSmall.copyWith(
                 color: isActive ? AppColors.white : AppColors.textSecondary,
-                fontWeight: isActive ? FontWeight.w900 : FontWeight.w500,
+                fontWeight: FontWeight.w500,
                 letterSpacing: 1,
               ),
             ),
@@ -562,7 +563,7 @@ class ExerciseComparisonWidget extends StatelessWidget {
                 ),
                 SizedBox(width: 8.w),
               ],
-              Text(title, style: AppTextStyles.labelSmall.copyWith(color: selectedIdx != null ? AppColors.crimson : AppColors.textSecondary.withValues(alpha: 0.4), fontSize: 11.sp, fontWeight: FontWeight.w900)),
+              Text(title, style: AppTextStyles.labelSmall.copyWith(color: selectedIdx != null ? AppColors.crimson : AppColors.textSecondary.withValues(alpha: 0.4), fontSize: 11.sp, fontWeight: FontWeight.w500)),
               if (selectedIdx != null && !isEnd) ...[
                 SizedBox(width: 8.w),
                 GestureDetector(
@@ -602,64 +603,100 @@ class ExerciseComparisonWidget extends StatelessWidget {
   }
 
   void _showPicker(BuildContext context, int? current, int? other, List<ExerciseLog> logs, Function(int?) onChanged) async {
-    final int? result = await showModalBottomSheet<int>(
+    final int? result = await AdaptiveUtils.showAdaptiveSheet<int>(
       context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        padding: EdgeInsets.fromLTRB(24.w, 12.h, 24.w, 40.h),
-        decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(32.r)),
-          border: Border.all(color: AppColors.white.withValues(alpha: 0.05)),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 40.w, height: 4.h, margin: EdgeInsets.only(bottom: 24.h),
-              decoration: BoxDecoration(color: AppColors.textSecondary.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(2.r)),
-            ),
-            Text("SELECT SESSION", style: AppTextStyles.h3),
-            SizedBox(height: 24.h),
-            ConstrainedBox(
-              constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.5),
-              child: ListView.separated(
-                shrinkWrap: true,
-                padding: EdgeInsets.zero,
-                itemCount: logs.length,
-                separatorBuilder: (context, index) => SizedBox(height: 12.h),
-                itemBuilder: (context, i) {
-                  final log = logs[i];
-                  final bool isSelected = i == current;
-                  final bool isOther = i == other;
+      sheetBuilder: (sheetContext, isSideSheet) => LayoutBuilder(
+        builder: (context, constraints) {
+          final bool isSheetCompact = constraints.maxWidth < 600 && !isSideSheet;
+          final double sheetWidth = isSideSheet ? constraints.maxWidth : (isSheetCompact ? constraints.maxWidth : 500.0);
 
-                  return GestureDetector(
-                    onTap: isOther ? null : () => Navigator.pop(context, i),
-                    child: Opacity(
-                      opacity: isOther ? 0.4 : 1.0,
-                      child: Container(
-                        padding: EdgeInsets.all(16.r),
-                        decoration: BoxDecoration(
-                          color: isSelected ? AppColors.crimson.withValues(alpha: 0.1) : AppColors.background.withValues(alpha: 0.5),
-                          borderRadius: BorderRadius.circular(16.r),
-                          border: Border.all(color: isSelected ? AppColors.crimson : AppColors.white.withValues(alpha: 0.05)),
+          return Align(
+            alignment: isSideSheet ? Alignment.center : Alignment.bottomCenter,
+            child: SizedBox(
+              width: sheetWidth,
+              child: Material(
+                color: Colors.transparent,
+                child: Container(
+                  height: isSideSheet ? double.infinity : null,
+                  padding: EdgeInsets.fromLTRB(
+                    isSheetCompact ? 24.w : 20.0, 
+                    isSideSheet ? 0 : (isSheetCompact ? 12.h : 10.0), 
+                    isSheetCompact ? 24.w : 20.0, 
+                    isSheetCompact ? 40.h : 32.0
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppColors.surface,
+                    borderRadius: isSideSheet 
+                      ? const BorderRadius.horizontal(left: Radius.circular(24.0))
+                      : BorderRadius.vertical(top: Radius.circular(isSheetCompact ? 32.r : 24.0)),
+                    border: Border.all(color: AppColors.white.withOpacity(0.05)),
+                  ),
+                  child: Column(
+                    mainAxisSize: isSideSheet ? MainAxisSize.max : MainAxisSize.min,
+                    children: [
+                      if (isSideSheet) SizedBox(height: 24.0),
+                      if (!isSideSheet)
+                        Container(
+                          width: isSheetCompact ? 40.w : 40.0, 
+                          height: isSheetCompact ? 4.h : 4.0, 
+                          margin: EdgeInsets.only(bottom: isSheetCompact ? 24.h : 20.0),
+                          decoration: BoxDecoration(color: AppColors.textSecondary.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(2.r)),
                         ),
-                        child: Row(
-                          children: [
-                            Text(DateFormat('MMMM dd, yyyy').format(log.timestamp).toUpperCase(), style: AppTextStyles.labelSmall.copyWith(color: isSelected ? Colors.white : AppColors.textSecondary)),
-                            const Spacer(),
-                            Text("${double.parse((context.read<CycleProvider>().settings.weightUnit == WeightUnit.kgs ? log.weightKg : log.weightLbs).toStringAsFixed(3)).toString()} KG", style: AppTextStyles.labelSmall.copyWith(fontWeight: FontWeight.bold)),
-                          ],
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text("SELECT SESSION", style: AppTextStyles.h3.copyWith(fontSize: isSheetCompact ? null : 18.0)),
+                          if (isSideSheet)
+                            IconButton(
+                              icon: const Icon(Icons.close, color: AppColors.textSecondary, size: 20),
+                              onPressed: () => Navigator.pop(sheetContext),
+                            ),
+                        ],
+                      ),
+                      SizedBox(height: isSheetCompact ? 24.h : 20.0),
+                      ConstrainedBox(
+                        constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * (isSideSheet ? 0.8 : 0.5)),
+                        child: ListView.separated(
+                          shrinkWrap: true,
+                          padding: EdgeInsets.zero,
+                          itemCount: logs.length,
+                          separatorBuilder: (context, index) => SizedBox(height: 12.h),
+                          itemBuilder: (context, i) {
+                            final log = logs[i];
+                            final bool isSelected = i == current;
+                            final bool isOther = i == other;
+
+                            return GestureDetector(
+                              onTap: isOther ? null : () => Navigator.pop(sheetContext, i),
+                              child: Opacity(
+                                opacity: isOther ? 0.4 : 1.0,
+                                child: Container(
+                                  padding: EdgeInsets.all(16.r),
+                                  decoration: BoxDecoration(
+                                    color: isSelected ? AppColors.crimson.withValues(alpha: 0.1) : AppColors.background.withValues(alpha: 0.5),
+                                    borderRadius: BorderRadius.circular(16.r),
+                                    border: Border.all(color: isSelected ? AppColors.crimson : AppColors.white.withValues(alpha: 0.05)),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Text(DateFormat('MMMM dd, yyyy').format(log.timestamp).toUpperCase(), style: AppTextStyles.labelSmall.copyWith(color: isSelected ? Colors.white : AppColors.textSecondary)),
+                                      const Spacer(),
+                                      Text("${double.parse((context.read<CycleProvider>().settings.weightUnit == WeightUnit.kgs ? log.weightKg : log.weightLbs).toStringAsFixed(3)).toString()} KG", style: AppTextStyles.labelSmall.copyWith(fontWeight: FontWeight.w500)),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            );
+                          },
                         ),
                       ),
-                    ),
-                  );
-                },
+                    ],
+                  ),
+                ),
               ),
             ),
-          ],
-        ),
+          );
+        },
       ),
     );
     if (result != null) onChanged(result);
@@ -707,7 +744,7 @@ class ExerciseComparisonWidget extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(label, style: AppTextStyles.labelSmall.copyWith(color: color, fontWeight: FontWeight.w900, fontSize: 13.sp, letterSpacing: 1)),
+              Text(label, style: AppTextStyles.labelSmall.copyWith(color: color, fontWeight: FontWeight.w500, fontSize: 13.sp, letterSpacing: 1)),
               Row(
                 children: [
                   if (trendIcon != null) ...[
@@ -716,7 +753,7 @@ class ExerciseComparisonWidget extends StatelessWidget {
                   ],
                   Text(
                     isNeutral ? "0%" : "${delta > 0 ? '+' : ''}${percent.toStringAsFixed(1)}%", 
-                    style: AppTextStyles.labelSmall.copyWith(color: trendColor, fontWeight: FontWeight.w900, fontSize: 14.sp),
+                    style: AppTextStyles.labelSmall.copyWith(color: trendColor, fontWeight: FontWeight.w500, fontSize: 14.sp),
                   ),
                 ],
               ),
@@ -747,11 +784,11 @@ class ExerciseComparisonWidget extends StatelessWidget {
 
     return Column(
       children: [
-        Text(l, style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary.withValues(alpha: 0.4), fontSize: 10.sp, fontWeight: FontWeight.bold)),
+        Text(l, style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary.withValues(alpha: 0.4), fontSize: 10.sp, fontWeight: FontWeight.w500)),
         SizedBox(height: 4.h),
         Text(
           "$text$u", 
-          style: AppTextStyles.labelMedium.copyWith(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 16.sp),
+          style: AppTextStyles.labelMedium.copyWith(color: Colors.white, fontWeight: FontWeight.w500, fontSize: 16.sp),
         ),
       ],
     );

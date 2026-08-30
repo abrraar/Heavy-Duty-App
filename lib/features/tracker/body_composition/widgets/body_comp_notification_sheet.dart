@@ -9,6 +9,7 @@ class BodyCompNotificationSheet extends StatefulWidget {
   final List<BodyCompReminder> initialReminders;
   final bool initialEnabled;
   final Function(bool, List<BodyCompReminder>) onSave;
+  final bool isSideSheet;
 
   const BodyCompNotificationSheet({
     super.key,
@@ -16,6 +17,7 @@ class BodyCompNotificationSheet extends StatefulWidget {
     required this.initialReminders,
     required this.initialEnabled,
     required this.onSave,
+    this.isSideSheet = false,
   });
 
   @override
@@ -74,102 +76,140 @@ class _BodyCompNotificationSheetState extends State<BodyCompNotificationSheet> {
       onPopInvokedWithResult: (didPop, result) {
         if (didPop) _handleSave();
       },
-      child: Material(
-        color: Colors.transparent,
-        child: Container(
-          constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.8),
-          decoration: BoxDecoration(
-            color: AppColors.surface,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(32.r)),
-            border: Border.all(color: AppColors.white.withOpacity(0.05)),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              _buildHandle(),
-              Flexible(
-                child: SingleChildScrollView(
-                  padding: EdgeInsets.fromLTRB(24.w, 0, 24.w, 40.h),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final bool isCompact = constraints.maxWidth < 600 && !widget.isSideSheet;
+          final double sheetWidth = widget.isSideSheet ? constraints.maxWidth : (isCompact ? constraints.maxWidth : 500.0);
+
+          return Align(
+            alignment: widget.isSideSheet ? Alignment.center : Alignment.bottomCenter,
+            child: SizedBox(
+              width: sheetWidth,
+              child: Material(
+                color: Colors.transparent,
+                child: Container(
+                  height: widget.isSideSheet ? double.infinity : null,
+                  constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.8),
+                  decoration: BoxDecoration(
+                    color: AppColors.surface,
+                    borderRadius: widget.isSideSheet 
+                      ? const BorderRadius.horizontal(left: Radius.circular(24.0))
+                      : BorderRadius.vertical(top: Radius.circular(isCompact ? 32.r : 24.0)),
+                    border: Border.all(color: AppColors.white.withValues(alpha : 0.05)),
+                  ),
                   child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: widget.isSideSheet ? MainAxisSize.max : MainAxisSize.min,
                     children: [
-                      _buildHeader(),
-                      SizedBox(height: 24.h),
-                      _sectionHeader(
-                        "REMINDER SCHEDULE",
-                        Icons.notifications_active_rounded,
-                        enabled,
-                        (val) {
-                          setState(() {
-                            enabled = val;
-                            if (val && reminders.isEmpty) {
-                              _addNewSlot();
-                            }
-                          });
-                        },
+                      if (widget.isSideSheet) SizedBox(height: 24.0),
+                      if (!widget.isSideSheet) _buildHandle(isCompact),
+                      Flexible(
+                        child: SingleChildScrollView(
+                          padding: EdgeInsets.fromLTRB(
+                            isCompact ? 24.w : 24.0, 
+                            0, 
+                            isCompact ? 24.w : 24.0, 
+                            isCompact ? 40.h : 32.0
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              _buildHeader(isCompact),
+                              SizedBox(height: isCompact ? 24.h : 20.0),
+                              _sectionHeader(
+                                "REMINDER SCHEDULE",
+                                Icons.notifications_active_rounded,
+                                enabled,
+                                isCompact,
+                                (val) {
+                                  setState(() {
+                                    enabled = val;
+                                    if (val && reminders.isEmpty) {
+                                      _addNewSlot();
+                                    }
+                                  });
+                                },
+                              ),
+                              if (enabled) ...[
+                                ...reminders.asMap().entries.map((e) => _buildReminderCard(e.value, e.key, isCompact)),
+                                _buildAddButton("ADD TIME SLOT", _addNewSlot, isCompact),
+                              ],
+                              SizedBox(height: isCompact ? 32.h : 24.0),
+                            ],
+                          ),
+                        ),
                       ),
-                      if (enabled) ...[
-                        ...reminders.asMap().entries.map((e) => _buildReminderCard(e.value, e.key)),
-                        _buildAddButton("ADD TIME SLOT", _addNewSlot),
-                      ],
-                      SizedBox(height: 32.h),
                     ],
                   ),
                 ),
               ),
-            ],
-          ),
-        ),
+            ),
+          );
+        },
       ),
     );
   }
 
-  Widget _buildHeader() {
+  Widget _buildHeader(bool isCompact) {
     return Row(
       children: [
         Container(
-          padding: EdgeInsets.all(10.r),
+          padding: EdgeInsets.all(isCompact ? 10.r : 10.0),
           decoration: BoxDecoration(
-            color: AppColors.crimson.withOpacity(0.1),
+            color: AppColors.crimson.withValues(alpha : 0.1),
             shape: BoxShape.circle,
           ),
-          child: Icon(Icons.notifications_active_rounded, color: AppColors.crimson, size: 22.r),
+          child: Icon(Icons.notifications_active_rounded, color: AppColors.crimson, size: isCompact ? 22.r : 20.0),
         ),
-        SizedBox(width: 12.w),
+        SizedBox(width: isCompact ? 12.w : 12.0),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(widget.title.toUpperCase(), style: AppTextStyles.h3),
-              Text("SET TRACKING REMINDERS", style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary, letterSpacing: 1.2)),
+              Text(
+                widget.title.toUpperCase(), 
+                style: AppTextStyles.h3.copyWith(fontSize: isCompact ? null : 18.0)
+              ),
+              Text(
+                "SET TRACKING REMINDERS", 
+                style: AppTextStyles.labelSmall.copyWith(
+                  color: AppColors.textSecondary, 
+                  letterSpacing: 1.2,
+                  fontSize: isCompact ? null : 10.0,
+                )
+              ),
             ],
           ),
         ),
+        if (widget.isSideSheet)
+          IconButton(
+            icon: const Icon(Icons.close, color: AppColors.textSecondary, size: 20),
+            onPressed: () => Navigator.pop(context),
+          ),
       ],
     );
   }
 
-  Widget _sectionHeader(String l, IconData i, bool v, Function(bool) o) => Padding(
-        padding: EdgeInsets.only(bottom: 8.h),
+  Widget _sectionHeader(String l, IconData i, bool v, bool isCompact, Function(bool) o) => Padding(
+        padding: EdgeInsets.only(bottom: isCompact ? 8.h : 6.0),
         child: Row(
           children: [
-            Icon(i, color: AppColors.crimson, size: 16.r),
-            SizedBox(width: 8.w),
-            Text(l, style: AppTextStyles.labelSmall.copyWith(letterSpacing: 1.5, fontWeight: FontWeight.bold, color: Colors.white)),
+            Icon(i, color: AppColors.crimson, size: isCompact ? 16.r : 16.0),
+            SizedBox(width: isCompact ? 8.w : 8.0),
+            Text(l, style: AppTextStyles.labelSmall.copyWith(letterSpacing: 1.5, fontWeight: FontWeight.w500, color: Colors.white, fontSize: isCompact ? null : 11.0)),
             const Spacer(),
             Transform.scale(scale: 0.8, child: Switch.adaptive(value: v, activeColor: AppColors.crimson, onChanged: o)),
           ],
         ),
       );
 
-  Widget _buildReminderCard(BodyCompReminder reminder, int index) {
+  Widget _buildReminderCard(BodyCompReminder reminder, int index, bool isCompact) {
     return Container(
-      margin: EdgeInsets.only(bottom: 20.h),
-      padding: EdgeInsets.all(20.r),
+      margin: EdgeInsets.only(bottom: isCompact ? 20.h : 16.0),
+      padding: EdgeInsets.all(isCompact ? 20.r : 16.0),
       decoration: BoxDecoration(
-        color: AppColors.background.withOpacity(0.5),
-        borderRadius: BorderRadius.circular(24.r),
-        border: Border.all(color: AppColors.white.withOpacity(0.05)),
+        color: AppColors.background.withValues(alpha : 0.5),
+        borderRadius: BorderRadius.circular(isCompact ? 24.r : 20.0),
+        border: Border.all(color: AppColors.white.withValues(alpha : 0.05)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -177,26 +217,26 @@ class _BodyCompNotificationSheetState extends State<BodyCompNotificationSheet> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text("SCHEDULE ${index + 1}", style: AppTextStyles.labelSmall.copyWith(fontWeight: FontWeight.w900, color: Colors.white)),
+              Text("SCHEDULE ${index + 1}", style: AppTextStyles.labelSmall.copyWith(fontWeight: FontWeight.w500, color: Colors.white, fontSize: isCompact ? null : 11.0)),
               if (reminders.length > 1)
                 IconButton(
                   onPressed: () => setState(() {
                     reminders.removeAt(index);
                   }),
-                  icon: Icon(Icons.delete_outline_rounded, color: AppColors.crimson.withOpacity(0.7), size: 20.r),
+                  icon: Icon(Icons.delete_outline_rounded, color: AppColors.crimson.withValues(alpha : 0.7), size: isCompact ? 20.r : 18.0),
                 ),
             ],
           ),
-          SizedBox(height: 12.h),
-          _buildDayPicker(reminder, index),
-          SizedBox(height: 20.h),
-          _buildTimeChips(reminder, index),
+          SizedBox(height: isCompact ? 12.h : 10.0),
+          _buildDayPicker(reminder, index, isCompact),
+          SizedBox(height: isCompact ? 20.h : 16.0),
+          _buildTimeChips(reminder, index, isCompact),
         ],
       ),
     );
   }
 
-  Widget _buildDayPicker(BodyCompReminder reminder, int index) {
+  Widget _buildDayPicker(BodyCompReminder reminder, int index, bool isCompact) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: List.generate(7, (i) {
@@ -210,19 +250,19 @@ class _BodyCompNotificationSheetState extends State<BodyCompNotificationSheet> {
             }
           }),
           child: Container(
-            width: 36.r,
-            height: 36.r,
+            width: isCompact ? 36.r : 34.0,
+            height: isCompact ? 36.r : 34.0,
             decoration: BoxDecoration(
               color: isSelected ? AppColors.crimson : AppColors.surface,
               shape: BoxShape.circle,
-              border: Border.all(color: AppColors.white.withOpacity(0.05)),
+              border: Border.all(color: AppColors.white.withValues(alpha : 0.05)),
             ),
             alignment: Alignment.center,
             child: Text(
               weekDays[i],
               style: AppTextStyles.labelSmall.copyWith(
                 color: isSelected ? Colors.white : AppColors.textSecondary,
-                fontSize: 10.sp,
+                fontSize: isCompact ? 10.sp : 10.0,
               ),
             ),
           ),
@@ -231,38 +271,41 @@ class _BodyCompNotificationSheetState extends State<BodyCompNotificationSheet> {
     );
   }
 
-  Widget _buildTimeChips(BodyCompReminder reminder, int index) {
+  Widget _buildTimeChips(BodyCompReminder reminder, int index, bool isCompact) {
     final bool daysSelected = reminder.days.isNotEmpty;
 
     return AnimatedOpacity(
       duration: const Duration(milliseconds: 200),
       opacity: daysSelected ? 1.0 : 0.3,
       child: Wrap(
-        spacing: 8.w,
-        runSpacing: 8.h,
+        spacing: isCompact ? 8.w : 8.0,
+        runSpacing: isCompact ? 8.h : 8.0,
         children: [
           ...reminder.times.map(
             (t) => Chip(
               backgroundColor: AppColors.surface,
-              label: Text(t.format(context), style: AppTextStyles.labelSmall),
-              deleteIcon: Icon(Icons.close, size: 14.r, color: AppColors.crimson),
+              label: Text(t.format(context), style: AppTextStyles.labelSmall.copyWith(fontSize: isCompact ? null : 10.0)),
+              deleteIcon: Icon(Icons.close, size: isCompact ? 14.r : 14.0, color: AppColors.crimson),
               onDeleted: daysSelected ? () => setState(() => reminder.times.remove(t)) : null,
             ),
           ),
           GestureDetector(
             onTap: daysSelected ? () => _selectTime(reminder) : null,
             child: Container(
-              padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
+              padding: EdgeInsets.symmetric(
+                horizontal: isCompact ? 12.w : 12.0, 
+                vertical: isCompact ? 8.h : 6.0
+              ),
               decoration: BoxDecoration(
-                color: AppColors.crimson.withOpacity(0.1),
+                color: AppColors.crimson.withValues(alpha : 0.1),
                 borderRadius: BorderRadius.circular(20.r),
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.access_time_rounded, size: 14.r, color: AppColors.crimson),
-                  SizedBox(width: 4.w),
-                  Text("ADD TIME", style: AppTextStyles.labelSmall.copyWith(color: AppColors.crimson, fontWeight: FontWeight.bold)),
+                  Icon(Icons.access_time_rounded, size: isCompact ? 14.r : 14.0, color: AppColors.crimson),
+                  SizedBox(width: isCompact ? 4.w : 4.0),
+                  Text("ADD TIME", style: AppTextStyles.labelSmall.copyWith(color: AppColors.crimson, fontWeight: FontWeight.w500, fontSize: isCompact ? null : 10.0)),
                 ],
               ),
             ),
@@ -279,34 +322,34 @@ class _BodyCompNotificationSheetState extends State<BodyCompNotificationSheet> {
     }
   }
 
-  Widget _buildAddButton(String l, VoidCallback o) => GestureDetector(
+  Widget _buildAddButton(String l, VoidCallback o, bool isCompact) => GestureDetector(
         onTap: o,
         child: Container(
-          margin: EdgeInsets.only(top: 12.h),
-          padding: EdgeInsets.symmetric(vertical: 14.h),
+          margin: EdgeInsets.only(top: isCompact ? 12.h : 10.0),
+          padding: EdgeInsets.symmetric(vertical: isCompact ? 14.h : 12.0),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16.r),
-            border: Border.all(color: AppColors.white.withOpacity(0.05)),
-            color: AppColors.white.withOpacity(0.02),
+            borderRadius: BorderRadius.circular(isCompact ? 16.r : 12.0),
+            border: Border.all(color: AppColors.white.withValues(alpha : 0.05)),
+            color: AppColors.white.withValues(alpha : 0.02),
           ),
           alignment: Alignment.center,
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.add_circle_outline_rounded, color: AppColors.textSecondary, size: 18.r),
-              SizedBox(width: 8.w),
-              Text(l, style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary, fontWeight: FontWeight.bold)),
+              Icon(Icons.add_circle_outline_rounded, color: AppColors.textSecondary, size: isCompact ? 18.r : 18.0),
+              SizedBox(width: isCompact ? 8.w : 8.0),
+              Text(l, style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary, fontWeight: FontWeight.w500, fontSize: isCompact ? null : 11.0)),
             ],
           ),
         ),
       );
 
-  Widget _buildHandle() => Center(
+  Widget _buildHandle(bool isCompact) => Center(
         child: Container(
-          margin: EdgeInsets.symmetric(vertical: 12.h),
-          width: 40.w,
-          height: 4.h,
-          decoration: BoxDecoration(color: AppColors.textSecondary.withOpacity(0.3), borderRadius: BorderRadius.circular(2.r)),
+          margin: EdgeInsets.symmetric(vertical: isCompact ? 12.h : 12.0),
+          width: isCompact ? 40.w : 40.0,
+          height: isCompact ? 4.h : 4.0,
+          decoration: BoxDecoration(color: AppColors.textSecondary.withValues(alpha : 0.3), borderRadius: BorderRadius.circular(2.r)),
         ),
       );
 }

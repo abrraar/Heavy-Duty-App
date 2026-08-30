@@ -172,7 +172,7 @@ class _PerformanceGraphState extends State<PerformanceGraph> {
             gradient: LinearGradient(
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
-              colors: [meta.color.withOpacity(0.1), meta.color.withOpacity(0.0)],
+              colors: [meta.color.withValues(alpha : 0.1), meta.color.withValues(alpha : 0.0)],
             ),
           ),
         ));
@@ -198,11 +198,11 @@ class _PerformanceGraphState extends State<PerformanceGraph> {
         drawVerticalLine: true,
         horizontalInterval: widget.isAbsolute ? ((maxY - minY) / 5).clamp(1, 1000) : 10,
         getDrawingHorizontalLine: (value) => FlLine(
-          color: (!widget.isAbsolute && value == 0) ? AppColors.crimson.withOpacity(0.2) : AppColors.white.withOpacity(0.03),
+          color: (!widget.isAbsolute && value == 0) ? AppColors.crimson.withValues(alpha : 0.2) : AppColors.white.withValues(alpha : 0.03),
           strokeWidth: (!widget.isAbsolute && value == 0) ? 1.5 : 1,
           dashArray: (!widget.isAbsolute && value == 0) ? null : [5, 5],
         ),
-        getDrawingVerticalLine: (_) => FlLine(color: AppColors.white.withOpacity(0.05), strokeWidth: 1),
+        getDrawingVerticalLine: (_) => FlLine(color: AppColors.white.withValues(alpha : 0.05), strokeWidth: 1),
       ),
       titlesData: _buildTitlesData(minY, maxY),
       borderData: FlBorderData(show: false),
@@ -259,7 +259,7 @@ class _PerformanceGraphState extends State<PerformanceGraph> {
       barTouchData: BarTouchData(
         handleBuiltInTouches: true,
         touchTooltipData: BarTouchTooltipData(
-          getTooltipColor: (_) => AppColors.surface.withOpacity(0.95),
+          getTooltipColor: (_) => AppColors.surface.withValues(alpha : 0.95),
           getTooltipItem: (group, groupIndex, rod, rodIndex) {
              final key = activeKeys[rodIndex];
              final meta = widget.metadata[key]!;
@@ -270,10 +270,10 @@ class _PerformanceGraphState extends State<PerformanceGraph> {
 
              return BarTooltipItem(
                "${DateFormat('MMM dd, HH:mm').format(ts).toUpperCase()}\n",
-               AppTextStyles.labelSmall.copyWith(color: AppColors.white, fontWeight: FontWeight.w900),
+               AppTextStyles.labelSmall.copyWith(color: AppColors.white, fontWeight: FontWeight.w500),
                children: [
-                 TextSpan(text: "${meta.label}: ", style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary, fontWeight: FontWeight.w400)),
-                 TextSpan(text: "${rawValue?.toStringAsFixed(1) ?? "0.0"} ${meta.unit}", style: AppTextStyles.labelSmall.copyWith(color: meta.color, fontWeight: FontWeight.bold)),
+                 TextSpan(text: "${meta.label}: ", style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary, fontWeight: FontWeight.w500)),
+                 TextSpan(text: "${rawValue?.toStringAsFixed(1) ?? "0.0"} ${meta.unit}", style: AppTextStyles.labelSmall.copyWith(color: meta.color, fontWeight: FontWeight.w500)),
                  if (isPct) TextSpan(text: " (${displayValue >= 0 ? '+' : ''}${displayValue.toStringAsFixed(1)}%)", style: AppTextStyles.labelSmall.copyWith(color: displayValue >= 0 ? AppColors.success : AppColors.crimson, fontSize: 9.sp)),
                ],
              );
@@ -281,7 +281,7 @@ class _PerformanceGraphState extends State<PerformanceGraph> {
         )
       ),
       titlesData: _buildTitlesData(minY, maxY),
-      gridData: FlGridData(show: true, drawHorizontalLine: true, drawVerticalLine: true, getDrawingHorizontalLine: (v) => FlLine(color: (!widget.isAbsolute && v == 0) ? AppColors.crimson.withOpacity(0.2) : AppColors.white.withOpacity(0.03)), getDrawingVerticalLine: (_) => FlLine(color: AppColors.white.withOpacity(0.05))),
+      gridData: FlGridData(show: true, drawHorizontalLine: true, drawVerticalLine: true, getDrawingHorizontalLine: (v) => FlLine(color: (!widget.isAbsolute && v == 0) ? AppColors.crimson.withValues(alpha : 0.2) : AppColors.white.withValues(alpha : 0.03)), getDrawingVerticalLine: (_) => FlLine(color: AppColors.white.withValues(alpha : 0.05))),
       borderData: FlBorderData(show: false),
       barGroups: groups,
     );
@@ -291,7 +291,7 @@ class _PerformanceGraphState extends State<PerformanceGraph> {
     return LineTouchData(
       handleBuiltInTouches: true,
       touchTooltipData: LineTouchTooltipData(
-        getTooltipColor: (spot) => AppColors.surface.withOpacity(0.95),
+        getTooltipColor: (spot) => AppColors.surface.withValues(alpha : 0.95),
         tooltipBorderRadius: BorderRadius.circular(12.r),
         getTooltipItems: (touchedSpots) {
           return touchedSpots.asMap().entries.map((entry) {
@@ -305,10 +305,10 @@ class _PerformanceGraphState extends State<PerformanceGraph> {
 
             return LineTooltipItem(
               entry.key == 0 ? "${DateFormat('MMM dd, HH:mm').format(ts).toUpperCase()}\n" : "",
-              AppTextStyles.labelSmall.copyWith(color: AppColors.white, fontWeight: FontWeight.w900),
+              AppTextStyles.labelSmall.copyWith(color: AppColors.white, fontWeight: FontWeight.w500),
               children: [
-                TextSpan(text: "${meta.label}: ", style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary, fontWeight: FontWeight.w400)),
-                TextSpan(text: "${rawValue?.toStringAsFixed(1) ?? "0.0"} ${meta.unit}", style: AppTextStyles.labelSmall.copyWith(color: meta.color, fontWeight: FontWeight.bold)),
+                TextSpan(text: "${meta.label}: ", style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary, fontWeight: FontWeight.w500)),
+                TextSpan(text: "${rawValue?.toStringAsFixed(1) ?? "0.0"} ${meta.unit}", style: AppTextStyles.labelSmall.copyWith(color: meta.color, fontWeight: FontWeight.w500)),
                 if (isPct) TextSpan(text: " (${displayValue >= 0 ? '+' : ''}${displayValue.toStringAsFixed(1)}%)", style: AppTextStyles.labelSmall.copyWith(color: displayValue >= 0 ? AppColors.success : AppColors.crimson, fontSize: 9.sp)),
               ],
             );
@@ -375,9 +375,9 @@ class _PerformanceGraphState extends State<PerformanceGraph> {
               child: Text(
                 label,
                 style: AppTextStyles.labelSmall.copyWith(
-                  color: AppColors.textSecondary.withOpacity(0.4),
+                  color: AppColors.textSecondary.withValues(alpha : 0.4),
                   fontSize: 8.sp,
-                  fontWeight: FontWeight.bold,
+                  fontWeight: FontWeight.w500,
                 ),
               ),
             );

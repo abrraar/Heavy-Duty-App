@@ -6,7 +6,7 @@ import '../model/calorie_settings.dart';
 import '../model/saved_meal.dart';
 
 class CalorieCloudRepository {
-  final SupabaseClient _supabase = Supabase.instance.client;
+  SupabaseClient get _supabase => Supabase.instance.client;
 
   String? get _currentUserId => _supabase.auth.currentUser?.id;
 

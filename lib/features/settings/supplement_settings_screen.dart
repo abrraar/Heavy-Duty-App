@@ -1,5 +1,3 @@
-// lib/features/settings/supplement_settings_screen.dart
-
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:heavy_duty/core/theme/app_colors.dart';
@@ -18,6 +16,9 @@ class SupplementSettingsScreen extends StatefulWidget {
 class _SupplementSettingsScreenState extends State<SupplementSettingsScreen> {
   @override
   Widget build(BuildContext context) {
+    final double deviceWidth = MediaQuery.of(context).size.width;
+    final bool isLargeScreen = deviceWidth >= 600;
+
     return Consumer<SupplementProvider>(
       builder: (context, provider, _) {
         final settings = provider.settings;
@@ -29,7 +30,6 @@ class _SupplementSettingsScreenState extends State<SupplementSettingsScreen> {
             .where((s) => s.isPinnedToHome)
             .toList();
 
-        // Sort both independently
         pinnedSupps.sort((a, b) {
           final idxA = settings.pinnedOrder.indexOf(a.id);
           final idxB = settings.pinnedOrder.indexOf(b.id);
@@ -51,119 +51,142 @@ class _SupplementSettingsScreenState extends State<SupplementSettingsScreen> {
         return Scaffold(
           backgroundColor: AppColors.background,
           body: SafeArea(
-            child: Column(
-              children: [
-                const EliteSettingsAppBar(title: "SUPPLEMENT SETTINGS"),
-                Expanded(
-                  child: SingleChildScrollView(
-                    padding: EdgeInsets.symmetric(horizontal: 24.w),
-                    physics: const BouncingScrollPhysics(),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        SizedBox(height: 16.h),
-                        _buildSectionHeader("GLOBAL PREFERENCES"),
-                        _buildToggleCard(
-                          title: "SHOW EXPIRED ITEMS",
-                          subtitle: "DISPLAY SUPPLEMENTS PAST EXPIRY DATE",
-                          value: settings.showExpired,
-                          onChanged: (val) {
-                            provider.updateSettings(settings.copyWith(showExpired: val));
-                          },
-                        ),
-                        _buildToggleCard(
-                          title: "HIDE EMPTY STOCK",
-                          subtitle: "REMOVE ITEMS WITH 0 REMAINING FROM LOGS",
-                          value: settings.hideEmptyStock,
-                          onChanged: (val) {
-                            provider.updateSettings(settings.copyWith(hideEmptyStock: val));
-                          },
-                        ),
-                        
-                        SizedBox(height: 32.h),
-                        _buildSectionHeader("PINNED SUPPLEMENTS"),
-                        Text(
-                          "REORDER INDIVIDUAL SUPPLEMENT SHORTCUTS",
-                          style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary, fontSize: 10.sp),
-                        ),
-                        SizedBox(height: 16.h),
-                        if (pinnedSupps.isEmpty)
-                          _buildEmptyPlaceholder("NO SUPPLEMENTS PINNED")
-                        else
-                          ReorderableListView.builder(
-                            shrinkWrap: true,
-                            physics: const NeverScrollableScrollPhysics(),
-                            itemCount: pinnedSupps.length,
-                            proxyDecorator: (child, index, animation) => Material(
-                              type: MaterialType.transparency,
-                              child: child,
-                            ),
-                            onReorder: (oldIdx, newIdx) {
-                              if (newIdx > oldIdx) newIdx--;
-                              final item = pinnedSupps.removeAt(oldIdx);
-                              pinnedSupps.insert(newIdx, item);
-                              
-                              final List<String> newOrder = [
-                                ...pinnedSupps.map((e) => e.id),
-                                ...pinnedStacks.map((e) => e.id),
-                              ];
-                              provider.updatePinnedOrder(newOrder);
-                            },
-                            itemBuilder: (context, index) {
-                              final item = pinnedSupps[index];
-                              return _buildPinnedItemCard(
-                                key: ValueKey(item.id),
-                                name: item.name,
-                                isStack: false,
-                              );
-                            },
-                          ),
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final bool isCompact = constraints.maxWidth < 600 && !isLargeScreen;
+                final bool isWideLandscape = isLargeScreen && MediaQuery.of(context).orientation == Orientation.landscape;
 
-                        SizedBox(height: 32.h),
-                        _buildSectionHeader("PINNED STACKS"),
-                        Text(
-                          "REORDER SUPPLEMENT STACK SHORTCUTS",
-                          style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary, fontSize: 10.sp),
-                        ),
-                        SizedBox(height: 16.h),
-                        if (pinnedStacks.isEmpty)
-                          _buildEmptyPlaceholder("NO STACKS PINNED")
-                        else
-                          ReorderableListView.builder(
-                            shrinkWrap: true,
-                            physics: const NeverScrollableScrollPhysics(),
-                            itemCount: pinnedStacks.length,
-                            proxyDecorator: (child, index, animation) => Material(
-                              type: MaterialType.transparency,
-                              child: child,
-                            ),
-                            onReorder: (oldIdx, newIdx) {
-                              if (newIdx > oldIdx) newIdx--;
-                              final item = pinnedStacks.removeAt(oldIdx);
-                              pinnedStacks.insert(newIdx, item);
-                              
-                              final List<String> newOrder = [
-                                ...pinnedSupps.map((e) => e.id),
-                                ...pinnedStacks.map((e) => e.id),
-                              ];
-                              provider.updatePinnedOrder(newOrder);
-                            },
-                            itemBuilder: (context, index) {
-                              final item = pinnedStacks[index];
-                              return _buildPinnedItemCard(
-                                key: ValueKey(item.id),
-                                name: item.name,
-                                isStack: true,
-                              );
-                            },
-                          ),
-                        
-                        SizedBox(height: 40.h),
-                      ],
+                return Column(
+                  children: [
+                    EliteSettingsAppBar(
+                      title: "SUPPLEMENT SETTINGS", 
+                      isCompact: isCompact,
+                      showBackButton: !isWideLandscape,
                     ),
-                  ),
-                ),
-              ],
+                    Expanded(
+                      child: SingleChildScrollView(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: isLargeScreen ? 24.0 : 24.w
+                        ),
+                        physics: const BouncingScrollPhysics(),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                                SizedBox(height: isLargeScreen ? 16.0 : 16.h),
+                                _buildSectionHeader("GLOBAL PREFERENCES", isLargeScreen),
+                                _buildToggleCard(
+                                  title: "SHOW EXPIRED ITEMS",
+                                  subtitle: "DISPLAY SUPPLEMENTS PAST EXPIRY DATE",
+                                  value: settings.showExpired,
+                                  isLargeScreen: isLargeScreen,
+                                  onChanged: (val) {
+                                    provider.updateSettings(settings.copyWith(showExpired: val));
+                                  },
+                                ),
+                                _buildToggleCard(
+                                  title: "HIDE EMPTY STOCK",
+                                  subtitle: "REMOVE ITEMS WITH 0 REMAINING FROM LOGS",
+                                  value: settings.hideEmptyStock,
+                                  isLargeScreen: isLargeScreen,
+                                  onChanged: (val) {
+                                    provider.updateSettings(settings.copyWith(hideEmptyStock: val));
+                                  },
+                                ),
+                                
+                                SizedBox(height: isLargeScreen ? 32.0 : 32.h),
+                                _buildSectionHeader("PINNED SUPPLEMENTS", isLargeScreen),
+                                Text(
+                                  "REORDER INDIVIDUAL SUPPLEMENT SHORTCUTS",
+                                  style: AppTextStyles.labelSmall.copyWith(
+                                    color: AppColors.textSecondary, 
+                                    fontSize: isLargeScreen ? 10.0 : 10.sp
+                                  ),
+                                ),
+                                SizedBox(height: isLargeScreen ? 16.0 : 16.h),
+                                if (pinnedSupps.isEmpty)
+                                  _buildEmptyPlaceholder("NO SUPPLEMENTS PINNED", isLargeScreen)
+                                else
+                                  ReorderableListView.builder(
+                                    shrinkWrap: true,
+                                    physics: const NeverScrollableScrollPhysics(),
+                                    itemCount: pinnedSupps.length,
+                                    proxyDecorator: (child, index, animation) => Material(
+                                      type: MaterialType.transparency,
+                                      child: child,
+                                    ),
+                                    onReorder: (oldIdx, newIdx) {
+                                      if (newIdx > oldIdx) newIdx--;
+                                      final item = pinnedSupps.removeAt(oldIdx);
+                                      pinnedSupps.insert(newIdx, item);
+                                      
+                                      final List<String> newOrder = [
+                                        ...pinnedSupps.map((e) => e.id),
+                                        ...pinnedStacks.map((e) => e.id),
+                                      ];
+                                      provider.updatePinnedOrder(newOrder);
+                                    },
+                                    itemBuilder: (context, index) {
+                                      final item = pinnedSupps[index];
+                                      return _buildPinnedItemCard(
+                                        key: ValueKey(item.id),
+                                        name: item.name,
+                                        isStack: false,
+                                        isLargeScreen: isLargeScreen,
+                                      );
+                                    },
+                                  ),
+
+                                SizedBox(height: isLargeScreen ? 32.0 : 32.h),
+                                _buildSectionHeader("PINNED STACKS", isLargeScreen),
+                                Text(
+                                  "REORDER SUPPLEMENT STACK SHORTCUTS",
+                                  style: AppTextStyles.labelSmall.copyWith(
+                                    color: AppColors.textSecondary, 
+                                    fontSize: isLargeScreen ? 10.0 : 10.sp
+                                  ),
+                                ),
+                                SizedBox(height: isLargeScreen ? 16.0 : 16.h),
+                                if (pinnedStacks.isEmpty)
+                                  _buildEmptyPlaceholder("NO STACKS PINNED", isLargeScreen)
+                                else
+                                  ReorderableListView.builder(
+                                    shrinkWrap: true,
+                                    physics: const NeverScrollableScrollPhysics(),
+                                    itemCount: pinnedStacks.length,
+                                    proxyDecorator: (child, index, animation) => Material(
+                                      type: MaterialType.transparency,
+                                      child: child,
+                                    ),
+                                    onReorder: (oldIdx, newIdx) {
+                                      if (newIdx > oldIdx) newIdx--;
+                                      final item = pinnedStacks.removeAt(oldIdx);
+                                      pinnedStacks.insert(newIdx, item);
+                                      
+                                      final List<String> newOrder = [
+                                        ...pinnedSupps.map((e) => e.id),
+                                        ...pinnedStacks.map((e) => e.id),
+                                      ];
+                                      provider.updatePinnedOrder(newOrder);
+                                    },
+                                    itemBuilder: (context, index) {
+                                      final item = pinnedStacks[index];
+                                      return _buildPinnedItemCard(
+                                        key: ValueKey(item.id),
+                                        name: item.name,
+                                        isStack: true,
+                                        isLargeScreen: isLargeScreen,
+                                      );
+                                    },
+                                  ),
+                                
+                                SizedBox(height: isLargeScreen ? 40.0 : 40.h),
+                              ],
+                            ),
+                      ),
+                    ),
+                  ],
+                );
+              }
             ),
           ),
         );
@@ -171,27 +194,34 @@ class _SupplementSettingsScreenState extends State<SupplementSettingsScreen> {
     );
   }
 
-  Widget _buildEmptyPlaceholder(String message) {
+  Widget _buildEmptyPlaceholder(String message, bool isLargeScreen) {
     return Center(
       child: Padding(
-        padding: EdgeInsets.symmetric(vertical: 40.h),
+        padding: EdgeInsets.symmetric(vertical: isLargeScreen ? 40.0 : 40.h),
         child: Text(
           message,
-          style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary.withOpacity(0.3)),
+          style: AppTextStyles.labelSmall.copyWith(
+            color: AppColors.textSecondary.withValues(alpha: 0.3),
+            fontSize: isLargeScreen ? 11.0 : null,
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildSectionHeader(String title) {
+  Widget _buildSectionHeader(String title, bool isLargeScreen) {
     return Padding(
-      padding: EdgeInsets.only(bottom: 12.h, left: 4.w),
+      padding: EdgeInsets.only(
+        bottom: isLargeScreen ? 12.0 : 12.h, 
+        left: isLargeScreen ? 4.0 : 4.w
+      ),
       child: Text(
         title,
         style: AppTextStyles.labelSmall.copyWith(
           color: AppColors.crimson,
-          fontWeight: FontWeight.w900,
+          fontWeight: FontWeight.w500,
           letterSpacing: 1.5,
+          fontSize: isLargeScreen ? 11.0 : null,
         ),
       ),
     );
@@ -201,14 +231,15 @@ class _SupplementSettingsScreenState extends State<SupplementSettingsScreen> {
     required String title,
     required String subtitle,
     required bool value,
+    required bool isLargeScreen,
     required ValueChanged<bool> onChanged,
   }) {
     return Container(
-      margin: EdgeInsets.only(bottom: 12.h),
-      padding: EdgeInsets.all(16.r),
+      margin: EdgeInsets.only(bottom: isLargeScreen ? 12.0 : 12.h),
+      padding: EdgeInsets.all(isLargeScreen ? 16.0 : 16.r),
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.circular(12.r),
+        borderRadius: BorderRadius.circular(isLargeScreen ? 10.0 : 12.r),
         border: Border.all(color: AppColors.white.withValues(alpha: 0.05)),
       ),
       child: Row(
@@ -217,8 +248,16 @@ class _SupplementSettingsScreenState extends State<SupplementSettingsScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title, style: AppTextStyles.labelSmall.copyWith(color: AppColors.white, fontWeight: FontWeight.bold)),
-                Text(subtitle, style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary, fontSize: 10.sp, letterSpacing: 0)),
+                Text(title, style: AppTextStyles.labelSmall.copyWith(
+                  color: AppColors.white, 
+                  fontWeight: FontWeight.w500,
+                  fontSize: isLargeScreen ? 12.0 : null,
+                )),
+                Text(subtitle, style: AppTextStyles.labelSmall.copyWith(
+                  color: AppColors.textSecondary, 
+                  fontSize: isLargeScreen ? 10.0 : 10.sp, 
+                  letterSpacing: 0
+                )),
               ],
             ),
           ),
@@ -236,31 +275,40 @@ class _SupplementSettingsScreenState extends State<SupplementSettingsScreen> {
     required Key key,
     required String name,
     required bool isStack,
+    required bool isLargeScreen,
   }) {
     return Container(
       key: key,
-      margin: EdgeInsets.only(bottom: 8.h),
-      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
+      margin: EdgeInsets.only(bottom: isLargeScreen ? 8.0 : 8.h),
+      padding: EdgeInsets.all(isLargeScreen ? 12.0 : 12.r),
       decoration: BoxDecoration(
-        color: AppColors.surfaceLight.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(12.r),
-        border: Border.all(color: AppColors.white.withOpacity(0.05)),
+        color: AppColors.surfaceLight.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(isLargeScreen ? 10.0 : 12.r),
+        border: Border.all(color: AppColors.white.withValues(alpha: 0.05)),
       ),
       child: Row(
         children: [
           Icon(
             isStack ? Icons.layers_rounded : Icons.medication_rounded,
             color: isStack ? Colors.blueAccent : AppColors.crimson,
-            size: 20.r,
+            size: isLargeScreen ? 20.0 : 20.r,
           ),
-          SizedBox(width: 16.w),
+          SizedBox(width: isLargeScreen ? 16.0 : 16.w),
           Expanded(
             child: Text(
               name.toUpperCase(),
-              style: AppTextStyles.labelSmall.copyWith(color: Colors.white, fontWeight: FontWeight.bold),
+              style: AppTextStyles.labelSmall.copyWith(
+                color: Colors.white, 
+                fontWeight: FontWeight.w500,
+                fontSize: isLargeScreen ? 12.0 : null,
+              ),
             ),
           ),
-          Icon(Icons.drag_handle_rounded, color: AppColors.textSecondary.withOpacity(0.3), size: 20.r),
+          Icon(
+            Icons.drag_handle_rounded, 
+            color: AppColors.textSecondary.withValues(alpha: 0.3), 
+            size: isLargeScreen ? 20.0 : 20.r
+          ),
         ],
       ),
     );

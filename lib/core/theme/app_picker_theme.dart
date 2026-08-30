@@ -7,10 +7,17 @@ import 'package:heavy_duty/core/theme/app_colors.dart';
 class AppPickerTheme {
   AppPickerTheme._();
 
-  static ThemeData get themeData {
+  static ThemeData theme(BuildContext context) {
+    final bool isCompact = MediaQuery.of(context).size.width < 600;
+    return getTheme(isCompact: isCompact);
+  }
+
+  static ThemeData get themeData => getTheme(isCompact: true);
+
+  static ThemeData getTheme({required bool isCompact}) {
     const TextStyle brandFontBase = TextStyle(
       fontFamily: 'Impact',
-      fontWeight: FontWeight.w200,
+      fontWeight: FontWeight.w500,
     );
 
     return ThemeData(
@@ -28,14 +35,20 @@ class AppPickerTheme {
 
       datePickerTheme: DatePickerThemeData(
         backgroundColor: AppColors.surface,
-        headerHeadlineStyle: brandFontBase.copyWith(fontSize: 24.sp, color: Colors.white),
-        headerHelpStyle: brandFontBase.copyWith(fontSize: 12.sp, color: Colors.white70),
+        headerHeadlineStyle: brandFontBase.copyWith(
+          fontSize: isCompact ? 24.sp : 24.0, 
+          color: Colors.white
+        ),
+        headerHelpStyle: brandFontBase.copyWith(
+          fontSize: isCompact ? 12.sp : 12.0, 
+          color: Colors.white70
+        ),
         weekdayStyle: brandFontBase.copyWith(
-          fontSize: 12.sp,
+          fontSize: isCompact ? 12.sp : 11.0,
           color: Colors.white70,
         ),
-        dayStyle: brandFontBase.copyWith(fontSize: 14.sp),
-        yearStyle: brandFontBase.copyWith(fontSize: 14.sp),
+        dayStyle: brandFontBase.copyWith(fontSize: isCompact ? 14.sp : 13.0),
+        yearStyle: brandFontBase.copyWith(fontSize: isCompact ? 14.sp : 13.0),
         dayForegroundColor: WidgetStateProperty.resolveWith((states) {
           if (states.contains(WidgetState.disabled)) return Colors.white.withOpacity(0.3);
           return Colors.white;
@@ -48,10 +61,10 @@ class AppPickerTheme {
 
       timePickerTheme: TimePickerThemeData(
         backgroundColor: AppColors.surface,
-        hourMinuteTextStyle: brandFontBase.copyWith(fontSize: 48.sp),
-        dayPeriodTextStyle: brandFontBase.copyWith(fontSize: 16.sp),
-        helpTextStyle: brandFontBase.copyWith(fontSize: 12.sp),
-        dialTextStyle: brandFontBase.copyWith(fontSize: 14.sp),
+        hourMinuteTextStyle: brandFontBase.copyWith(fontSize: isCompact ? 48.sp : 44.0),
+        dayPeriodTextStyle: brandFontBase.copyWith(fontSize: isCompact ? 16.sp : 14.0),
+        helpTextStyle: brandFontBase.copyWith(fontSize: isCompact ? 12.sp : 11.0),
+        dialTextStyle: brandFontBase.copyWith(fontSize: isCompact ? 14.sp : 12.0),
 
         hourMinuteTextColor: WidgetStateColor.resolveWith((states) => Colors.white),
         dialTextColor: WidgetStateColor.resolveWith((states) {
@@ -59,32 +72,25 @@ class AppPickerTheme {
           return Colors.white;
         }),
 
-        // ADDED: dayPeriodColor to fix AM/PM background
         dayPeriodColor: WidgetStateColor.resolveWith((states) {
           if (states.contains(WidgetState.selected)) {
-            return AppColors.crimson; // Selection background
+            return AppColors.crimson; 
           }
-          return Colors.white.withOpacity(0.05); // Inactive background
+          return Colors.white.withOpacity(0.05); 
         }),
 
-        // FIXED: Using WidgetStateColor.resolveWith to cleanly change text states
-        dayPeriodTextColor: WidgetStateColor.resolveWith((
-          Set<WidgetState> states,
-        ) {
+        dayPeriodTextColor: WidgetStateColor.resolveWith((Set<WidgetState> states) {
           if (states.contains(WidgetState.selected)) {
-            return Colors
-                .white; // Active (AM or PM) selection turns crisp white
+            return Colors.white;
           }
-          return Colors.white.withOpacity(
-            0.38,
-          ); // Inactive option dims to grey/low-opacity
+          return Colors.white.withOpacity(0.38);
         }),
       ),
 
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(
           textStyle: brandFontBase.copyWith(
-            fontSize: 14.sp,
+            fontSize: isCompact ? 14.sp : 13.0,
             letterSpacing: 1.0,
             color: Colors.white,
           ),
@@ -93,13 +99,14 @@ class AppPickerTheme {
       ),
 
       textTheme: TextTheme(
-        labelLarge: brandFontBase.copyWith(fontSize: 14.sp),
+        labelLarge: brandFontBase.copyWith(fontSize: isCompact ? 14.sp : 13.0),
         bodyLarge: brandFontBase,
         bodySmall: brandFontBase,
-        titleLarge: brandFontBase.copyWith(fontSize: 22.sp),
+        titleLarge: brandFontBase.copyWith(fontSize: isCompact ? 22.sp : 20.0),
         titleMedium: brandFontBase,
         titleSmall: brandFontBase,
-      ), dialogTheme: DialogThemeData(backgroundColor: AppColors.surface),
+      ), 
+      dialogTheme: const DialogThemeData(backgroundColor: AppColors.surface),
     );
   }
 }

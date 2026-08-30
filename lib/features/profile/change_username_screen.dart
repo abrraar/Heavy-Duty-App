@@ -93,123 +93,175 @@ class _ChangeUsernameScreenState extends State<ChangeUsernameScreen> {
     final enteredUsername = _usernameController.text.trim();
     final isChanged = enteredUsername.isNotEmpty && enteredUsername != currentUsername;
 
+    final double deviceWidth = MediaQuery.of(context).size.width;
+    final bool isLargeScreen = deviceWidth >= 600;
+
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
-        child: Column(
-          children: [
-            const EliteSettingsAppBar(title: "IDENTITY"),
-            Expanded(
-              child: SingleChildScrollView(
-                padding: EdgeInsets.all(24.r),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      "CHANGE USERNAME",
-                      style: AppTextStyles.h1.copyWith(fontSize: 32.sp, letterSpacing: -1),
-                    ),
-                    SizedBox(height: 8.h),
-                    Text(
-                      "CHOOSE YOUR UNIQUE ELITE TAG",
-                      style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary, letterSpacing: 1.5),
-                    ),
-                    SizedBox(height: 40.h),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final bool isCompact = constraints.maxWidth < 600 && !isLargeScreen;
+            final bool isWideLandscape = isLargeScreen && MediaQuery.of(context).orientation == Orientation.landscape;
 
-                    _buildLabel("NEW USERNAME"),
-                    TextField(
-                      controller: _usernameController,
-                      style: AppTextStyles.inputText.copyWith(color: Colors.white),
-                      onChanged: (_) => setState(() {
-                        _isAvailable = null;
-                        _errorText = null;
-                        _suggestions = [];
-                      }),
-                      decoration: InputDecoration(
-                        hintText: "ENTER USERNAME",
-                        hintStyle: const TextStyle(color: Colors.white24),
-                        filled: true,
-                        fillColor: AppColors.surfaceLight.withOpacity(0.3),
-                        prefixIcon: Icon(Icons.alternate_email_rounded, color: AppColors.crimson, size: 20.r),
-                        suffixIcon: _isAvailable == true 
-                          ? const Icon(Icons.check_circle_outline_rounded, color: Colors.greenAccent)
-                          : (_isAvailable == false ? const Icon(Icons.error_outline_rounded, color: AppColors.error) : null),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12.r), borderSide: BorderSide.none),
-                      ),
+            return Column(
+              children: [
+                EliteSettingsAppBar(
+                  title: "IDENTITY", 
+                  isCompact: isCompact,
+                  showBackButton: !isWideLandscape,
+                ),
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: isLargeScreen ? 24.0 : 24.w, 
+                      vertical: isLargeScreen ? 24.0 : 24.r
                     ),
-                    if (_errorText != null)
-                      Padding(
-                        padding: EdgeInsets.only(top: 8.h, left: 4.w),
-                        child: Text(
-                          _errorText!, 
-                          style: AppTextStyles.labelSmall.copyWith(
-                            color: AppColors.error, 
-                            fontSize: 10.sp, 
-                            fontWeight: FontWeight.w900,
-                            letterSpacing: 1.2,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          "CHANGE USERNAME",
+                          style: AppTextStyles.h1.copyWith(
+                            fontSize: isLargeScreen ? 28.0 : 32.sp, 
+                            letterSpacing: -1
                           ),
                         ),
-                      ),
+                        SizedBox(height: isLargeScreen ? 8.0 : 8.h),
+                        Text(
+                          "CHOOSE YOUR UNIQUE ELITE TAG",
+                          style: AppTextStyles.labelSmall.copyWith(
+                            color: AppColors.textSecondary, 
+                            letterSpacing: 1.5,
+                            fontSize: isLargeScreen ? 11.0 : null,
+                          ),
+                        ),
+                        SizedBox(height: isLargeScreen ? 40.0 : 40.h),
 
-                    if (_suggestions.isNotEmpty) ...[
-                      SizedBox(height: 24.h),
-                      _buildLabel("SUGGESTIONS"),
-                      Wrap(
-                        spacing: 8.w,
-                        runSpacing: 10.h,
-                        children: _suggestions.map((s) => GestureDetector(
-                          onTap: () {
-                            _usernameController.text = s;
-                            setState(() {
-                              _suggestions = [];
-                              _errorText = null;
-                              _isAvailable = null;
-                            });
-                          },
-                          child: Container(
-                            padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
-                            decoration: BoxDecoration(
-                              color: AppColors.crimson.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(8.r),
-                              border: Border.all(color: AppColors.crimson.withOpacity(0.3)),
+                        _buildLabel("NEW USERNAME", isCompact, isLargeScreen),
+                        TextField(
+                          controller: _usernameController,
+                          style: AppTextStyles.inputText.copyWith(
+                            color: Colors.white,
+                            fontSize: isLargeScreen ? 14.0 : null,
+                          ),
+                          onChanged: (_) => setState(() {
+                            _isAvailable = null;
+                            _errorText = null;
+                            _suggestions = [];
+                          }),
+                          decoration: InputDecoration(
+                            hintText: "ENTER USERNAME",
+                            hintStyle: TextStyle(
+                              color: Colors.white24,
+                              fontSize: isLargeScreen ? 14.0 : null,
+                            ),
+                            filled: true,
+                            fillColor: AppColors.surfaceLight.withValues(alpha: 0.3),
+                            prefixIcon: Icon(
+                              Icons.alternate_email_rounded, 
+                              color: AppColors.crimson, 
+                              size: isLargeScreen ? 20.0 : 20.r
+                            ),
+                            suffixIcon: _isAvailable == true 
+                              ? const Icon(Icons.check_circle_outline_rounded, color: Colors.greenAccent)
+                              : (_isAvailable == false ? const Icon(Icons.error_outline_rounded, color: AppColors.error) : null),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(isLargeScreen ? 10.0 : 12.r), 
+                              borderSide: BorderSide.none
+                            ),
+                          ),
+                        ),
+                        if (_errorText != null)
+                          Padding(
+                            padding: EdgeInsets.only(
+                              top: isLargeScreen ? 8.0 : 8.h, 
+                              left: isLargeScreen ? 4.0 : 4.w
                             ),
                             child: Text(
-                              s, 
+                              _errorText!, 
                               style: AppTextStyles.labelSmall.copyWith(
-                                color: AppColors.crimson, 
-                                fontWeight: FontWeight.bold,
-                                fontSize: 10.sp,
+                                color: AppColors.error, 
+                                fontSize: isLargeScreen ? 10.0 : 10.sp,
+                                fontWeight: FontWeight.w500,
+                                letterSpacing: 1.2,
                               ),
                             ),
                           ),
-                        )).toList(),
-                      ),
-                    ],
 
-                    SizedBox(height: 60.h),
-                    _PrimaryButton(
-                      label: "VERIFY & SAVE",
-                      isLoading: isLoading,
-                      enabled: isChanged,
-                      onTap: _handleVerifyAndSave,
+                        if (_suggestions.isNotEmpty) ...[
+                          SizedBox(height: isLargeScreen ? 24.0 : 24.h),
+                          _buildLabel("SUGGESTIONS", isCompact, isLargeScreen),
+                          Wrap(
+                            spacing: isLargeScreen ? 8.0 : 8.w,
+                            runSpacing: isLargeScreen ? 10.0 : 10.h,
+                            children: _suggestions.map((s) => GestureDetector(
+                              onTap: () {
+                                _usernameController.text = s;
+                                setState(() {
+                                  _suggestions = [];
+                                  _errorText = null;
+                                  _isAvailable = null;
+                                });
+                              },
+                              child: Container(
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: isLargeScreen ? 12.0 : 12.w, 
+                                  vertical: isLargeScreen ? 8.0 : 8.h
+                                ),
+                                decoration: BoxDecoration(
+                                  color: AppColors.crimson.withValues(alpha: 0.1),
+                                  borderRadius: BorderRadius.circular(isLargeScreen ? 6.0 : 8.r),
+                                  border: Border.all(color: AppColors.crimson.withValues(alpha: 0.3)),
+                                ),
+                                child: Text(
+                                  s, 
+                                  style: AppTextStyles.labelSmall.copyWith(
+                                    color: AppColors.crimson, 
+                                    fontWeight: FontWeight.w500,
+                                    fontSize: isLargeScreen ? 10.0 : 10.sp,
+                                  ),
+                                ),
+                              ),
+                            )).toList(),
+                          ),
+                        ],
+
+                        SizedBox(height: isLargeScreen ? 60.0 : 60.h),
+                        _PrimaryButton(
+                          label: "VERIFY & SAVE",
+                          isLoading: isLoading,
+                          enabled: isChanged,
+                          onTap: _handleVerifyAndSave,
+                          isLargeScreen: isLargeScreen,
+                        ),
+                        SizedBox(height: isLargeScreen ? 20.0 : 20.h),
+                      ],
                     ),
-                    SizedBox(height: 20.h),
-                  ],
+                  ),
                 ),
-              ),
-            ),
-          ],
+              ],
+            );
+          },
         ),
       ),
     );
   }
 
-  Widget _buildLabel(String text) {
+  Widget _buildLabel(String text, bool isCompact, bool isLargeScreen) {
     return Padding(
-      padding: EdgeInsets.only(bottom: 8.h, left: 4.w),
+      padding: EdgeInsets.only(
+        bottom: isLargeScreen ? 8.0 : 8.h, 
+        left: isLargeScreen ? 4.0 : 4.w
+      ),
       child: Text(
         text,
-        style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary, letterSpacing: 1.5, fontWeight: FontWeight.bold),
+        style: AppTextStyles.labelSmall.copyWith(
+          color: AppColors.textSecondary, 
+          letterSpacing: 1.5, 
+          fontWeight: FontWeight.w500,
+          fontSize: isLargeScreen ? 11.0 : null,
+        ),
       ),
     );
   }
@@ -220,11 +272,13 @@ class _PrimaryButton extends StatelessWidget {
   final VoidCallback onTap;
   final bool isLoading;
   final bool enabled;
+  final bool isLargeScreen;
   const _PrimaryButton({
     required this.label, 
     required this.onTap, 
-    this.isLoading = false,
+    this.isLoading = false, 
     this.enabled = true,
+    this.isLargeScreen = false,
   });
 
   @override
@@ -236,16 +290,29 @@ class _PrimaryButton extends StatelessWidget {
         opacity: enabled ? 1.0 : 0.4,
         child: Container(
           width: double.infinity,
-          height: 56.h,
+          height: isLargeScreen ? 54.0 : 56.h,
           decoration: BoxDecoration(
             color: AppColors.crimson,
-            borderRadius: BorderRadius.circular(12.r),
-            boxShadow: enabled ? [BoxShadow(color: AppColors.crimson.withOpacity(0.3), blurRadius: 15, offset: const Offset(0, 8))] : [],
+            borderRadius: BorderRadius.circular(isLargeScreen ? 10.0 : 12.r),
+            boxShadow: enabled ? [
+              BoxShadow(
+                color: AppColors.crimson.withValues(alpha: 0.3), 
+                blurRadius: 15, 
+                offset: const Offset(0, 8)
+              )
+            ] : [],
           ),
           alignment: Alignment.center,
           child: isLoading 
             ? const CircularProgressIndicator(color: Colors.white)
-            : Text(label, style: AppTextStyles.labelMedium.copyWith(color: Colors.white, fontWeight: FontWeight.w900)),
+            : Text(
+                label, 
+                style: AppTextStyles.labelMedium.copyWith(
+                  color: Colors.white, 
+                  fontWeight: FontWeight.w500,
+                  fontSize: isLargeScreen ? 14.0 : null,
+                ),
+              ),
         ),
       ),
     );

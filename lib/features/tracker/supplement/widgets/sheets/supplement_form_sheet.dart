@@ -11,12 +11,14 @@ class SupplementFormSheet extends StatefulWidget {
   final Supplement? existingItem;
   final int? index;
   final Function(Supplement item, int? index) onSave;
+  final bool isSideSheet;
 
   const SupplementFormSheet({
     super.key,
     this.existingItem,
     this.index,
     required this.onSave,
+    this.isSideSheet = false,
   });
 
   @override
@@ -203,649 +205,692 @@ class _SupplementFormSheetState extends State<SupplementFormSheet> {
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
-      child: Container(
-        decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(32.r)),
-          border: Border.all(color: AppColors.white.withOpacity(0.05)),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: double.infinity,
-              padding: EdgeInsets.only(top: 16.h, bottom: 16.h),
-              alignment: Alignment.center,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final bool isCompact = constraints.maxWidth < 600 && !widget.isSideSheet;
+        final double sheetWidth = widget.isSideSheet ? constraints.maxWidth : (isCompact ? constraints.maxWidth : 600.0);
+
+        return Align(
+          alignment: widget.isSideSheet ? Alignment.center : Alignment.bottomCenter,
+          child: SizedBox(
+            width: sheetWidth,
+            child: Material(
+              color: Colors.transparent,
               child: Container(
-                width: 40.w,
-                height: 4.h,
+                height: widget.isSideSheet ? double.infinity : null,
                 decoration: BoxDecoration(
-                  color: AppColors.textSecondary.withOpacity(0.4),
-                  borderRadius: BorderRadius.circular(3.r),
+                  color: AppColors.surface,
+                  borderRadius: widget.isSideSheet 
+                    ? const BorderRadius.horizontal(left: Radius.circular(24.0))
+                    : BorderRadius.vertical(top: Radius.circular(isCompact ? 32.r : 24.0)),
+                  border: Border.all(color: AppColors.white.withOpacity(0.05)),
                 ),
-              ),
-            ),
-
-            Flexible(
-              child: SingleChildScrollView(
-                padding: EdgeInsets.fromLTRB(24.w, 0, 24.w, 40.h),
-                child: Padding(
-                  padding: EdgeInsets.only(
-                    bottom: MediaQuery.of(context).viewInsets.bottom,
-                  ),
-                  child: Column(
-                    children: [
-                      Row(
-                        children: [
-                          Container(
-                            padding: EdgeInsets.only(
-                              top: 10.r,
-                              bottom: 10.r,
-                              left: 10.r,
-                              right: 10.r,
-                            ),
-                            decoration: BoxDecoration(
-                              color: AppColors.crimson.withOpacity(0.1),
-                              shape: BoxShape.circle,
-                            ),
-                            child: Icon(
-                              widget.existingItem == null
-                                  ? Icons.add_rounded
-                                  : Icons.edit_rounded,
-                              color: AppColors.crimson,
-                              size: 24.r,
-                            ),
+                child: Column(
+                  mainAxisSize: widget.isSideSheet ? MainAxisSize.max : MainAxisSize.min,
+                  children: [
+                    if (!widget.isSideSheet)
+                      Container(
+                        width: double.infinity,
+                        padding: EdgeInsets.only(
+                          top: isCompact ? 16.h : 16.0, 
+                          bottom: isCompact ? 16.h : 16.0
+                        ),
+                        alignment: Alignment.center,
+                        child: Container(
+                          width: isCompact ? 40.w : 40.0,
+                          height: isCompact ? 4.h : 4.0,
+                          decoration: BoxDecoration(
+                            color: AppColors.textSecondary.withOpacity(0.4),
+                            borderRadius: BorderRadius.circular(3.r),
                           ),
-                          SizedBox(width: 12.w),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  widget.existingItem == null
-                                      ? "ADD SUPPLEMENT"
-                                      : "EDIT SUPPLEMENT",
-                                  style: AppTextStyles.h3,
-                                ),
-                                Text(
-                                  "LIBRARY CONFIGURATION",
-                                  style: AppTextStyles.labelSmall.copyWith(
-                                    color: AppColors.textSecondary,
-                                    letterSpacing: 1.2,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
+                        ),
                       ),
-                      SizedBox(height: 24.h),
-
-                      _buildFieldGroup(
-                        "SUPPLEMENT NAME *",
-                        nameController,
-                        "e.g. Whey Protein",
-                      ),
-                      SizedBox(height: 16.h),
-
-                      Row(
-                        children: [
-                          Expanded(
-                            child: _buildFieldGroup(
-                              "SERVING UNIT *",
-                              sUnitController,
-                              "Scoop",
-                            ),
+                    if (widget.isSideSheet) SizedBox(height: 24.0),
+                    Flexible(
+                      child: SingleChildScrollView(
+                        padding: EdgeInsets.fromLTRB(
+                          isCompact ? 24.w : 24.0, 
+                          0, 
+                          isCompact ? 24.w : 24.0, 
+                          isCompact ? 40.h : 32.0
+                        ),
+                        child: Padding(
+                          padding: EdgeInsets.only(
+                            bottom: MediaQuery.of(context).viewInsets.bottom,
                           ),
-                          SizedBox(width: 12.w),
-                          Expanded(
-                            child: _buildFieldGroup(
-                              "WEIGHT UNIT *",
-                              wUnitController,
-                              "g",
-                            ),
-                          ),
-                        ],
-                      ),
-                      SizedBox(height: 16.h),
-
-                      _buildFieldGroup(
-                        "WEIGHT PER SERVING *",
-                        wSizeController,
-                        "0.0",
-                        isNumeric: true,
-                      ),
-                      SizedBox(height: 28.h),
-
-                      // ─── VERTICAL INGREDIENTS BREAKDOWN COLUMN LAYOUT ───
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            "INGREDIENTS BREAKDOWN * (MINIMUM 1)",
-                            style: AppTextStyles.labelSmall.copyWith(
-                              color: AppColors.textSecondary,
-                              fontWeight: FontWeight.bold,
-                              letterSpacing: 0.5,
-                            ),
-                          ),
-                          SizedBox(height: 16.h),
-                          ListView.builder(
-                            shrinkWrap: true,
-                            physics: const NeverScrollableScrollPhysics(),
-                            itemCount: ingredientRows.length,
-                            itemBuilder: (context, index) {
-                              final row = ingredientRows[index];
-                              return Padding(
-                                padding: EdgeInsets.only(bottom: 20.h),
-                                child: Container(
-                                  padding: EdgeInsets.only(
-                                    top: 18.h,
-                                    bottom: 18.h,
-                                    left: 18.w,
-                                    right: 18.w,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: AppColors.background.withOpacity(
-                                      0.35,
-                                    ),
-                                    borderRadius: BorderRadius.circular(20.r),
-                                    border: Border.all(
-                                      color: AppColors.white.withOpacity(0.06),
-                                      width: 1,
-                                    ),
-                                  ),
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      // Top Header Action Row inside Card Component to cleanly separate delete button
-                                      Row(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.spaceBetween,
-                                        children: [
-                                          Text(
-                                            "ENTRY #${index + 1}",
-                                            style: AppTextStyles.labelSmall
-                                                .copyWith(
-                                                  color: AppColors.textSecondary
-                                                      .withOpacity(0.6),
-                                                  fontWeight: FontWeight.bold,
-                                                  fontSize: 11.sp,
-                                                  letterSpacing: 0.8,
-                                                ),
+                          child: Column(
+                            children: [
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: Row(
+                                      children: [
+                                        Container(
+                                          padding: EdgeInsets.all(isCompact ? 10.r : 10.0),
+                                          decoration: BoxDecoration(
+                                            color: AppColors.crimson.withOpacity(0.1),
+                                            shape: BoxShape.circle,
                                           ),
-                                          if (ingredientRows.length > 1)
-                                            GestureDetector(
-                                              onTap: () {
-                                                setState(() {
-                                                  row.nameCtrl.dispose();
-                                                  row.amountCtrl.dispose();
-                                                  row.unitCtrl.dispose();
-                                                  ingredientRows.removeAt(
-                                                    index,
-                                                  );
-                                                });
-                                              },
-                                              child: Container(
-                                                padding: EdgeInsets.only(
-                                                  top: 6.h,
-                                                  bottom: 6.h,
-                                                  left: 10.w,
-                                                  right: 10.w,
-                                                ),
-                                                decoration: BoxDecoration(
-                                                  color: AppColors.crimson
-                                                      .withOpacity(0.08),
-                                                  borderRadius:
-                                                      BorderRadius.circular(
-                                                        8.r,
-                                                      ),
-                                                  border: Border.all(
-                                                    color: AppColors.crimson
-                                                        .withOpacity(0.15),
-                                                  ),
-                                                ),
-                                                child: Row(
-                                                  mainAxisSize:
-                                                      MainAxisSize.min,
-                                                  children: [
-                                                    Icon(
-                                                      Icons
-                                                          .delete_outline_rounded,
-                                                      color: AppColors.crimson,
-                                                      size: 14.r,
-                                                    ),
-                                                    SizedBox(width: 4.w),
-                                                    Text(
-                                                      "REMOVE",
-                                                      style: AppTextStyles
-                                                          .labelSmall
-                                                          .copyWith(
-                                                            color: AppColors
-                                                                .crimson,
-                                                            fontSize: 10.sp,
-                                                            fontWeight:
-                                                                FontWeight.bold,
-                                                          ),
-                                                    ),
-                                                  ],
+                                          child: Icon(
+                                            widget.existingItem == null
+                                                ? Icons.add_rounded
+                                                : Icons.edit_rounded,
+                                            color: AppColors.crimson,
+                                            size: isCompact ? 24.r : 20.0,
+                                          ),
+                                        ),
+                                        SizedBox(width: isCompact ? 12.w : 12.0),
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                widget.existingItem == null
+                                                    ? "ADD SUPPLEMENT"
+                                                    : "EDIT SUPPLEMENT",
+                                                style: AppTextStyles.h3.copyWith(
+                                                  fontSize: isCompact ? null : 18.0,
                                                 ),
                                               ),
-                                            ),
-                                        ],
-                                      ),
-                                      Padding(
-                                        padding: EdgeInsets.only(
-                                          top: 12.h,
-                                          bottom: 16.h,
+                                              Text(
+                                                "LIBRARY CONFIGURATION",
+                                                style: AppTextStyles.labelSmall.copyWith(
+                                                  color: AppColors.textSecondary,
+                                                  letterSpacing: 1.2,
+                                                  fontSize: isCompact ? null : 10.0,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
                                         ),
-                                        child: Divider(
-                                          color: AppColors.white.withOpacity(
-                                            0.04,
-                                          ),
-                                          thickness: 1,
-                                        ),
-                                      ),
-
-                                      // Field 1: Ingredient Name Column Row Layout
-                                      Row(
-                                        children: [
-                                          Expanded(
-                                            flex: 35,
-                                            child: Text(
-                                              "Ingredient Name",
-                                              style: AppTextStyles.labelSmall
-                                                  .copyWith(
-                                                    color: AppColors.white
-                                                        .withOpacity(0.7),
-                                                    fontWeight: FontWeight.bold,
-                                                  ),
-                                            ),
-                                          ),
-                                          SizedBox(width: 12.w),
-                                          Expanded(
-                                            flex: 65,
-                                            child: _buildModernInput(
-                                              row.nameCtrl,
-                                              "e.g. Creatine Monohydrate",
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                      SizedBox(height: 14.h),
-
-                                      // Field 2: Amount Column Row Layout
-                                      Row(
-                                        children: [
-                                          Expanded(
-                                            flex: 35,
-                                            child: Text(
-                                              "Amount",
-                                              style: AppTextStyles.labelSmall
-                                                  .copyWith(
-                                                    color: AppColors.white
-                                                        .withOpacity(0.7),
-                                                    fontWeight: FontWeight.bold,
-                                                  ),
-                                            ),
-                                          ),
-                                          SizedBox(width: 12.w),
-                                          Expanded(
-                                            flex: 65,
-                                            child: _buildModernInput(
-                                              row.amountCtrl,
-                                              "e.g. 5000",
-                                              isNumeric: true,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                      SizedBox(height: 14.h),
-
-                                      // Field 3: Unit Column Row Layout
-                                      Row(
-                                        children: [
-                                          Expanded(
-                                            flex: 35,
-                                            child: Text(
-                                              "Unit (e.g. mg)",
-                                              style: AppTextStyles.labelSmall
-                                                  .copyWith(
-                                                    color: AppColors.white
-                                                        .withOpacity(0.7),
-                                                    fontWeight: FontWeight.bold,
-                                                  ),
-                                            ),
-                                          ),
-                                          SizedBox(width: 12.w),
-                                          Expanded(
-                                            flex: 65,
-                                            child: _buildModernInput(
-                                              row.unitCtrl,
-                                              "e.g. mg or g",
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ],
+                                      ],
+                                    ),
                                   ),
-                                ),
-                              );
-                            },
-                          ),
-
-                          // High-Visibility Structural "ADD INGREDIENT ENTRY" Button Design Element
-                          GestureDetector(
-                            onTap: () {
-                              setState(() {
-                                final newRow = SupplementIngredientRow(
-                                  nameCtrl: TextEditingController(),
-                                  amountCtrl: TextEditingController(),
-                                  unitCtrl: TextEditingController(),
-                                );
-                                newRow.nameCtrl.addListener(_onFieldChanged);
-                                newRow.amountCtrl.addListener(_onFieldChanged);
-                                newRow.unitCtrl.addListener(_onFieldChanged);
-                                ingredientRows.add(newRow);
-                              });
-                            },
-                            child: Container(
-                              width: double.infinity,
-                              height: 54.h,
-                              alignment: Alignment.center,
-                              decoration: BoxDecoration(
-                                color: AppColors.crimson.withOpacity(0.04),
-                                borderRadius: BorderRadius.circular(16.r),
-                                border: Border.all(
-                                  color: AppColors.crimson.withOpacity(0.3),
-                                  width: 1.5,
-                                  style: BorderStyle.solid,
-                                ),
+                                  if (widget.isSideSheet)
+                                    IconButton(
+                                      icon: const Icon(Icons.close, color: AppColors.textSecondary, size: 20),
+                                      onPressed: () => Navigator.pop(context),
+                                    ),
+                                ],
                               ),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
+                              SizedBox(height: isCompact ? 24.h : 20.0),
+
+                              _buildFieldGroup(
+                                "SUPPLEMENT NAME *",
+                                nameController,
+                                "e.g. Whey Protein",
+                                isCompact: isCompact,
+                              ),
+                              SizedBox(height: isCompact ? 16.h : 12.0),
+
+                              Row(
                                 children: [
-                                  Icon(
-                                    Icons.add_circle_outline_rounded,
-                                    color: AppColors.crimson,
-                                    size: 18.r,
+                                  Expanded(
+                                    child: _buildFieldGroup(
+                                      "SERVING UNIT *",
+                                      sUnitController,
+                                      "Scoop",
+                                      isCompact: isCompact,
+                                    ),
                                   ),
-                                  SizedBox(width: 8.w),
-                                  Text(
-                                    "ADD NEXT INGREDIENT",
-                                    style: AppTextStyles.labelSmall.copyWith(
-                                      color: AppColors.crimson,
-                                      fontSize: 13.sp,
-                                      fontWeight: FontWeight.bold,
-                                      letterSpacing: 1.0,
+                                  SizedBox(width: isCompact ? 12.w : 12.0),
+                                  Expanded(
+                                    child: _buildFieldGroup(
+                                      "WEIGHT UNIT *",
+                                      wUnitController,
+                                      "g",
+                                      isCompact: isCompact,
                                     ),
                                   ),
                                 ],
                               ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      SizedBox(height: 24.h),
+                              SizedBox(height: isCompact ? 16.h : 12.0),
 
-                      // EXPIRY & CALORIES
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  "EXPIRY DATE",
-                                  style: AppTextStyles.labelSmall.copyWith(
-                                    color: AppColors.textSecondary,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                                SizedBox(height: 8.h),
-                                GestureDetector(
-                                  onTap: () => _selectDate(context),
-                                  child: AbsorbPointer(
-                                    child: _buildModernInput(
-                                      expiryController,
-                                      "DD/MM/YYYY",
+                              _buildFieldGroup(
+                                "WEIGHT PER SERVING *",
+                                wSizeController,
+                                "0.0",
+                                isNumeric: true,
+                                isCompact: isCompact,
+                              ),
+                              SizedBox(height: isCompact ? 28.h : 20.0),
+
+                              // ─── VERTICAL INGREDIENTS BREAKDOWN COLUMN LAYOUT ───
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    "INGREDIENTS BREAKDOWN * (MINIMUM 1)",
+                                    style: AppTextStyles.labelSmall.copyWith(
+                                      color: AppColors.textSecondary,
+                                      fontWeight: FontWeight.w500,
+                                      letterSpacing: 0.5,
+                                      fontSize: isCompact ? null : 11.0,
                                     ),
                                   ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          SizedBox(width: 12.w),
-                          Expanded(
-                            child: _buildFieldGroup(
-                              "CALORIES PER ${wUnitController.text.isEmpty ? 'UNIT' : wUnitController.text.toUpperCase()}",
-                              caloriesController,
-                              "0.0",
-                              isNumeric: true,
-                            ),
-                          ),
-                        ],
-                      ),
-                      SizedBox(height: 16.h),
+                                  SizedBox(height: isCompact ? 16.h : 12.0),
+                                  ListView.builder(
+                                    shrinkWrap: true,
+                                    physics: const NeverScrollableScrollPhysics(),
+                                    itemCount: ingredientRows.length,
+                                    itemBuilder: (context, index) {
+                                      final row = ingredientRows[index];
+                                      return Padding(
+                                        padding: EdgeInsets.only(bottom: isCompact ? 20.h : 16.0),
+                                        child: Container(
+                                          padding: EdgeInsets.symmetric(
+                                            vertical: isCompact ? 18.h : 16.0, 
+                                            horizontal: isCompact ? 18.w : 16.0
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color: AppColors.background.withOpacity(
+                                              0.35,
+                                            ),
+                                            borderRadius: BorderRadius.circular(isCompact ? 20.r : 16.0),
+                                            border: Border.all(
+                                              color: AppColors.white.withOpacity(0.06),
+                                              width: 1,
+                                            ),
+                                          ),
+                                          child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              Row(
+                                                mainAxisAlignment:
+                                                    MainAxisAlignment.spaceBetween,
+                                                children: [
+                                                  Text(
+                                                    "ENTRY #${index + 1}",
+                                                    style: AppTextStyles.labelSmall
+                                                        .copyWith(
+                                                          color: AppColors.textSecondary
+                                                              .withOpacity(0.6),
+                                                          fontWeight: FontWeight.w500,
+                                                          fontSize: isCompact ? 11.sp : 10.0,
+                                                          letterSpacing: 0.8,
+                                                        ),
+                                                  ),
+                                                  if (ingredientRows.length > 1)
+                                                    GestureDetector(
+                                                      onTap: () {
+                                                        setState(() {
+                                                          row.nameCtrl.dispose();
+                                                          row.amountCtrl.dispose();
+                                                          row.unitCtrl.dispose();
+                                                          ingredientRows.removeAt(
+                                                            index,
+                                                          );
+                                                        });
+                                                      },
+                                                      child: Container(
+                                                        padding: EdgeInsets.symmetric(
+                                                          vertical: isCompact ? 6.h : 4.0, 
+                                                          horizontal: isCompact ? 10.w : 8.0
+                                                        ),
+                                                        decoration: BoxDecoration(
+                                                          color: AppColors.crimson
+                                                              .withOpacity(0.08),
+                                                          borderRadius:
+                                                              BorderRadius.circular(8.r),
+                                                          border: Border.all(
+                                                            color: AppColors.crimson
+                                                                .withOpacity(0.15),
+                                                          ),
+                                                        ),
+                                                        child: Row(
+                                                          mainAxisSize:
+                                                              MainAxisSize.min,
+                                                          children: [
+                                                            Icon(
+                                                              Icons
+                                                                  .delete_outline_rounded,
+                                                              color: AppColors.crimson,
+                                                              size: isCompact ? 14.r : 14.0,
+                                                            ),
+                                                            SizedBox(width: isCompact ? 4.w : 4.0),
+                                                            Text(
+                                                              "REMOVE",
+                                                              style: AppTextStyles
+                                                                  .labelSmall
+                                                                  .copyWith(
+                                                                    color: AppColors
+                                                                        .crimson,
+                                                                    fontSize: isCompact ? 10.sp : 9.0,
+                                                                    fontWeight:
+                                                                        FontWeight.w500,
+                                                                  ),
+                                                            ),
+                                                          ],
+                                                        ),
+                                                      ),
+                                                    ),
+                                                ],
+                                              ),
+                                              Padding(
+                                                padding: EdgeInsets.symmetric(vertical: isCompact ? 12.h : 8.0),
+                                                child: Divider(
+                                                  color: AppColors.white.withOpacity(0.04),
+                                                  thickness: 1,
+                                                ),
+                                              ),
 
-                      // MACROS PER UNIT
-                      Row(
-                        children: [
-                          Expanded(
-                            child: _buildFieldGroup(
-                              "PRO (g)",
-                              proteinController,
-                              "0.0",
-                              isNumeric: true,
-                            ),
-                          ),
-                          SizedBox(width: 8.w),
-                          Expanded(
-                            child: _buildFieldGroup(
-                              "CHO (g)",
-                              carbsController,
-                              "0.0",
-                              isNumeric: true,
-                            ),
-                          ),
-                          SizedBox(width: 8.w),
-                          Expanded(
-                            child: _buildFieldGroup(
-                              "FAT (g)",
-                              fatsController,
-                              "0.0",
-                              isNumeric: true,
-                            ),
-                          ),
-                        ],
-                      ),
-                      SizedBox(height: 24.h),
+                                              // Field 1: Ingredient Name
+                                              Row(
+                                                children: [
+                                                  Expanded(
+                                                    flex: 35,
+                                                    child: Text(
+                                                      "Ingredient Name",
+                                                      style: AppTextStyles.labelSmall
+                                                          .copyWith(
+                                                            color: AppColors.white
+                                                                .withOpacity(0.7),
+                                                            fontWeight: FontWeight.w500,
+                                                            fontSize: isCompact ? null : 11.0,
+                                                          ),
+                                                    ),
+                                                  ),
+                                                  SizedBox(width: isCompact ? 12.w : 12.0),
+                                                  Expanded(
+                                                    flex: 65,
+                                                    child: _buildModernInput(
+                                                      row.nameCtrl,
+                                                      "e.g. Creatine Monohydrate",
+                                                      isCompact: isCompact,
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                              SizedBox(height: isCompact ? 14.h : 10.0),
 
-                      if (widget.existingItem == null) ...[
-                        Padding(
-                          padding: EdgeInsets.only(top: 24.h, bottom: 24.h),
-                          child: Divider(
-                            color: AppColors.white.withOpacity(0.08),
-                            thickness: 1,
-                          ),
-                        ),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Text(
-                                  "TOTAL STOCK (OPTIONAL)",
-                                  style: AppTextStyles.labelSmall.copyWith(
-                                    color: AppColors.textSecondary,
-                                    fontWeight: FontWeight.bold,
+                                              // Field 2: Amount
+                                              Row(
+                                                children: [
+                                                  Expanded(
+                                                    flex: 35,
+                                                    child: Text(
+                                                      "Amount",
+                                                      style: AppTextStyles.labelSmall
+                                                          .copyWith(
+                                                            color: AppColors.white
+                                                                .withOpacity(0.7),
+                                                            fontWeight: FontWeight.w500,
+                                                            fontSize: isCompact ? null : 11.0,
+                                                          ),
+                                                    ),
+                                                  ),
+                                                  SizedBox(width: isCompact ? 12.w : 12.0),
+                                                  Expanded(
+                                                    flex: 65,
+                                                    child: _buildModernInput(
+                                                      row.amountCtrl,
+                                                      "e.g. 5000",
+                                                      isNumeric: true,
+                                                      isCompact: isCompact,
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                              SizedBox(height: isCompact ? 14.h : 10.0),
+
+                                              // Field 3: Unit
+                                              Row(
+                                                children: [
+                                                  Expanded(
+                                                    flex: 35,
+                                                    child: Text(
+                                                      "Unit (e.g. mg)",
+                                                      style: AppTextStyles.labelSmall
+                                                          .copyWith(
+                                                            color: AppColors.white
+                                                                .withOpacity(0.7),
+                                                            fontWeight: FontWeight.w500,
+                                                            fontSize: isCompact ? null : 11.0,
+                                                          ),
+                                                    ),
+                                                  ),
+                                                  SizedBox(width: isCompact ? 12.w : 12.0),
+                                                  Expanded(
+                                                    flex: 65,
+                                                    child: _buildModernInput(
+                                                      row.unitCtrl,
+                                                      "e.g. mg or g",
+                                                      isCompact: isCompact,
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      );
+                                    },
                                   ),
-                                ),
-                                _buildSegmentedSelector(
-                                  [
-                                    sUnitController.text.isEmpty
-                                        ? "Serv"
-                                        : sUnitController.text,
-                                    wUnitController.text.isEmpty
-                                        ? "Unit"
-                                        : wUnitController.text,
-                                  ],
-                                  useServingsForStock ? 0 : 1,
-                                  (i) => setState(
-                                    () => useServingsForStock = i == 0,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            SizedBox(height: 12.h),
-                            _buildModernInput(
-                              stockController,
-                              "Enter total amount",
-                              isNumeric: true,
-                            ),
-                          ],
-                        ),
-                      ],
 
-                      SizedBox(height: 16.h),
-
-                      _buildFieldGroup(
-                        "DESCRIPTION (OPTIONAL)",
-                        descController,
-                        "Notes about this supplement",
-                        maxLines: 4,
-                      ),
-
-                      SizedBox(height: 32.h),
-
-                      _buildActionButton(
-                        widget.existingItem == null
-                            ? "ADD TO LIBRARY"
-                            : "SAVE CHANGES",
-                        _isFormValid()
-                            ? AppColors.crimson
-                            : AppColors.surfaceLight,
-                        _isFormValid()
-                            ? () {
-                                double weight =
-                                    double.tryParse(wSizeController.text) ??
-                                    1.0;
-
-                                double? finalStock;
-                                double? finalRemaining;
-
-                                if (widget.existingItem == null) {
-                                  double? stockRaw = double.tryParse(
-                                    stockController.text,
-                                  );
-                                  finalStock = stockRaw != null
-                                      ? (useServingsForStock
-                                            ? stockRaw * weight
-                                            : stockRaw)
-                                      : null;
-                                  finalRemaining = finalStock;
-                                } else {
-                                  finalStock = widget.existingItem!.totalStock;
-                                  finalRemaining =
-                                      widget.existingItem!.remainingStock;
-                                }
-
-                                List<SupplementIngredient> compiledIngredients =
-                                    [];
-                                for (var row in ingredientRows) {
-                                  final name = row.nameCtrl.text.trim();
-                                  final amountStr = row.amountCtrl.text.trim();
-                                  final unit = row.unitCtrl.text.trim();
-                                  final amount =
-                                      double.tryParse(amountStr) ?? 0.0;
-
-                                  if (name.isNotEmpty &&
-                                      unit.isNotEmpty &&
-                                      amount > 0) {
-                                    compiledIngredients.add(
-                                      SupplementIngredient(
-                                        name: name,
-                                        amount: amount,
-                                        unit: unit,
+                                  GestureDetector(
+                                    onTap: () {
+                                      setState(() {
+                                        final newRow = SupplementIngredientRow(
+                                          nameCtrl: TextEditingController(),
+                                          amountCtrl: TextEditingController(),
+                                          unitCtrl: TextEditingController(),
+                                        );
+                                        newRow.nameCtrl.addListener(_onFieldChanged);
+                                        newRow.amountCtrl.addListener(_onFieldChanged);
+                                        newRow.unitCtrl.addListener(_onFieldChanged);
+                                        ingredientRows.add(newRow);
+                                      });
+                                    },
+                                    child: Container(
+                                      width: double.infinity,
+                                      height: isCompact ? 54.h : 48.0,
+                                      alignment: Alignment.center,
+                                      decoration: BoxDecoration(
+                                        color: AppColors.crimson.withOpacity(0.04),
+                                        borderRadius: BorderRadius.circular(isCompact ? 16.r : 12.0),
+                                        border: Border.all(
+                                          color: AppColors.crimson.withOpacity(0.3),
+                                          width: 1.5,
+                                          style: BorderStyle.solid,
+                                        ),
                                       ),
-                                    );
-                                  }
-                                }
+                                      child: Row(
+                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        children: [
+                                          Icon(
+                                            Icons.add_circle_outline_rounded,
+                                            color: AppColors.crimson,
+                                            size: isCompact ? 18.r : 18.0,
+                                          ),
+                                          SizedBox(width: isCompact ? 8.w : 8.0),
+                                          Text(
+                                            "ADD NEXT INGREDIENT",
+                                            style: AppTextStyles.labelSmall.copyWith(
+                                              color: AppColors.crimson,
+                                              fontSize: isCompact ? 13.sp : 12.0,
+                                              fontWeight: FontWeight.w500,
+                                              letterSpacing: 1.0,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              SizedBox(height: isCompact ? 24.h : 20.0),
 
-                                final newItem = Supplement(
-                                  id:
-                                      widget.existingItem?.id ??
-                                      DateTime.now().toString(),
-                                  name: nameController.text.trim(),
-                                  servingUnit: sUnitController.text.trim(),
-                                  weightPerServing: weight,
-                                  weightUnit: wUnitController.text.trim(),
-                                  description: descController.text.trim(),
-                                  totalStock: finalStock,
-                                  remainingStock: finalRemaining,
-                                  expiryDate: selectedExpiryDate,
-                                  caloriesPerUnit: double.tryParse(
-                                    caloriesController.text,
+                              // EXPIRY & CALORIES
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          "EXPIRY DATE",
+                                          style: AppTextStyles.labelSmall.copyWith(
+                                            color: AppColors.textSecondary,
+                                            fontWeight: FontWeight.w500,
+                                            fontSize: isCompact ? null : 11.0,
+                                          ),
+                                        ),
+                                        SizedBox(height: isCompact ? 8.h : 8.0),
+                                        GestureDetector(
+                                          onTap: () => _selectDate(context),
+                                          child: AbsorbPointer(
+                                            child: _buildModernInput(
+                                              expiryController,
+                                              "DD/MM/YYYY",
+                                              isCompact: isCompact,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
                                   ),
-                                  proteinPerUnit: double.tryParse(
-                                    proteinController.text,
+                                  SizedBox(width: isCompact ? 12.w : 12.0),
+                                  Expanded(
+                                    child: _buildFieldGroup(
+                                      "CALORIES PER ${wUnitController.text.isEmpty ? 'UNIT' : wUnitController.text.toUpperCase()}",
+                                      caloriesController,
+                                      "0.0",
+                                      isNumeric: true,
+                                      isCompact: isCompact,
+                                    ),
                                   ),
-                                  carbsPerUnit: double.tryParse(
-                                    carbsController.text,
-                                  ),
-                                  fatsPerUnit: double.tryParse(
-                                    fatsController.text,
-                                  ),
-                                  isActive:
-                                      widget.existingItem?.isActive ?? true,
-                                  isPinnedToHome:
-                                      widget.existingItem?.isPinnedToHome ??
-                                      false,
-                                  pinnedIntakeAmount:
-                                      widget.existingItem?.pinnedIntakeAmount ??
-                                      0,
-                                  pinnedRestockAmount:
-                                      widget
-                                          .existingItem
-                                          ?.pinnedRestockAmount ??
-                                      0,
-                                  pinnedUseServingsIntake:
-                                      widget
-                                          .existingItem
-                                          ?.pinnedUseServingsIntake ??
-                                      true,
-                                  pinnedUseServingsRestock:
-                                      widget
-                                          .existingItem
-                                          ?.pinnedUseServingsRestock ??
-                                      true,
-                                  notificationsEnabled:
-                                      widget
-                                          .existingItem
-                                          ?.notificationsEnabled ??
-                                      false,
-                                  reminders:
-                                      widget.existingItem?.reminders ?? [],
-                                  ingredients: compiledIngredients,
-                                );
+                                ],
+                              ),
+                              SizedBox(height: isCompact ? 16.h : 12.0),
 
-                                widget.onSave(newItem, widget.index);
-                                Navigator.pop(context);
-                              }
-                            : null,
+                              // MACROS PER UNIT
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: _buildFieldGroup(
+                                      "PRO (g)",
+                                      proteinController,
+                                      "0.0",
+                                      isNumeric: true,
+                                      isCompact: isCompact,
+                                    ),
+                                  ),
+                                  SizedBox(width: isCompact ? 8.w : 8.0),
+                                  Expanded(
+                                    child: _buildFieldGroup(
+                                      "CHO (g)",
+                                      carbsController,
+                                      "0.0",
+                                      isNumeric: true,
+                                      isCompact: isCompact,
+                                    ),
+                                  ),
+                                  SizedBox(width: isCompact ? 8.w : 8.0),
+                                  Expanded(
+                                    child: _buildFieldGroup(
+                                      "FAT (g)",
+                                      fatsController,
+                                      "0.0",
+                                      isNumeric: true,
+                                      isCompact: isCompact,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              SizedBox(height: isCompact ? 24.h : 20.0),
+
+                              if (widget.existingItem == null) ...[
+                                Padding(
+                                  padding: EdgeInsets.symmetric(vertical: isCompact ? 24.h : 20.0),
+                                  child: Divider(
+                                    color: AppColors.white.withOpacity(0.08),
+                                    thickness: 1,
+                                  ),
+                                ),
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Text(
+                                          "TOTAL STOCK (OPTIONAL)",
+                                          style: AppTextStyles.labelSmall.copyWith(
+                                            color: AppColors.textSecondary,
+                                            fontWeight: FontWeight.w500,
+                                            fontSize: isCompact ? null : 11.0,
+                                          ),
+                                        ),
+                                        _buildSegmentedSelector(
+                                          [
+                                            sUnitController.text.isEmpty
+                                                ? "Serv"
+                                                : sUnitController.text,
+                                            wUnitController.text.isEmpty
+                                                ? "Unit"
+                                                : wUnitController.text,
+                                          ],
+                                          useServingsForStock ? 0 : 1,
+                                          (i) => setState(
+                                            () => useServingsForStock = i == 0,
+                                          ),
+                                          isCompact: isCompact,
+                                        ),
+                                      ],
+                                    ),
+                                    SizedBox(height: isCompact ? 12.h : 8.0),
+                                    _buildModernInput(
+                                      stockController,
+                                      "Enter total amount",
+                                      isNumeric: true,
+                                      isCompact: isCompact,
+                                    ),
+                                  ],
+                                ),
+                              ],
+
+                              SizedBox(height: isCompact ? 16.h : 12.0),
+
+                              _buildFieldGroup(
+                                "DESCRIPTION (OPTIONAL)",
+                                descController,
+                                "Notes about this supplement",
+                                maxLines: 4,
+                                isCompact: isCompact,
+                              ),
+
+                              SizedBox(height: isCompact ? 32.h : 24.0),
+
+                              _buildActionButton(
+                                widget.existingItem == null
+                                    ? "ADD TO LIBRARY"
+                                    : "SAVE CHANGES",
+                                _isFormValid()
+                                    ? AppColors.crimson
+                                    : AppColors.surfaceLight,
+                                _isFormValid()
+                                    ? () {
+                                        double weight =
+                                            double.tryParse(wSizeController.text) ??
+                                            1.0;
+
+                                        double? finalStock;
+                                        double? finalRemaining;
+
+                                        if (widget.existingItem == null) {
+                                          double? stockRaw = double.tryParse(
+                                            stockController.text,
+                                          );
+                                          finalStock = stockRaw != null
+                                              ? (useServingsForStock
+                                                    ? stockRaw * weight
+                                                    : stockRaw)
+                                              : null;
+                                          finalRemaining = finalStock;
+                                        } else {
+                                          finalStock = widget.existingItem!.totalStock;
+                                          finalRemaining =
+                                              widget.existingItem!.remainingStock;
+                                        }
+
+                                        List<SupplementIngredient> compiledIngredients =
+                                            [];
+                                        for (var row in ingredientRows) {
+                                          final name = row.nameCtrl.text.trim();
+                                          final amountStr = row.amountCtrl.text.trim();
+                                          final unit = row.unitCtrl.text.trim();
+                                          final amount =
+                                              double.tryParse(amountStr) ?? 0.0;
+
+                                          if (name.isNotEmpty &&
+                                              unit.isNotEmpty &&
+                                              amount > 0) {
+                                            compiledIngredients.add(
+                                              SupplementIngredient(
+                                                name: name,
+                                                amount: amount,
+                                                unit: unit,
+                                              ),
+                                            );
+                                          }
+                                        }
+
+                                        final newItem = Supplement(
+                                          id:
+                                              widget.existingItem?.id ??
+                                              DateTime.now().toString(),
+                                          name: nameController.text.trim(),
+                                          servingUnit: sUnitController.text.trim(),
+                                          weightPerServing: weight,
+                                          weightUnit: wUnitController.text.trim(),
+                                          description: descController.text.trim(),
+                                          totalStock: finalStock,
+                                          remainingStock: finalRemaining,
+                                          expiryDate: selectedExpiryDate,
+                                          caloriesPerUnit: double.tryParse(
+                                            caloriesController.text,
+                                          ),
+                                          proteinPerUnit: double.tryParse(
+                                            proteinController.text,
+                                          ),
+                                          carbsPerUnit: double.tryParse(
+                                            carbsController.text,
+                                          ),
+                                          fatsPerUnit: double.tryParse(
+                                            fatsController.text,
+                                          ),
+                                          isActive:
+                                              widget.existingItem?.isActive ?? true,
+                                          isPinnedToHome:
+                                              widget.existingItem?.isPinnedToHome ??
+                                              false,
+                                          pinnedIntakeAmount:
+                                              widget.existingItem?.pinnedIntakeAmount ??
+                                              0,
+                                          pinnedRestockAmount:
+                                              widget
+                                                  .existingItem
+                                                  ?.pinnedRestockAmount ??
+                                              0,
+                                          pinnedUseServingsIntake:
+                                              widget
+                                                  .existingItem
+                                                  ?.pinnedUseServingsIntake ??
+                                              true,
+                                          pinnedUseServingsRestock:
+                                              widget
+                                                  .existingItem
+                                                  ?.pinnedUseServingsRestock ??
+                                              true,
+                                          notificationsEnabled:
+                                              widget
+                                                  .existingItem
+                                                  ?.notificationsEnabled ??
+                                              false,
+                                          reminders:
+                                              widget.existingItem?.reminders ?? [],
+                                          ingredients: compiledIngredients,
+                                        );
+
+                                        widget.onSave(newItem, widget.index);
+                                        Navigator.pop(context);
+                                      }
+                                    : null,
+                                isCompact: isCompact,
+                              ),
+                            ],
+                          ),
+                        ),
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ),
             ),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 
@@ -855,6 +900,7 @@ class _SupplementFormSheetState extends State<SupplementFormSheet> {
     String hint, {
     bool isNumeric = false,
     int maxLines = 1,
+    required bool isCompact,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -863,15 +909,17 @@ class _SupplementFormSheetState extends State<SupplementFormSheet> {
           label,
           style: AppTextStyles.labelSmall.copyWith(
             color: AppColors.textSecondary,
-            fontWeight: FontWeight.bold,
+            fontWeight: FontWeight.w500,
+            fontSize: isCompact ? null : 11.0,
           ),
         ),
-        SizedBox(height: 8.h),
+        SizedBox(height: isCompact ? 8.h : 6.0),
         _buildModernInput(
           controller,
           hint,
           isNumeric: isNumeric,
           maxLines: maxLines,
+          isCompact: isCompact,
         ),
       ],
     );
@@ -882,14 +930,15 @@ class _SupplementFormSheetState extends State<SupplementFormSheet> {
     String hint, {
     bool isNumeric = false,
     int maxLines = 1,
+    required bool isCompact,
   }) {
     return Container(
-      constraints: BoxConstraints(minHeight: maxLines > 1 ? 120.h : 54.h),
-      padding: EdgeInsets.only(left: 16.w, right: 16.w),
+      constraints: BoxConstraints(minHeight: maxLines > 1 ? (isCompact ? 120.h : 100.0) : (isCompact ? 54.h : 44.0)),
+      padding: EdgeInsets.symmetric(horizontal: isCompact ? 16.w : 16.0),
       alignment: maxLines > 1 ? Alignment.topLeft : Alignment.centerLeft,
       decoration: BoxDecoration(
         color: AppColors.background.withOpacity(0.5),
-        borderRadius: BorderRadius.circular(12.r),
+        borderRadius: BorderRadius.circular(isCompact ? 12.r : 10.0),
         border: Border.all(color: AppColors.white.withOpacity(0.05)),
       ),
       child: TextField(
@@ -901,16 +950,16 @@ class _SupplementFormSheetState extends State<SupplementFormSheet> {
         inputFormatters: isNumeric
             ? [FilteringTextInputFormatter.allow(RegExp(r'(^\d*\.?\d*)'))]
             : [],
-        style: AppTextStyles.labelSmall.copyWith(fontSize: 15.sp),
+        style: AppTextStyles.labelSmall.copyWith(fontSize: isCompact ? 15.sp : 14.0),
         decoration: InputDecoration(
           hintText: hint,
           hintStyle: TextStyle(
             color: AppColors.textSecondary.withOpacity(0.25),
-            fontSize: 15.sp,
+            fontSize: isCompact ? 15.sp : 14.0,
           ),
           border: InputBorder.none,
           isDense: true,
-          contentPadding: EdgeInsets.only(top: 16.h, bottom: 16.h),
+          contentPadding: EdgeInsets.symmetric(vertical: isCompact ? 16.h : 12.0),
         ),
       ),
     );
@@ -920,13 +969,14 @@ class _SupplementFormSheetState extends State<SupplementFormSheet> {
     List<String> labels,
     int activeIndex,
     Function(int) onTap,
+    {required bool isCompact}
   ) {
     return Container(
-      height: 38.h,
-      padding: EdgeInsets.only(top: 4.r, bottom: 4.r, left: 4.r, right: 4.r),
+      height: isCompact ? 38.h : 34.0,
+      padding: EdgeInsets.all(isCompact ? 4.r : 3.0),
       decoration: BoxDecoration(
         color: AppColors.background,
-        borderRadius: BorderRadius.circular(12.r),
+        borderRadius: BorderRadius.circular(isCompact ? 12.r : 10.0),
         border: Border.all(color: AppColors.white.withOpacity(0.05)),
       ),
       child: Row(
@@ -936,17 +986,17 @@ class _SupplementFormSheetState extends State<SupplementFormSheet> {
           return GestureDetector(
             onTap: () => onTap(index),
             child: Container(
-              padding: EdgeInsets.only(left: 16.w, right: 16.w),
+              padding: EdgeInsets.symmetric(horizontal: isCompact ? 16.w : 12.0),
               alignment: Alignment.center,
               decoration: BoxDecoration(
                 color: isActive ? AppColors.crimson : Colors.transparent,
-                borderRadius: BorderRadius.circular(8.r),
+                borderRadius: BorderRadius.circular(isCompact ? 8.r : 6.0),
               ),
               child: Text(
                 labels[index].toUpperCase(),
                 style: AppTextStyles.labelSmall.copyWith(
-                  fontSize: 10.sp,
-                  fontWeight: FontWeight.bold,
+                  fontSize: isCompact ? 10.sp : 9.0,
+                  fontWeight: FontWeight.w500,
                   color: isActive ? Colors.white : AppColors.textSecondary,
                 ),
               ),
@@ -961,17 +1011,18 @@ class _SupplementFormSheetState extends State<SupplementFormSheet> {
     String label,
     Color color,
     VoidCallback? onPressed,
+    {required bool isCompact}
   ) {
     bool isEnabled = onPressed != null;
     return GestureDetector(
       onTap: onPressed,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        height: 60.h,
+        height: isCompact ? 60.h : 52.0,
         width: double.infinity,
         decoration: BoxDecoration(
           color: color,
-          borderRadius: BorderRadius.circular(16.r),
+          borderRadius: BorderRadius.circular(isCompact ? 16.r : 12.0),
           boxShadow: isEnabled
               ? [
                   BoxShadow(
@@ -989,7 +1040,7 @@ class _SupplementFormSheetState extends State<SupplementFormSheet> {
             color: isEnabled
                 ? Colors.white
                 : AppColors.textSecondary.withOpacity(0.4),
-            fontSize: 16.sp,
+            fontSize: isCompact ? 16.sp : 14.0,
           ),
         ),
       ),

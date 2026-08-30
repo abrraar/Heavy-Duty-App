@@ -15,102 +15,115 @@ class EliteConfirmDialog {
   }) {
     return showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: AppColors.surface,
-        surfaceTintColor: Colors.transparent,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(28.r),
-        ),
-        title: Column(
-          children: [
-            Container(
-              padding: EdgeInsets.all(12.r),
-              decoration: BoxDecoration(
-                color: confirmColor.withOpacity(0.1),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(
-                icon,
-                color: confirmColor,
-                size: 28.r,
-              ),
+      builder: (context) => LayoutBuilder(
+        builder: (context, constraints) {
+          final bool isCompact = constraints.maxWidth < 600; // Use a reasonable breakpoint for dialog content
+          return AlertDialog(
+            backgroundColor: AppColors.surface,
+            surfaceTintColor: Colors.transparent,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(isCompact ? 28.r : 20.0),
             ),
-            SizedBox(height: 16.h),
-            Text(
-              title.toUpperCase(),
-              style: AppTextStyles.h3.copyWith(
-                fontSize: 16.sp,
-                letterSpacing: 1.2,
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              message.toUpperCase(),
-              textAlign: TextAlign.center,
-              style: AppTextStyles.labelMedium.copyWith(
-                color: AppColors.textSecondary,
-                height: 1.4,
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          Padding(
-            padding: EdgeInsets.fromLTRB(12.w, 0, 12.w, 16.h),
-            child: Row(
+            title: Column(
               children: [
-                Expanded(
-                  child: GestureDetector(
-                    onTap: () => Navigator.pop(context, false),
-                    child: Container(
-                      padding: EdgeInsets.symmetric(vertical: 12.h),
-                      decoration: BoxDecoration(
-                        color: Colors.transparent,
-                        borderRadius: BorderRadius.circular(12.r),
-                        border: Border.all(color: AppColors.white.withOpacity(0.1)),
-                      ),
-                      alignment: Alignment.center,
-                      child: Text(
-                        cancelText.toUpperCase(),
-                        style: AppTextStyles.labelMedium.copyWith(
-                          color: AppColors.textSecondary,
-                          fontWeight: FontWeight.w400,
-                        ),
-                      ),
-                    ),
+                Container(
+                  padding: EdgeInsets.all(isCompact ? 12.r : 12.0),
+                  decoration: BoxDecoration(
+                    color: confirmColor.withOpacity(0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    icon,
+                    color: confirmColor,
+                    size: isCompact ? 28.r : 24.0,
                   ),
                 ),
-                SizedBox(width: 12.w),
-                Expanded(
-                  child: GestureDetector(
-                    onTap: () => Navigator.pop(context, true),
-                    child: Container(
-                      padding: EdgeInsets.symmetric(vertical: 12.h),
-                      decoration: BoxDecoration(
-                        color: confirmColor.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(12.r),
-                        border: Border.all(color: confirmColor.withOpacity(0.5)),
-                      ),
-                      alignment: Alignment.center,
-                      child: Text(
-                        confirmText.toUpperCase(),
-                        style: AppTextStyles.labelMedium.copyWith(
-                          color: confirmColor,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ),
+                SizedBox(height: isCompact ? 16.h : 16.0),
+                Text(
+                  title.toUpperCase(),
+                  style: AppTextStyles.h3.copyWith(
+                    fontSize: isCompact ? 16.sp : 15.0,
+                    letterSpacing: 1.2,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  message.toUpperCase(),
+                  textAlign: TextAlign.center,
+                  style: AppTextStyles.labelMedium.copyWith(
+                    color: AppColors.textSecondary,
+                    height: 1.4,
+                    fontSize: isCompact ? null : 12.0,
                   ),
                 ),
               ],
             ),
-          ),
-        ],
+            actions: [
+              Padding(
+                padding: EdgeInsets.fromLTRB(
+                  isCompact ? 12.w : 12.0, 
+                  0, 
+                  isCompact ? 12.w : 12.0, 
+                  isCompact ? 16.h : 16.0
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () => Navigator.pop(context, false),
+                        child: Container(
+                          padding: EdgeInsets.symmetric(vertical: isCompact ? 12.h : 12.0),
+                          decoration: BoxDecoration(
+                            color: Colors.transparent,
+                            borderRadius: BorderRadius.circular(isCompact ? 12.r : 10.0),
+                            border: Border.all(color: AppColors.white.withOpacity(0.1)),
+                          ),
+                          alignment: Alignment.center,
+                          child: Text(
+                            cancelText.toUpperCase(),
+                            style: AppTextStyles.labelMedium.copyWith(
+                              color: AppColors.textSecondary,
+                              fontWeight: FontWeight.w500,
+                              fontSize: isCompact ? null : 12.0,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    SizedBox(width: isCompact ? 12.w : 12.0),
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () => Navigator.pop(context, true),
+                        child: Container(
+                          padding: EdgeInsets.symmetric(vertical: isCompact ? 12.h : 12.0),
+                          decoration: BoxDecoration(
+                            color: confirmColor.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(isCompact ? 12.r : 10.0),
+                            border: Border.all(color: confirmColor.withOpacity(0.5)),
+                          ),
+                          alignment: Alignment.center,
+                          child: Text(
+                            confirmText.toUpperCase(),
+                            style: AppTextStyles.labelMedium.copyWith(
+                              color: confirmColor,
+                              fontWeight: FontWeight.w500,
+                              fontSize: isCompact ? null : 12.0,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          );
+        },
       ),
     );
   }

@@ -11,6 +11,7 @@ class WaterTrackerCard extends StatelessWidget {
   final int minusValueMl;
   final bool useMetric;
   final Function(int) onAdjust;
+  final bool isCompact;
 
   const WaterTrackerCard({
     super.key,
@@ -20,6 +21,7 @@ class WaterTrackerCard extends StatelessWidget {
     required this.minusValueMl,
     required this.useMetric,
     required this.onAdjust,
+    this.isCompact = false,
   });
 
   @override
@@ -32,10 +34,10 @@ class WaterTrackerCard extends StatelessWidget {
 
     return Container(
       width: double.infinity,
-      padding: EdgeInsets.all(20.r),
+      padding: EdgeInsets.all(isCompact ? 20.r : 20.0),
       decoration: BoxDecoration(
         color: AppColors.surfaceLight.withOpacity(0.6),
-        borderRadius: BorderRadius.circular(20.r),
+        borderRadius: BorderRadius.circular(isCompact ? 20.r : 20.0),
         border: Border.all(color: AppColors.white.withOpacity(0.1)),
         boxShadow: [
           BoxShadow(color: Colors.black26, blurRadius: 8, offset: const Offset(0, 4)),
@@ -53,12 +55,12 @@ class WaterTrackerCard extends StatelessWidget {
                   children: [
                     Row(
                       children: [
-                        Icon(Icons.water_drop_rounded, color: Colors.blueAccent, size: 20.r),
+                        Icon(Icons.water_drop_rounded, color: Colors.blueAccent, size: isCompact ? 20.r : 20.0),
                         SizedBox(width: 8.w),
                         Text(
                           'HYDRATION',
                           style: AppTextStyles.labelSmall.copyWith(
-                            fontSize: 12.sp,
+                            fontSize: isCompact ? 14.sp : 12.0,
                             letterSpacing: 1.5,
                             fontWeight: FontWeight.w500,
                           ),
@@ -70,7 +72,7 @@ class WaterTrackerCard extends StatelessWidget {
                       '$displayCurrent / $displayTarget $unit',
                       style: AppTextStyles.labelSmall.copyWith(
                         color: Colors.white,
-                        fontSize: 14.sp,
+                        fontSize: isCompact ? 16.sp : 14.0,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
@@ -78,7 +80,7 @@ class WaterTrackerCard extends StatelessWidget {
                       progress >= 1.0 ? "GOAL REACHED" : "REMAINING: ${useMetric ? (targetMl - currentMl) : ((targetMl - currentMl) * mlToOzFactor).toStringAsFixed(1)} $unit",
                       style: AppTextStyles.labelSmall.copyWith(
                         color: progress >= 1.0 ? Colors.greenAccent : Colors.blueAccent,
-                        fontSize: 10.sp,
+                        fontSize: isCompact ? 12.sp : 10.0,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
@@ -94,7 +96,7 @@ class WaterTrackerCard extends StatelessWidget {
                     style: AppTextStyles.labelSmall.copyWith(
                       color: progress >= 1.0 ? Colors.greenAccent : Colors.blueAccent,
                       fontWeight: FontWeight.w500,
-                      fontSize: 10.sp,
+                      fontSize: isCompact ? 12.sp : 10.0,
                     ),
                   ),
                 ],
@@ -127,10 +129,10 @@ class WaterTrackerCard extends StatelessWidget {
     return GestureDetector(
       onTap: () => onAdjust(amountMl),
       child: Container(
-        padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 10.h),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         decoration: BoxDecoration(
           color: AppColors.background,
-          borderRadius: BorderRadius.circular(12.r),
+          borderRadius: BorderRadius.circular(isCompact ? 12.r : 12.0),
           border: Border.all(
             color: isSub ? AppColors.error.withOpacity(0.5) : AppColors.white.withOpacity(0.1),
             width: 1.5,
@@ -140,7 +142,7 @@ class WaterTrackerCard extends StatelessWidget {
           label,
           style: AppTextStyles.labelSmall.copyWith(
             color: isSub ? AppColors.error : AppColors.white,
-            fontSize: 11.sp,
+            fontSize: isCompact ? 13.sp : 11.0,
             fontWeight: FontWeight.w500,
           ),
         ),

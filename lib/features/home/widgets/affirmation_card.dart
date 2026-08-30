@@ -7,7 +7,8 @@ import 'package:heavy_duty/features/affirmation/provider/affirmation_provider.da
 import 'package:provider/provider.dart';
 
 class AffirmationCard extends StatefulWidget {
-  const AffirmationCard({super.key});
+  final bool isCompact;
+  const AffirmationCard({super.key, this.isCompact = false});
 
   @override
   State<AffirmationCard> createState() => _AffirmationCardState();
@@ -23,11 +24,11 @@ class _AffirmationCardState extends State<AffirmationCard> {
       builder: (context, provider, _) {
         final allAffirmations = provider.affirmations;
         final current = provider.currentAffirmation;
-        
+
         if (allAffirmations.isEmpty || current == null) return const SizedBox.shrink();
 
         final int currentIndex = allAffirmations.indexWhere((a) => a.id == current.id);
-        
+
         // Track direction for the slide animation
         if (_lastIndex == -1) {
           _lastIndex = currentIndex;
@@ -35,7 +36,7 @@ class _AffirmationCardState extends State<AffirmationCard> {
           // If we jumped from end to start, treat as forward
           if (_lastIndex == allAffirmations.length - 1 && currentIndex == 0) {
             _isForward = true;
-          } 
+          }
           // If we jumped from start to end, treat as backward
           else if (_lastIndex == 0 && currentIndex == allAffirmations.length - 1) {
             _isForward = false;
@@ -67,72 +68,72 @@ class _AffirmationCardState extends State<AffirmationCard> {
             }
           },
           behavior: HitTestBehavior.opaque,
-          child: AnimatedSize(
-            duration: const Duration(milliseconds: 400),
-            curve: Curves.easeInOut,
-            alignment: Alignment.topCenter,
-            child: Container(
-              width: double.infinity,
-              padding: EdgeInsets.fromLTRB(16.w, 4.h, 16.w, 4.h),
-              decoration: const BoxDecoration(
-                border: Border(
-                  left: BorderSide(
-                    color: AppColors.crimson,
-                    width: 3,
-                  ),
+          child: Container(
+            width: double.infinity,
+            padding: EdgeInsets.fromLTRB(
+              widget.isCompact ? 16.w : 16.0, 
+              widget.isCompact ? 4.h : 4.0, 
+              widget.isCompact ? 16.w : 16.0, 
+              widget.isCompact ? 4.h : 4.0
+            ),
+            decoration: const BoxDecoration(
+              border: Border(
+                left: BorderSide(
+                  color: AppColors.crimson,
+                  width: 3,
                 ),
               ),
-              child: AnimatedSwitcher(
-                duration: const Duration(milliseconds: 500),
-                switchInCurve: Curves.easeOutCubic,
-                switchOutCurve: Curves.easeInCubic,
-                transitionBuilder: (Widget child, Animation<double> animation) {
-                  // Create a cohesive horizontal slide transition
-                  final isIncoming = child.key == ValueKey(current.id);
-                  
-                  Offset beginOffset;
-                  if (isIncoming) {
-                    beginOffset = _isForward ? const Offset(1.0, 0.0) : const Offset(-1.0, 0.0);
-                  } else {
-                    beginOffset = _isForward ? const Offset(-1.0, 0.0) : const Offset(1.0, 0.0);
-                  }
+            ),
+            child: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 500),
+              switchInCurve: Curves.easeOutCubic,
+              switchOutCurve: Curves.easeInCubic,
+              transitionBuilder: (Widget child, Animation<double> animation) {
+                // Create a cohesive horizontal slide transition
+                final isIncoming = child.key == ValueKey(current.id);
 
-                  return FadeTransition(
-                    opacity: animation,
-                    child: SlideTransition(
-                      position: Tween<Offset>(begin: beginOffset, end: Offset.zero).animate(animation),
-                      child: child,
+                Offset beginOffset;
+                if (isIncoming) {
+                  beginOffset = _isForward ? const Offset(1.0, 0.0) : const Offset(-1.0, 0.0);
+                } else {
+                  beginOffset = _isForward ? const Offset(-1.0, 0.0) : const Offset(1.0, 0.0);
+                }
+
+                return FadeTransition(
+                  opacity: animation,
+                  child: SlideTransition(
+                    position: Tween<Offset>(begin: beginOffset, end: Offset.zero).animate(animation),
+                    child: child,
+                  ),
+                );
+              },
+              child: Column(
+                key: ValueKey(current.id),
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    '"${current.text}"',
+                    style: AppTextStyles.bodySmall.copyWith(
+                      color: AppColors.textSecondary,
+                      fontStyle: FontStyle.italic,
+                      height: 1.4,
+                      fontSize: widget.isCompact ? 15.sp : 13.0,
                     ),
-                  );
-                },
-                child: Column(
-                  key: ValueKey(current.id),
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
+                  ),
+                  if (current.speaker != null && current.speaker!.isNotEmpty) ...[
+                    const SizedBox(height: 6),
                     Text(
-                      '"${current.text}"',
-                      style: AppTextStyles.bodySmall.copyWith(
-                        color: AppColors.textSecondary,
-                        fontStyle: FontStyle.italic,
-                        height: 1.4,
-                        fontSize: 13.sp,
+                      "— ${current.speaker}",
+                      style: AppTextStyles.labelSmall.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w500,
+                        fontSize: widget.isCompact ? 13.sp : 11.0,
+                        letterSpacing: 0.5,
                       ),
                     ),
-                    if (current.speaker != null && current.speaker!.isNotEmpty) ...[
-                      SizedBox(height: 6.h),
-                      Text(
-                        "— ${current.speaker}",
-                        style: AppTextStyles.labelSmall.copyWith(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w500,
-                          fontSize: 14.sp,
-                          letterSpacing: 0.5,
-                        ),
-                      ),
-                    ],
                   ],
-                ),
+                ],
               ),
             ),
           ),

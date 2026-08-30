@@ -4,7 +4,7 @@ import '../model/body_comp_log.dart';
 import '../model/body_comp_settings.dart';
 
 class BodyCompCloudRepository {
-  final SupabaseClient _supabase = Supabase.instance.client;
+  SupabaseClient get _supabase => Supabase.instance.client;
 
   String? get _currentUserId => _supabase.auth.currentUser?.id;
 

@@ -8,6 +8,7 @@ class CycleStatusCard extends StatelessWidget {
   final int completedWorkouts;
   final int totalWorkouts;
   final double workOutputGrowth;
+  final bool isCompact;
 
   const CycleStatusCard({
     super.key,
@@ -15,6 +16,7 @@ class CycleStatusCard extends StatelessWidget {
     required this.completedWorkouts,
     required this.totalWorkouts,
     this.workOutputGrowth = 0.0,
+    this.isCompact = false,
   });
 
   @override
@@ -24,10 +26,10 @@ class CycleStatusCard extends StatelessWidget {
 
     return Container(
       width: double.infinity,
-      padding: EdgeInsets.all(20.r),
+      padding: EdgeInsets.all(isCompact ? 20.r : 20.0),
       decoration: BoxDecoration(
         color: AppColors.surfaceLight.withOpacity(0.6),
-        borderRadius: BorderRadius.circular(20.r),
+        borderRadius: BorderRadius.circular(isCompact ? 20.r : 20.0),
         border: Border.all(color: AppColors.white.withOpacity(0.1)),
         boxShadow: [
           BoxShadow(color: Colors.black26, blurRadius: 8, offset: const Offset(0, 4)),
@@ -42,13 +44,13 @@ class CycleStatusCard extends StatelessWidget {
             children: [
               Row(
                 children: [
-                  Icon(Icons.bolt_rounded, color: AppColors.crimson, size: 20.r),
+                  Icon(Icons.bolt_rounded, color: AppColors.crimson, size: isCompact ? 20.r : 20.0),
                   SizedBox(width: 8.w),
                   Text(
                     'CYCLE STATUS',
                     style: AppTextStyles.labelSmall.copyWith(
                       letterSpacing: 1.5,
-                      fontSize: 11.sp,
+                      fontSize: isCompact ? 13.sp : 11.0,
                       fontWeight: FontWeight.w500,
                     ),
                   ),
@@ -65,7 +67,7 @@ class CycleStatusCard extends StatelessWidget {
                     "${workOutputGrowth > 0 ? "+" : ""}${(workOutputGrowth * 100).toStringAsFixed(1)}% STRENGTH PROGRESS",
                     style: AppTextStyles.labelSmall.copyWith(
                       color: workOutputGrowth > 0 ? Colors.greenAccent : AppColors.crimson,
-                      fontSize: 9.sp,
+                      fontSize: isCompact ? 10.sp : 9.0,
                       fontWeight: FontWeight.w500,
                     ),
                   ),
@@ -76,11 +78,12 @@ class CycleStatusCard extends StatelessWidget {
           SizedBox(height: 16.h),
           
           // Data Rows
-          _buildStatusRow('Active Routine', activeCycle.toUpperCase()),
+          _buildStatusRow('Active Routine', activeCycle.toUpperCase(), isCompact),
           SizedBox(height: 10.h),
           _buildStatusRow(
             'Overall Progress',
             '$completedWorkouts OF $totalWorkouts COMPLETED',
+            isCompact,
           ),
 
           SizedBox(height: 16.h),
@@ -100,7 +103,7 @@ class CycleStatusCard extends StatelessWidget {
     );
   }
 
-  Widget _buildStatusRow(String label, String value) {
+  Widget _buildStatusRow(String label, String value, bool isCompact) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -108,7 +111,7 @@ class CycleStatusCard extends StatelessWidget {
           label,
           style: AppTextStyles.labelSmall.copyWith(
             color: AppColors.textSecondary,
-            fontSize: 10.sp,
+            fontSize: isCompact ? 12.sp : 10.0,
             fontWeight: FontWeight.w500,
           ),
         ),
@@ -116,7 +119,7 @@ class CycleStatusCard extends StatelessWidget {
           value,
           style: AppTextStyles.labelMedium.copyWith(
             color: AppColors.white,
-            fontSize: 12.sp,
+            fontSize: isCompact ? 14.sp : 12.0,
             fontWeight: FontWeight.w500,
           ),
         ),

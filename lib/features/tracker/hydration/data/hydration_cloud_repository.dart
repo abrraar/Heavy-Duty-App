@@ -6,7 +6,7 @@ import '../model/hydration_log.dart';
 import '../model/hydration_settings.dart';
 
 class HydrationCloudRepository {
-  final SupabaseClient _supabase = Supabase.instance.client;
+  SupabaseClient get _supabase => Supabase.instance.client;
 
   String? get _currentUserId => _supabase.auth.currentUser?.id;
 

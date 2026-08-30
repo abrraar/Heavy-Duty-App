@@ -14,6 +14,7 @@ import 'package:heavy_duty/core/widgets/elite_confirm_dialog.dart';
 import 'package:heavy_duty/core/widgets/elite_snackbar.dart';
 import 'package:heavy_duty/features/tracker/supplement/widgets/sheets/stack_form_sheet.dart';
 import 'package:heavy_duty/features/tracker/supplement/widgets/sheets/supplement_form_sheet.dart';
+import 'package:heavy_duty/core/utils/adaptive_utils.dart';
 
 import 'package:heavy_duty/features/tracker/calorie/provider/calorie_provider.dart';
 import 'package:provider/provider.dart';
@@ -22,7 +23,10 @@ import 'package:heavy_duty/core/theme/app_text_styles.dart';
 import 'package:intl/intl.dart';
 
 import 'model/supplement.dart';
+import 'model/supplement_item.dart';
+import 'model/supplement_stack.dart';
 import 'provider/supplement_provider.dart';
+import 'package:heavy_duty/core/constants/dimensions.dart';
 import 'widgets/cards/tracker_card.dart';
 
 class _HistoryFilter {
@@ -106,94 +110,110 @@ class _SupplementScreenState extends State<SupplementScreen>
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: null,
-      body: Column(
-        children: [
-          Padding(
-            padding: EdgeInsets.only(left: 8.w, right: 8.w),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Padding(
-                  padding: EdgeInsets.symmetric(vertical: 24.h),
-                  child: IntrinsicHeight(
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        IconButton(
-                          icon: const Icon(
-                            Icons.arrow_back_ios_new_rounded,
-                            color: AppColors.white,
-                          ),
-                          onPressed: () => Navigator.pop(context),
-                        ),
-                        Expanded(
-                          child: Text(
-                            'SUPPLEMENT TRACKER',
-                            textAlign: TextAlign.center,
-                            style: AppTextStyles.h2.copyWith(
-                              color: AppColors.white,
-                              fontWeight: FontWeight.w400,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final double width = constraints.maxWidth;
+        final bool isCompact = width < kMobileBreakpoint;
+        final double hPad = !isCompact
+            ? (width - kMaxContentWidth).clamp(24.0, double.infinity) / 2
+            : 8.w;
+
+        return Scaffold(
+          backgroundColor: AppColors.background,
+          appBar: null,
+          body: Column(
+            children: [
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: hPad),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Padding(
+                      padding: EdgeInsets.symmetric(vertical: isCompact ? 24.h : 20.0),
+                      child: IntrinsicHeight(
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            IconButton(
+                              icon: Icon(
+                                Icons.arrow_back_ios_new_rounded,
+                                color: AppColors.white,
+                                size: isCompact ? 24.r : 20.0,
+                              ),
+                              onPressed: () => Navigator.pop(context),
                             ),
-                          ),
+                            Expanded(
+                              child: Text(
+                                'SUPPLEMENT TRACKER',
+                                textAlign: TextAlign.center,
+                                style: AppTextStyles.h2.copyWith(
+                                  color: AppColors.white,
+                                  fontWeight: FontWeight.w500,
+                                  fontSize: isCompact ? 20.sp : 20.0,
+                                ),
+                              ),
+                            ),
+                            IconButton(
+                              icon: Icon(
+                                Icons.info_outline_rounded,
+                                color: isCompact ? Colors.transparent : AppColors.white,
+                                size: isCompact ? 24.r : 20.0,
+                              ),
+                              onPressed: isCompact ? null : () {
+                                // Add instructions dialog if needed, similar to sleep screen
+                              },
+                            ),
+                          ],
                         ),
-                        const Opacity(
-                          opacity: 0,
-                          child: IconButton(
-                            icon: Icon(Icons.arrow_back_ios_new_rounded),
-                            onPressed: null,
-                          ),
-                        ),
+                      ),
+                    ),
+                    TabBar(
+                      controller: _tabController,
+                      isScrollable: false,
+                      indicatorColor: AppColors.crimson,
+                      indicatorSize: TabBarIndicatorSize.tab,
+                      indicatorWeight: 3,
+                      labelPadding: EdgeInsets.zero,
+                      labelStyle: AppTextStyles.labelMedium.copyWith(
+                        fontWeight: FontWeight.w500,
+                        fontSize: isCompact ? 11.sp : 11.0,
+                      ),
+                      unselectedLabelColor: AppColors.textSecondary.withValues(
+                        alpha: 0.4,
+                      ),
+                      labelColor: AppColors.crimson,
+                      dividerColor: Colors.transparent,
+                      tabs: const [
+                        Tab(text: "TRACKER"),
+                        Tab(text: "STACKER"),
+                        Tab(text: "LIBRARY"),
+                        Tab(text: "LOGS"),
                       ],
                     ),
-                  ),
-                ),
-                TabBar(
-                  controller: _tabController,
-                  isScrollable: false,
-                  indicatorColor: AppColors.crimson,
-                  indicatorSize: TabBarIndicatorSize.tab,
-                  indicatorWeight: 3,
-                  labelPadding: EdgeInsets.zero,
-                  labelStyle: AppTextStyles.labelMedium.copyWith(
-                    fontWeight: FontWeight.w400,
-                  ),
-                  unselectedLabelColor: AppColors.textSecondary.withOpacity(
-                    0.4,
-                  ),
-                  labelColor: AppColors.crimson,
-                  dividerColor: Colors.transparent,
-                  tabs: const [
-                    Tab(text: "TRACKER"),
-                    Tab(text: "STACKER"),
-                    Tab(text: "LIBRARY"),
-                    Tab(text: "LOGS"),
                   ],
                 ),
-              ],
-            ),
+              ),
+              Expanded(
+                child: TabBarView(
+                  controller: _tabController,
+                  children: [
+                    _buildTrackerTab(isCompact),
+                    _buildStackerTab(isCompact),
+                    _buildLibraryTab(isCompact),
+                    _buildHistoryTab(isCompact),
+                  ],
+                ),
+              ),
+            ],
           ),
-          Expanded(
-            child: TabBarView(
-              controller: _tabController,
-              children: [
-                _buildTrackerTab(),
-                _buildStackerTab(),
-                _buildLibraryTab(),
-                _buildHistoryTab(),
-              ],
-            ),
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 
   // --- TAB BUILDERS ---
 
-  Widget _buildTrackerTab() {
+  Widget _buildTrackerTab(bool isCompact) {
     return Consumer<SupplementProvider>(
       builder: (context, provider, _) {
         final active = provider.activeSupplements;
@@ -212,24 +232,25 @@ class _SupplementScreenState extends State<SupplementScreen>
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          _buildEmptyState("NO ACTIVE SUPPLEMENTS"),
-                          SizedBox(height: 16.h),
+                          _buildEmptyState("NO ACTIVE SUPPLEMENTS", isCompact),
+                          SizedBox(height: isCompact ? 16.h : 12.0),
                           GestureDetector(
                             onTap: () => _tabController.animateTo(2),
                             child: Container(
                               padding: EdgeInsets.symmetric(
-                                horizontal: 24.w,
-                                vertical: 12.h,
+                                horizontal: isCompact ? 24.w : 20.0,
+                                vertical: isCompact ? 12.h : 10.0,
                               ),
                               decoration: BoxDecoration(
-                                color: AppColors.crimson.withOpacity(0.1),
-                                borderRadius: BorderRadius.circular(12.r),
+                                color: AppColors.crimson.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(isCompact ? 12.r : 10.0),
                                 border: Border.all(color: AppColors.crimson),
                               ),
                               child: Text(
                                 "OPEN LIBRARY",
                                 style: AppTextStyles.labelSmall.copyWith(
                                   color: AppColors.crimson,
+                                  fontSize: isCompact ? 10.sp : 10.0,
                                 ),
                               ),
                             ),
@@ -247,24 +268,78 @@ class _SupplementScreenState extends State<SupplementScreen>
           onRefresh: () => provider.forceRefresh(),
           color: AppColors.crimson,
           backgroundColor: AppColors.surface,
-          child: ListView.builder(
-            physics: const AlwaysScrollableScrollPhysics(),
-            padding: EdgeInsets.all(20.r),
-            itemCount: active.length,
-            itemBuilder: (context, index) => TrackerCard(
-              supplement: active[index],
-              onLogTap: () => _openIntakeSheet(context, active[index]),
-              onNotificationTap: () =>
-                  _openNotificationSheet(context, active[index]),
-              onQuickLogTap: () => _openQuickLogSheet(context, active[index]),
-            ),
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final bool isWide = constraints.maxWidth > 700;
+              if (isWide) {
+                final leftItems = <Supplement>[];
+                final rightItems = <Supplement>[];
+                for (int i = 0; i < active.length; i++) {
+                  if (i % 2 == 0) {
+                    leftItems.add(active[i]);
+                  } else {
+                    rightItems.add(active[i]);
+                  }
+                }
+
+                return Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: ListView.builder(
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        padding: const EdgeInsets.all(20.0),
+                        itemCount: leftItems.length,
+                        itemBuilder: (context, index) => TrackerCard(
+                          supplement: leftItems[index],
+                          isCompact: false,
+                          onLogTap: () => _openIntakeSheet(context, leftItems[index]),
+                          onNotificationTap: () =>
+                              _openNotificationSheet(context, leftItems[index]),
+                          onQuickLogTap: () => _openQuickLogSheet(context, leftItems[index]),
+                        ),
+                      ),
+                    ),
+                    VerticalDivider(color: AppColors.white.withValues(alpha: 0.05), width: 1),
+                    Expanded(
+                      child: ListView.builder(
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        padding: const EdgeInsets.all(20.0),
+                        itemCount: rightItems.length,
+                        itemBuilder: (context, index) => TrackerCard(
+                          supplement: rightItems[index],
+                          isCompact: false,
+                          onLogTap: () => _openIntakeSheet(context, rightItems[index]),
+                          onNotificationTap: () =>
+                              _openNotificationSheet(context, rightItems[index]),
+                          onQuickLogTap: () => _openQuickLogSheet(context, rightItems[index]),
+                        ),
+                      ),
+                    ),
+                  ],
+                );
+              }
+              return ListView.builder(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 20.0),
+                itemCount: active.length,
+                itemBuilder: (context, index) => TrackerCard(
+                  supplement: active[index],
+                  isCompact: isCompact,
+                  onLogTap: () => _openIntakeSheet(context, active[index]),
+                  onNotificationTap: () =>
+                      _openNotificationSheet(context, active[index]),
+                  onQuickLogTap: () => _openQuickLogSheet(context, active[index]),
+                ),
+              );
+            },
           ),
         );
       },
     );
   }
 
-  Widget _buildStackerTab() {
+  Widget _buildStackerTab(bool isCompact) {
     return Consumer<SupplementProvider>(
       builder: (context, provider, _) {
         final activeCount = provider.activeSupplements.length;
@@ -290,21 +365,22 @@ class _SupplementScreenState extends State<SupplementScreen>
                                   children: [
                                     Icon(
                                       Icons.layers_rounded,
-                                      size: 48.r,
-                                      color: AppColors.textSecondary.withOpacity(0.3),
+                                      size: isCompact ? 48.r : 40.0,
+                                      color: AppColors.textSecondary.withValues(alpha: 0.3),
                                     ),
-                                    SizedBox(height: 16.h),
+                                    SizedBox(height: isCompact ? 16.h : 12.0),
                                     Text(
                                       "SUPPLEMENT STACKING",
                                       textAlign: TextAlign.center,
                                       style: AppTextStyles.h3.copyWith(
                                         color: AppColors.textSecondary,
+                                        fontSize: isCompact ? 18.sp : 16.0,
                                       ),
                                     ),
                                     Padding(
                                       padding: EdgeInsets.symmetric(
-                                        horizontal: 40.w,
-                                        vertical: 8.h,
+                                        horizontal: isCompact ? 40.w : 24.0,
+                                        vertical: isCompact ? 8.h : 6.0,
                                       ),
                                       child: Text(
                                         activeCount < 2
@@ -312,8 +388,8 @@ class _SupplementScreenState extends State<SupplementScreen>
                                             : "Bundle your active supplements for faster logging.",
                                         textAlign: TextAlign.center,
                                         style: AppTextStyles.labelSmall.copyWith(
-                                          color: AppColors.textSecondary.withOpacity(0.6),
-                                          fontSize: 12.sp,
+                                          color: AppColors.textSecondary.withValues(alpha: 0.6),
+                                          fontSize: isCompact ? 12.sp : 11.0,
                                         ),
                                       ),
                                     ),
@@ -324,13 +400,61 @@ class _SupplementScreenState extends State<SupplementScreen>
                           ],
                         ),
                       )
-                    : ListView.builder(
-                        physics: const AlwaysScrollableScrollPhysics(),
-                        padding: EdgeInsets.all(20.r),
-                        itemCount: stacks.length,
-                        itemBuilder: (context, index) {
-                          final stack = stacks[index];
-                          return StackerCard(stack: stack);
+                    : LayoutBuilder(
+                        builder: (context, constraints) {
+                          final bool isWide = constraints.maxWidth > 700;
+                          if (isWide) {
+                            final leftStacks = <SupplementStack>[];
+                            final rightStacks = <SupplementStack>[];
+                            for (int i = 0; i < stacks.length; i++) {
+                              if (i % 2 == 0) {
+                                leftStacks.add(stacks[i]);
+                              } else {
+                                rightStacks.add(stacks[i]);
+                              }
+                            }
+
+                            return Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Expanded(
+                                  child: ListView.builder(
+                                    physics: const AlwaysScrollableScrollPhysics(),
+                                    padding: const EdgeInsets.all(20.0),
+                                    itemCount: leftStacks.length,
+                                    itemBuilder: (context, index) => StackerCard(
+                                      stack: leftStacks[index],
+                                      isCompact: false,
+                                    ),
+                                  ),
+                                ),
+                                VerticalDivider(color: AppColors.white.withValues(alpha: 0.05), width: 1),
+                                Expanded(
+                                  child: ListView.builder(
+                                    physics: const AlwaysScrollableScrollPhysics(),
+                                    padding: const EdgeInsets.all(20.0),
+                                    itemCount: rightStacks.length,
+                                    itemBuilder: (context, index) => StackerCard(
+                                      stack: rightStacks[index],
+                                      isCompact: false,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            );
+                          }
+                          return ListView.builder(
+                            physics: const AlwaysScrollableScrollPhysics(),
+                            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 20.0),
+                            itemCount: stacks.length,
+                            itemBuilder: (context, index) {
+                              final stack = stacks[index];
+                              return StackerCard(
+                                stack: stack,
+                                isCompact: isCompact,
+                              );
+                            },
+                          );
                         },
                       ),
               ),
@@ -338,6 +462,7 @@ class _SupplementScreenState extends State<SupplementScreen>
                 _buildActionBtn(
                   "CREATE NEW STACK",
                   () => _openStackFormSheet(context),
+                  isCompact,
                 ),
             ],
           ),
@@ -346,7 +471,7 @@ class _SupplementScreenState extends State<SupplementScreen>
     );
   }
 
-  Widget _buildLibraryTab() {
+  Widget _buildLibraryTab(bool isCompact) {
     return Consumer<SupplementProvider>(
       builder: (context, provider, _) {
         if (provider.library.isEmpty) {
@@ -364,25 +489,26 @@ class _SupplementScreenState extends State<SupplementScreen>
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          _buildEmptyState("YOUR LIBRARY IS EMPTY"),
-                          SizedBox(height: 12.h),
+                          _buildEmptyState("YOUR LIBRARY IS EMPTY", isCompact),
+                          SizedBox(height: isCompact ? 12.h : 10.0),
                           Text(
                             "Click the button below to add your first supplement",
                             textAlign: TextAlign.center,
                             style: AppTextStyles.labelSmall.copyWith(
-                              color: AppColors.textSecondary.withOpacity(0.6),
-                              fontSize: 12.sp,
+                              color: AppColors.textSecondary.withValues(alpha: 0.6),
+                              fontSize: isCompact ? 12.sp : 11.0,
                             ),
                           ),
-                          SizedBox(height: 24.h),
+                          SizedBox(height: isCompact ? 24.h : 20.0),
                           Icon(
                             Icons.arrow_downward_rounded,
-                            color: AppColors.crimson.withOpacity(0.5),
-                            size: 24.r,
+                            color: AppColors.crimson.withValues(alpha: 0.5),
+                            size: isCompact ? 24.r : 20.0,
                           ),
                           _buildActionBtn(
                             "CREATE NEW SUPPLEMENT",
                             () => _openFormSheet(context),
+                            isCompact,
                           ),
                         ],
                       ),
@@ -401,33 +527,96 @@ class _SupplementScreenState extends State<SupplementScreen>
           child: Column(
             children: [
               Expanded(
-                child: ListView.builder(
-                  physics: const AlwaysScrollableScrollPhysics(),
-                  padding: EdgeInsets.all(20.r),
-                  itemCount: provider.library.length,
-                  itemBuilder: (context, index) {
-                    final item = provider.library[index];
-                    return LibraryCard(
-                      item: item,
-                      provider: provider,
-                      index: index,
-                      onEdit: () {
-                        _openFormSheet(context, existingItem: item, index: index);
-                      },
-                      onDelete: () async {
-                        final confirmed = await _showDeletePrompt(
-                          context,
-                          item.name,
-                        );
-                        if (confirmed == true) {
-                          final calorieProvider = context.read<CalorieProvider>();
-                          provider.deleteSupplement(
-                            item.id,
-                            onDeactivated: (id, cals, pro, cho, fat) {
-                              calorieProvider.removeSupplementFromAllMeals(id, cals, pro, cho, fat);
-                            }
-                          );
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    final bool isWide = constraints.maxWidth > 700;
+                    if (isWide) {
+                      final leftItems = <MapEntry<int, Supplement>>[];
+                      final rightItems = <MapEntry<int, Supplement>>[];
+                      for (int i = 0; i < provider.library.length; i++) {
+                        if (i % 2 == 0) {
+                          leftItems.add(MapEntry(i, provider.library[i]));
+                        } else {
+                          rightItems.add(MapEntry(i, provider.library[i]));
                         }
+                      }
+
+                      return Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            child: ListView.builder(
+                              physics: const AlwaysScrollableScrollPhysics(),
+                              padding: const EdgeInsets.all(20.0),
+                              itemCount: leftItems.length,
+                              itemBuilder: (context, idx) {
+                                final entry = leftItems[idx];
+                                return LibraryCard(
+                                  item: entry.value,
+                                  provider: provider,
+                                  index: entry.key,
+                                  isCompact: false,
+                                  onEdit: () {
+                                    _openFormSheet(context, existingItem: entry.value, index: entry.key);
+                                  },
+                                  onDelete: () => _handleDeleteSupplement(context, provider, entry.value),
+                                );
+                              },
+                            ),
+                          ),
+                          VerticalDivider(color: AppColors.white.withValues(alpha: 0.05), width: 1),
+                          Expanded(
+                            child: ListView.builder(
+                              physics: const AlwaysScrollableScrollPhysics(),
+                              padding: const EdgeInsets.all(20.0),
+                              itemCount: rightItems.length,
+                              itemBuilder: (context, idx) {
+                                final entry = rightItems[idx];
+                                return LibraryCard(
+                                  item: entry.value,
+                                  provider: provider,
+                                  index: entry.key,
+                                  isCompact: false,
+                                  onEdit: () {
+                                    _openFormSheet(context, existingItem: entry.value, index: entry.key);
+                                  },
+                                  onDelete: () => _handleDeleteSupplement(context, provider, entry.value),
+                                );
+                              },
+                            ),
+                          ),
+                        ],
+                      );
+                    }
+                    return ListView.builder(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      padding: EdgeInsets.all(20.r),
+                      itemCount: provider.library.length,
+                      itemBuilder: (context, index) {
+                        final item = provider.library[index];
+                        return LibraryCard(
+                          item: item,
+                          provider: provider,
+                          index: index,
+                          onEdit: () {
+                            _openFormSheet(context, existingItem: item, index: index);
+                          },
+                          onDelete: () async {
+                            final calorieProvider = context.read<CalorieProvider>();
+                            final confirmed = await _showDeletePrompt(
+                              context,
+                              item.name,
+                            );
+                            if (confirmed == true) {
+                              provider.deleteSupplement(
+                                item.id,
+                                onDeactivated: (id, cals, pro, cho, fat) {
+                                  calorieProvider.removeSupplementFromAllMeals(id, cals, pro, cho, fat);
+                                }
+                              );
+                            }
+                          },
+                        );
                       },
                     );
                   },
@@ -436,6 +625,7 @@ class _SupplementScreenState extends State<SupplementScreen>
               _buildActionBtn(
                 "CREATE NEW SUPPLEMENT",
                 () => _openFormSheet(context),
+                isCompact,
               ),
             ],
           ),
@@ -444,7 +634,7 @@ class _SupplementScreenState extends State<SupplementScreen>
     );
   }
 
-  Widget _buildHistoryTab() {
+  Widget _buildHistoryTab(bool isCompact) {
     return Consumer<SupplementProvider>(
       builder: (context, provider, _) {
         final Set<DateTime> dateSet = provider.history.map((h) => 
@@ -474,9 +664,13 @@ class _SupplementScreenState extends State<SupplementScreen>
           String source = "MANUAL";
           if (details.startsWith("MEAL LOG:")) {
             source = "MEAL";
-          } else if (details.contains("NOTIFICATION")) source = "NOTIF";
-          else if (details.contains("QUICK LOG") || details.contains("QUICK RESTOCK")) source = "QUICK";
-          else if (details.contains("STACK LOG")) source = "STACK";
+          } else if (details.contains("NOTIFICATION")) {
+            source = "NOTIF";
+          } else if (details.contains("QUICK LOG") || details.contains("QUICK RESTOCK")) {
+            source = "QUICK";
+          } else if (details.contains("STACK LOG")) {
+            source = "STACK";
+          }
 
           if (!_historyFilter.sources.contains(source)) return false;
 
@@ -489,229 +683,305 @@ class _SupplementScreenState extends State<SupplementScreen>
               : a.timestamp.compareTo(b.timestamp);
         });
 
-        if (_isCalendarExpanded) {
-          return Container(
-            color: AppColors.background,
-            child: Column(
-              children: [
-                Expanded(
-                  child: SingleChildScrollView(
-                    physics: const BouncingScrollPhysics(),
-                    child: _buildCustomExpandedCalendar(dateSet),
+        return LayoutBuilder(
+          builder: (context, constraints) {
+            final bool isWide = constraints.maxWidth > 700;
+
+            if (isWide) {
+              return Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // --- LEFT COLUMN: CALENDAR ---
+                  Expanded(
+                    flex: 5,
+                    child: Container(
+                      color: AppColors.background,
+                      child: Column(
+                        children: [
+                          Expanded(
+                            child: SingleChildScrollView(
+                              physics: const BouncingScrollPhysics(),
+                              padding: const EdgeInsets.symmetric(vertical: 20.0),
+                              child: _buildCustomExpandedCalendar(dateSet, isCompact),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
+                  VerticalDivider(color: AppColors.white.withValues(alpha: 0.05), width: 1),
+                  // --- RIGHT COLUMN: SLIDER + LOGS ---
+                  Expanded(
+                    flex: 5,
+                    child: Column(
+                      children: [
+                        _buildHorizontalCalendar(dateSet, isCompact),
+                        const Divider(color: Colors.white10, height: 1),
+                        Expanded(
+                          child: RefreshIndicator(
+                            onRefresh: () => provider.forceRefresh(),
+                            color: AppColors.crimson,
+                            backgroundColor: AppColors.surface,
+                            child: Column(
+                              children: [
+                                _buildHistoryHeader(provider, isCompact),
+                                Expanded(
+                                  child: displayedHistory.isEmpty
+                                      ? Center(
+                                          child: _buildEmptyState("No logs for this date.", isCompact),
+                                        )
+                                      : ListView.builder(
+                                          physics: const AlwaysScrollableScrollPhysics(),
+                                          padding: const EdgeInsets.all(20.0),
+                                          itemCount: displayedHistory.length,
+                                          itemBuilder: (context, index) {
+                                            final entry = displayedHistory[index];
+                                            return _buildHistoryItem(entry, provider, false);
+                                          },
+                                        ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              );
+            }
+
+            // --- MOBILE: SINGLE COLUMN ---
+            if (_isCalendarExpanded) {
+              return Container(
+                color: AppColors.background,
+                child: Column(
+                  children: [
+                    Expanded(
+                      child: SingleChildScrollView(
+                        physics: const BouncingScrollPhysics(),
+                        child: _buildCustomExpandedCalendar(dateSet, isCompact),
+                      ),
+                    ),
+                    GestureDetector(
+                      onTap: () {
+                        setState(() => _isCalendarExpanded = false);
+                        WidgetsBinding.instance.addPostFrameCallback((_) {
+                          final now = DateTime.now();
+                          final today = DateTime(now.year, now.month, now.day);
+                          final target = DateTime(_selectedHistoryDate.year, _selectedHistoryDate.month, _selectedHistoryDate.day);
+                          final int dayDiff = today.difference(target).inDays;
+                          if (dayDiff >= 0 && dayDiff < 365) {
+                            if (_pageController.hasClients) {
+                              _pageController.animateToPage(
+                                dayDiff, 
+                                duration: const Duration(milliseconds: 300), 
+                                curve: Curves.easeInOut
+                              );
+                            }
+                          }
+                        });
+                      },
+                      child: Container(
+                        width: double.infinity,
+                        padding: EdgeInsets.symmetric(vertical: 16.h),
+                        color: Colors.transparent,
+                        child: Icon(
+                          Icons.keyboard_arrow_up_rounded,
+                          color: AppColors.textSecondary.withValues(alpha: 0.4),
+                          size: 24.r,
+                        ),
+                      ),
+                    ),
+                    SizedBox(height: 20.h),
+                  ],
                 ),
+              );
+            }
+
+            return Column(
+              children: [
+                _buildHorizontalCalendar(dateSet, isCompact),
                 GestureDetector(
                   onTap: () {
-                    setState(() => _isCalendarExpanded = false);
-                    WidgetsBinding.instance.addPostFrameCallback((_) {
-                      final now = DateTime.now();
-                      final today = DateTime(now.year, now.month, now.day);
-                      final target = DateTime(_selectedHistoryDate.year, _selectedHistoryDate.month, _selectedHistoryDate.day);
-                      final int dayDiff = today.difference(target).inDays;
-                      if (dayDiff >= 0 && dayDiff < 365) {
-                        if (_pageController.hasClients) {
-                          _pageController.animateToPage(
-                            dayDiff, 
-                            duration: const Duration(milliseconds: 300), 
-                            curve: Curves.easeInOut
-                          );
-                        }
-                      }
+                    setState(() {
+                      _isCalendarExpanded = true;
+                      _displayedMonth = DateTime(_selectedHistoryDate.year, _selectedHistoryDate.month);
                     });
                   },
                   child: Container(
                     width: double.infinity,
-                    padding: EdgeInsets.symmetric(vertical: 16.h),
+                    padding: EdgeInsets.symmetric(vertical: 4.h),
                     color: Colors.transparent,
                     child: Icon(
-                      Icons.keyboard_arrow_up_rounded,
+                      Icons.keyboard_arrow_down_rounded,
                       color: AppColors.textSecondary.withValues(alpha: 0.4),
                       size: 24.r,
                     ),
                   ),
                 ),
-                SizedBox(height: 20.h),
-              ],
-            ),
-          );
-        }
-
-        return Column(
-          children: [
-            _buildHorizontalCalendar(dateSet),
-            GestureDetector(
-              onTap: () {
-                setState(() {
-                  _isCalendarExpanded = true;
-                  _displayedMonth = DateTime(_selectedHistoryDate.year, _selectedHistoryDate.month);
-                });
-              },
-              child: Container(
-                width: double.infinity,
-                padding: EdgeInsets.symmetric(vertical: 4.h),
-                color: Colors.transparent,
-                child: Icon(
-                  Icons.keyboard_arrow_down_rounded,
-                  color: AppColors.textSecondary.withValues(alpha: 0.4),
-                  size: 24.r,
-                ),
-              ),
-            ),
-            const Divider(color: Colors.white10, height: 1),
-            Expanded(
-              child: RefreshIndicator(
-                onRefresh: () => provider.forceRefresh(),
-                color: AppColors.crimson,
-                backgroundColor: AppColors.surface,
-                child: Column(
-                  children: [
-                    _buildHistoryHeader(provider),
-                    Expanded(
-                      child: displayedHistory.isEmpty
-                          ? LayoutBuilder(
-                              builder: (context, constraints) => ListView(
-                                physics: const AlwaysScrollableScrollPhysics(),
-                                children: [
-                                  Container(
-                                    constraints: BoxConstraints(minHeight: constraints.maxHeight),
-                                    child: Center(
-                                      child: _buildEmptyState("No logs for this date."),
-                                    ),
+                const Divider(color: Colors.white10, height: 1),
+                Expanded(
+                  child: RefreshIndicator(
+                    onRefresh: () => provider.forceRefresh(),
+                    color: AppColors.crimson,
+                    backgroundColor: AppColors.surface,
+                    child: Column(
+                      children: [
+                        _buildHistoryHeader(provider, isCompact),
+                        Expanded(
+                          child: displayedHistory.isEmpty
+                              ? LayoutBuilder(
+                                  builder: (context, constraints) => ListView(
+                                    physics: const AlwaysScrollableScrollPhysics(),
+                                    children: [
+                                      Container(
+                                        constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                                        child: Center(
+                                          child: _buildEmptyState("No logs for this date.", isCompact),
+                                        ),
+                                      ),
+                                    ],
                                   ),
-                                ],
-                              ),
-                            )
-                          : ListView.builder(
-                              physics: const AlwaysScrollableScrollPhysics(),
-                              padding: EdgeInsets.all(20.r),
-                              itemCount: displayedHistory.length,
-                              itemBuilder: (context, index) {
-                                final entry = displayedHistory[index];
-                                return Dismissible(
-                                  key: Key("hist_${entry.id}"),
-                                  direction: DismissDirection.endToStart,
-                                  background: _buildSwipeBg(
-                                    AppColors.error,
-                                    Icons.delete_outline_rounded,
-                                    Alignment.centerRight,
-                                  ),
-                                  confirmDismiss: (_) async {
-                                    final bool? didConfirm = await _showDeletePrompt(
-                                      context,
-                                      "ENTRY: ${entry.supplementName.toUpperCase()}",
-                                    );
-                                    return didConfirm ?? false;
+                                )
+                              : ListView.builder(
+                                  physics: const AlwaysScrollableScrollPhysics(),
+                                  padding: EdgeInsets.all(20.r),
+                                  itemCount: displayedHistory.length,
+                                  itemBuilder: (context, index) {
+                                    final entry = displayedHistory[index];
+                                    return _buildHistoryItem(entry, provider, isCompact);
                                   },
-                                  onDismissed: (_) {
-                                    final calorieProvider = context.read<CalorieProvider>();
-                                    
-                                    provider.removeSupplementItem(
-                                      entry.id, 
-                                      onSourceRollback: (sourceId, suppId, amount) {
-                                        final mealLogIndex = calorieProvider.logs.indexWhere((l) => l.id == sourceId);
-                                        if (mealLogIndex != -1) {
-                                          final log = calorieProvider.logs[mealLogIndex];
-                                          final supplement = provider.library.firstWhere((s) => s.id == suppId, orElse: () => null as dynamic);
-                                          
-                                          final bool isStandaloneLog = entry.details.contains("| SUPPLEMENT |");
-                                          final bool isStackLog = entry.details.contains("| STACK: ");
-                                          
-                                          String? targetStackId;
-                                          if (isStackLog) {
-                                             final parts = entry.details.split('|');
-                                             if (parts.length > 1) {
-                                                final stackName = parts[1].replaceAll("STACK:", "").trim();
-                                                try {
-                                                   targetStackId = provider.supplementStacks.firstWhere(
-                                                      (s) => s.name.toUpperCase() == stackName.toUpperCase()
-                                                   ).id;
-                                                } catch (_) {}
-                                             }
-                                          }
-
-                                          final double rollbackCals = ((supplement.caloriesPerUnit ?? 0.0) * amount);
-                                          final double rollbackPro = (supplement.proteinPerUnit ?? 0.0) * amount;
-                                          final double rollbackCho = (supplement.carbsPerUnit ?? 0.0) * amount;
-                                          final double rollbackFat = (supplement.fatsPerUnit ?? 0.0) * amount;
-
-                                          String? newSuppsJson = log.addedSupplementsJson;
-                                          String? newStacksJson = log.addedStacksJson;
-
-                                          if (isStandaloneLog && newSuppsJson != null) {
-                                            try {
-                                              List<dynamic> list = jsonDecode(newSuppsJson);
-                                              list.removeWhere((item) => ((item is Map) ? item['id'] : item) == suppId);
-                                              newSuppsJson = list.isEmpty ? null : jsonEncode(list);
-                                            } catch (_) {}
-                                          }
-
-                                          if (isStackLog && newStacksJson != null) {
-                                            try {
-                                              List<dynamic> stacksList = jsonDecode(newStacksJson);
-                                              final List<dynamic> updatedStacksList = [];
-
-                                              for (var stackEntry in stacksList) {
-                                                 if (stackEntry is Map && stackEntry['itemAmounts'] is Map) {
-                                                    final String sId = stackEntry['id'];
-                                                    if (targetStackId == null || sId == targetStackId) {
-                                                       Map<String, dynamic> itemAmounts = Map<String, dynamic>.from(stackEntry['itemAmounts']);
-                                                       if (itemAmounts.containsKey(suppId)) {
-                                                          itemAmounts.remove(suppId);
-                                                          if (itemAmounts.isNotEmpty) {
-                                                             final newEntry = Map<String, dynamic>.from(stackEntry);
-                                                             newEntry['itemAmounts'] = itemAmounts;
-                                                             updatedStacksList.add(newEntry);
-                                                          }
-                                                          continue;
-                                                       }
-                                                    }
-                                                 }
-                                                 updatedStacksList.add(stackEntry);
-                                              }
-                                              newStacksJson = updatedStacksList.isEmpty ? null : jsonEncode(updatedStacksList);
-                                            } catch (_) {}
-                                          }
-
-                                          final double? newPro = log.protein != null ? (log.protein! - rollbackPro).clamp(0, 1000) : null;
-                                          final double? newCarbs = log.carbs != null ? (log.carbs! - rollbackCho).clamp(0, 1000) : null;
-                                          final double? newFats = log.fats != null ? (log.fats! - rollbackFat).clamp(0, 1000) : null;
-
-                                          calorieProvider.addLog(log.copyWith(
-                                            calories: (log.calories - rollbackCals).clamp(0.0, 9999.999),
-                                            protein: newPro != null && newPro > 0 ? newPro : null,
-                                            carbs: newCarbs != null && newCarbs > 0 ? newCarbs : null,
-                                            fats: newFats != null && newFats > 0 ? newFats : null,
-                                            addedSupplementsJson: newSuppsJson,
-                                            clearSupplements: newSuppsJson == null,
-                                            addedStacksJson: newStacksJson,
-                                            clearStacks: newStacksJson == null,
-                                          ));
-                                                                                }
-                                      }
-                                    );
-                                  },
-                                  child: SupplementItemCard(entry: entry),
-                                );
-                              },
-                            ),
+                                ),
+                        ),
+                      ],
                     ),
-                  ],
+                  ),
                 ),
-              ),
-            ),
-          ],
+              ],
+            );
+          },
         );
       },
     );
   }
 
-  Widget _buildCustomExpandedCalendar(Set<DateTime> dateSet) {
+  Widget _buildHistoryItem(SupplementItem entry, SupplementProvider provider, bool isCompact) {
+    return Dismissible(
+      key: Key("hist_${entry.id}"),
+      direction: DismissDirection.endToStart,
+      background: _buildSwipeBg(
+        AppColors.error,
+        Icons.delete_outline_rounded,
+        Alignment.centerRight,
+        isCompact,
+      ),
+      confirmDismiss: (_) async {
+        final bool? didConfirm = await _showDeletePrompt(
+          context,
+          "ENTRY: ${entry.supplementName.toUpperCase()}",
+        );
+        return didConfirm ?? false;
+      },
+      onDismissed: (_) {
+        final calorieProvider = context.read<CalorieProvider>();
+        
+        provider.removeSupplementItem(
+          entry.id, 
+          onSourceRollback: (sourceId, suppId, amount) {
+            final mealLogIndex = calorieProvider.logs.indexWhere((l) => l.id == sourceId);
+            if (mealLogIndex != -1) {
+              final log = calorieProvider.logs[mealLogIndex];
+              final supplement = provider.library.firstWhere((s) => s.id == suppId, orElse: () => null as dynamic);
+              
+              final bool isStandaloneLog = entry.details.contains("| SUPPLEMENT |");
+              final bool isStackLog = entry.details.contains("| STACK: ");
+              
+              String? targetStackId;
+              if (isStackLog) {
+                 final parts = entry.details.split('|');
+                 if (parts.length > 1) {
+                    final stackName = parts[1].replaceAll("STACK:", "").trim();
+                    try {
+                       targetStackId = provider.supplementStacks.firstWhere(
+                          (s) => s.name.toUpperCase() == stackName.toUpperCase()
+                       ).id;
+                    } catch (_) {}
+                 }
+              }
+
+              final double rollbackCals = ((supplement.caloriesPerUnit ?? 0.0) * amount);
+              final double rollbackPro = (supplement.proteinPerUnit ?? 0.0) * amount;
+              final double rollbackCho = (supplement.carbsPerUnit ?? 0.0) * amount;
+              final double rollbackFat = (supplement.fatsPerUnit ?? 0.0) * amount;
+
+              String? newSuppsJson = log.addedSupplementsJson;
+              String? newStacksJson = log.addedStacksJson;
+
+              if (isStandaloneLog && newSuppsJson != null) {
+                try {
+                  List<dynamic> list = jsonDecode(newSuppsJson);
+                  list.removeWhere((item) => ((item is Map) ? item['id'] : item) == suppId);
+                  newSuppsJson = list.isEmpty ? null : jsonEncode(list);
+                } catch (_) {}
+              }
+
+              if (isStackLog && newStacksJson != null) {
+                try {
+                  List<dynamic> stacksList = jsonDecode(newStacksJson);
+                  final List<dynamic> updatedStacksList = [];
+
+                  for (var stackEntry in stacksList) {
+                     if (stackEntry is Map && stackEntry['itemAmounts'] is Map) {
+                        final String sId = stackEntry['id'];
+                        if (targetStackId == null || sId == targetStackId) {
+                           Map<String, dynamic> itemAmounts = Map<String, dynamic>.from(stackEntry['itemAmounts']);
+                           if (itemAmounts.containsKey(suppId)) {
+                              itemAmounts.remove(suppId);
+                              if (itemAmounts.isNotEmpty) {
+                                 final newEntry = Map<String, dynamic>.from(stackEntry);
+                                 newEntry['itemAmounts'] = itemAmounts;
+                                 updatedStacksList.add(newEntry);
+                              }
+                              continue;
+                           }
+                        }
+                     }
+                     updatedStacksList.add(stackEntry);
+                  }
+                  newStacksJson = updatedStacksList.isEmpty ? null : jsonEncode(updatedStacksList);
+                } catch (_) {}
+              }
+
+              final double? newPro = log.protein != null ? (log.protein! - rollbackPro).clamp(0, 1000) : null;
+              final double? newCarbs = log.carbs != null ? (log.carbs! - rollbackCho).clamp(0, 1000) : null;
+              final double? newFats = log.fats != null ? (log.fats! - rollbackFat).clamp(0, 1000) : null;
+
+              calorieProvider.addLog(log.copyWith(
+                calories: (log.calories - rollbackCals).clamp(0.0, 9999.999),
+                protein: newPro != null && newPro > 0 ? newPro : null,
+                carbs: newCarbs != null && newCarbs > 0 ? newCarbs : null,
+                fats: newFats != null && newFats > 0 ? newFats : null,
+                addedSupplementsJson: newSuppsJson,
+                clearSupplements: newSuppsJson == null,
+                addedStacksJson: newStacksJson,
+                clearStacks: newStacksJson == null,
+              ));
+                                                    }
+          }
+        );
+      },
+      child: SupplementItemCard(entry: entry, isCompact: isCompact),
+    );
+  }
+
+  Widget _buildCustomExpandedCalendar(Set<DateTime> dateSet, bool isCompact) {
     final daysInMonth = DateTime(_displayedMonth.year, _displayedMonth.month + 1, 0).day;
     final firstDayOfMonth = DateTime(_displayedMonth.year, _displayedMonth.month, 1).weekday;
     final isCurrentMonth = _displayedMonth.year == DateTime.now().year && _displayedMonth.month == DateTime.now().month;
     
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 10.h),
+      padding: EdgeInsets.symmetric(horizontal: isCompact ? 16.w : 16.0, vertical: isCompact ? 10.h : 8.0),
       child: Column(
         children: [
           Row(
@@ -741,7 +1011,7 @@ class _SupplementScreenState extends State<SupplementScreen>
                 },
                 child: Text(
                   DateFormat('MMMM yyyy').format(_displayedMonth).toUpperCase(),
-                  style: AppTextStyles.labelMedium.copyWith(color: Colors.white, letterSpacing: 1.5),
+                  style: AppTextStyles.labelMedium.copyWith(color: Colors.white, letterSpacing: 1.5, fontSize: isCompact ? 14.sp : 14.0),
                 ),
               ),
               IconButton(
@@ -752,15 +1022,14 @@ class _SupplementScreenState extends State<SupplementScreen>
               ),
             ],
           ),
-          SizedBox(height: 10.h),
+          SizedBox(height: isCompact ? 10.h : 8.0),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: ["M", "T", "W", "T", "F", "S", "S"].map((d) => SizedBox(
-              width: 40.w,
-              child: Text(d, textAlign: TextAlign.center, style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary.withValues(alpha: 0.5), fontSize: 10.sp)),
+            children: ["M", "T", "W", "T", "F", "S", "S"].map((d) => Expanded(
+              child: Text(d, textAlign: TextAlign.center, style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary.withValues(alpha: 0.5), fontSize: isCompact ? 10.sp : 10.0)),
             )).toList(),
           ),
-          SizedBox(height: 10.h),
+          SizedBox(height: isCompact ? 10.h : 8.0),
           GridView.builder(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
@@ -809,15 +1078,16 @@ class _SupplementScreenState extends State<SupplementScreen>
                           color: isSelected 
                               ? Colors.white 
                               : (isFuture ? Colors.white.withValues(alpha: 0.05) : (hasData ? Colors.white : Colors.white.withValues(alpha: 0.2))),
-                          fontWeight: (isSelected || hasData) ? FontWeight.bold : FontWeight.normal,
+                          fontWeight: FontWeight.w500,
+                          fontSize: isCompact ? 12.sp : 12.0,
                         ),
                       ),
                       if (hasData && !isSelected)
                         Positioned(
-                          bottom: 4.h,
+                          bottom: isCompact ? 4.h : 4.0,
                           child: Container(
-                            width: 3.r,
-                            height: 3.r,
+                            width: isCompact ? 3.r : 3.0,
+                            height: isCompact ? 3.r : 3.0,
                             decoration: const BoxDecoration(color: AppColors.crimson, shape: BoxShape.circle),
                           ),
                         ),
@@ -832,13 +1102,13 @@ class _SupplementScreenState extends State<SupplementScreen>
     );
   }
 
-  Widget _buildHorizontalCalendar(Set<DateTime> dateSet) {
+  Widget _buildHorizontalCalendar(Set<DateTime> dateSet, bool isCompact) {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
 
     return Container(
-      height: 90.h,
-      padding: EdgeInsets.symmetric(vertical: 10.h),
+      height: isCompact ? 90.h : 80.0,
+      padding: EdgeInsets.symmetric(vertical: isCompact ? 10.h : 8.0),
       child: PageView.builder(
         controller: _pageController,
         padEnds: false,
@@ -863,10 +1133,10 @@ class _SupplementScreenState extends State<SupplementScreen>
             },
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 200),
-              margin: EdgeInsets.symmetric(horizontal: 6.w),
+              margin: EdgeInsets.symmetric(horizontal: isCompact ? 6.w : 6.0),
               decoration: BoxDecoration(
                 color: isSelected ? AppColors.crimson : Colors.transparent,
-                borderRadius: BorderRadius.circular(12.r),
+                borderRadius: BorderRadius.circular(isCompact ? 12.r : 10.0),
                 border: isToday && !isSelected 
                     ? Border.all(color: AppColors.crimson.withValues(alpha: 0.5))
                     : null,
@@ -877,18 +1147,18 @@ class _SupplementScreenState extends State<SupplementScreen>
                   Text(
                     DateFormat('EEE').format(dateOnly).toUpperCase(),
                     style: AppTextStyles.labelSmall.copyWith(
-                      fontSize: 10.sp,
+                      fontSize: isCompact ? 10.sp : 10.0,
                       color: isSelected 
                           ? Colors.white 
                           : (hasData ? AppColors.textSecondary : AppColors.textSecondary.withValues(alpha: 0.2)),
-                      fontWeight: (isSelected || hasData) ? FontWeight.bold : FontWeight.normal,
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
-                  SizedBox(height: 4.h),
+                  SizedBox(height: isCompact ? 4.h : 4.0),
                   Text(
                     dateOnly.day.toString(),
                     style: AppTextStyles.h3.copyWith(
-                      fontSize: 16.sp,
+                      fontSize: isCompact ? 16.sp : 16.0,
                       color: isSelected 
                           ? Colors.white 
                           : (hasData ? AppColors.white : AppColors.white.withValues(alpha: 0.15)),
@@ -896,9 +1166,9 @@ class _SupplementScreenState extends State<SupplementScreen>
                   ),
                   if (hasData && !isSelected)
                     Container(
-                      margin: EdgeInsets.only(top: 4.h),
-                      width: 4.r,
-                      height: 4.r,
+                      margin: EdgeInsets.only(top: isCompact ? 4.h : 4.0),
+                      width: isCompact ? 4.r : 4.0,
+                      height: isCompact ? 4.r : 4.0,
                       decoration: const BoxDecoration(
                         color: AppColors.crimson,
                         shape: BoxShape.circle,
@@ -916,22 +1186,19 @@ class _SupplementScreenState extends State<SupplementScreen>
   // --- SHEET OPENERS ---
 
   void _openStackFormSheet(BuildContext context) {
-    showModalBottomSheet(
+    AdaptiveUtils.showAdaptiveSheet(
       context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (sheetContext) => const StackFormSheet(),
+      sheetBuilder: (sheetContext, isSideSheet) => StackFormSheet(isSideSheet: isSideSheet),
     ).then((_) {
       if (mounted) setState(() {});
     });
   }
 
   void _openIntakeSheet(BuildContext context, Supplement supp) {
-    showModalBottomSheet(
+    AdaptiveUtils.showAdaptiveSheet(
       context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (sheetContext) => IntakeSheet(
+      sheetBuilder: (sheetContext, isSideSheet) => IntakeSheet(
+        isSideSheet: isSideSheet,
         supplement: supp,
         onConfirm:
             ({
@@ -1002,11 +1269,10 @@ class _SupplementScreenState extends State<SupplementScreen>
     Supplement? existingItem,
     int? index,
   }) {
-    showModalBottomSheet(
+    AdaptiveUtils.showAdaptiveSheet(
       context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (sheetContext) => SupplementFormSheet(
+      sheetBuilder: (sheetContext, isSideSheet) => SupplementFormSheet(
+        isSideSheet: isSideSheet,
         existingItem: existingItem,
         index: index,
         onSave: (item, idx) => context
@@ -1019,11 +1285,10 @@ class _SupplementScreenState extends State<SupplementScreen>
   }
 
   void _openNotificationSheet(BuildContext context, Supplement supp) {
-    showModalBottomSheet(
+    AdaptiveUtils.showAdaptiveSheet(
       context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (sheetContext) => NotificationSheet(
+      sheetBuilder: (sheetContext, isSideSheet) => NotificationSheet(
+        isSideSheet: isSideSheet,
         supplement: supp,
         initialReminders: supp.reminders,
         initialEnabled: supp.notificationsEnabled,
@@ -1034,12 +1299,10 @@ class _SupplementScreenState extends State<SupplementScreen>
   }
 
   void _openQuickLogSheet(BuildContext context, Supplement supp) {
-    showModalBottomSheet(
+    AdaptiveUtils.showAdaptiveSheet(
       context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      enableDrag: true,
-      builder: (sheetContext) => QuickLogSheet(
+      sheetBuilder: (sheetContext, isSideSheet) => QuickLogSheet(
+        isSideSheet: isSideSheet,
         supplement: supp,
         onSave:
             ({
@@ -1066,12 +1329,12 @@ class _SupplementScreenState extends State<SupplementScreen>
 
   // --- SHARED UI HELPERS ---
 
-  Widget _buildSectionHeader(String title) {
+  Widget _buildSectionHeader(String title, bool isCompact) {
     return Row(
       children: [
         Container(
-          width: 2.5.w,
-          height: 12.h,
+          width: 2.5,
+          height: isCompact ? 12.h : 10.0,
           decoration: BoxDecoration(
             color: AppColors.crimson,
             borderRadius: BorderRadius.circular(2.r),
@@ -1082,20 +1345,20 @@ class _SupplementScreenState extends State<SupplementScreen>
           title,
           style: AppTextStyles.labelSmall.copyWith(
             color: AppColors.textSecondary.withValues(alpha: 0.8),
-            fontSize: 12.sp,
+            fontSize: isCompact ? 12.sp : 10.0,
           ),
         ),
       ],
     );
   }
 
-  Widget _buildHistoryHeader(SupplementProvider provider) {
+  Widget _buildHistoryHeader(SupplementProvider provider, bool isCompact) {
     return Container(
-      padding: EdgeInsets.fromLTRB(20.r, 0, 20.r, 12.h),
+      padding: EdgeInsets.fromLTRB(isCompact ? 20.r : 20.0, 0, isCompact ? 20.r : 20.0, isCompact ? 12.h : 10.0),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          _buildSectionHeader("SUPPLEMENT LOGS"),
+          _buildSectionHeader("SUPPLEMENT LOGS", isCompact),
           IconButton(
             onPressed: () => _openFilterSheet(provider),
             icon: Icon(
@@ -1103,7 +1366,7 @@ class _SupplementScreenState extends State<SupplementScreen>
                   ? Icons.filter_list_rounded 
                   : Icons.filter_list_off_rounded,
               color: _historyFilter.isInitial ? AppColors.crimson : Colors.orangeAccent,
-              size: 20.r,
+              size: isCompact ? 20.r : 18.0,
             ),
             padding: EdgeInsets.zero,
             constraints: const BoxConstraints(),
@@ -1115,11 +1378,10 @@ class _SupplementScreenState extends State<SupplementScreen>
   }
 
   void _openFilterSheet(SupplementProvider provider) {
-    showModalBottomSheet(
+    AdaptiveUtils.showAdaptiveSheet(
       context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => _SupplementHistoryFilterSheet(
+      sheetBuilder: (sheetContext, isSideSheet) => _SupplementHistoryFilterSheet(
+        isSideSheet: isSideSheet,
         initialFilter: _historyFilter,
         onApply: (newFilter) => setState(() => _historyFilter = newFilter),
       ),
@@ -1134,38 +1396,58 @@ class _SupplementScreenState extends State<SupplementScreen>
     );
   }
 
-  Widget _buildSwipeBg(Color c, IconData i, Alignment a) => Container(
-    margin: EdgeInsets.only(bottom: 12.h),
-    padding: EdgeInsets.symmetric(horizontal: 24.w),
+  Future<void> _handleDeleteSupplement(
+    BuildContext context, 
+    SupplementProvider provider, 
+    Supplement item
+  ) async {
+    final calorieProvider = context.read<CalorieProvider>();
+    final confirmed = await _showDeletePrompt(
+      context,
+      item.name,
+    );
+    if (confirmed == true) {
+      provider.deleteSupplement(
+        item.id,
+        onDeactivated: (id, cals, pro, cho, fat) {
+          calorieProvider.removeSupplementFromAllMeals(id, cals, pro, cho, fat);
+        }
+      );
+    }
+  }
+
+  Widget _buildSwipeBg(Color c, IconData i, Alignment a, bool isCompact) => Container(
+    margin: EdgeInsets.only(bottom: isCompact ? 12.h : 10.0),
+    padding: EdgeInsets.symmetric(horizontal: isCompact ? 24.w : 20.0),
     alignment: a,
     decoration: BoxDecoration(
       color: c.withValues(alpha: 0.1),
-      borderRadius: BorderRadius.circular(16.r),
+      borderRadius: BorderRadius.circular(isCompact ? 16.r : 12.0),
     ),
-    child: Icon(i, color: c, size: 28.r),
+    child: Icon(i, color: c, size: isCompact ? 28.r : 24.0),
   );
 
-  Widget _buildEmptyState(String m) => Center(
+  Widget _buildEmptyState(String m, bool isCompact) => Center(
     child: Text(
       m,
       textAlign: TextAlign.center,
       style: AppTextStyles.labelSmall.copyWith(
         color: AppColors.textSecondary,
-        fontSize: 14.sp,
+        fontSize: isCompact ? 14.sp : 12.0,
       ),
     ),
   );
 
-  Widget _buildActionBtn(String l, VoidCallback o) => Padding(
-    padding: EdgeInsets.all(20.r),
+  Widget _buildActionBtn(String l, VoidCallback o, bool isCompact) => Padding(
+    padding: EdgeInsets.all(isCompact ? 20.r : 16.0),
     child: GestureDetector(
       onTap: o,
       child: Container(
-        height: 56.h,
+        height: isCompact ? 56.h : 48.0,
         width: double.infinity,
         decoration: BoxDecoration(
-          color: AppColors.crimson.withOpacity(0.1),
-          borderRadius: BorderRadius.circular(12.r),
+          color: AppColors.crimson.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(isCompact ? 12.r : 10.0),
           border: Border.all(color: AppColors.crimson),
         ),
         alignment: Alignment.center,
@@ -1173,8 +1455,8 @@ class _SupplementScreenState extends State<SupplementScreen>
           l,
           style: AppTextStyles.buttonPrimary.copyWith(
             color: AppColors.crimson,
-            fontSize: 14.sp,
-            fontWeight: FontWeight.bold,
+            fontSize: isCompact ? 14.sp : 13.0,
+            fontWeight: FontWeight.w500,
           ),
         ),
       ),
@@ -1185,10 +1467,12 @@ class _SupplementScreenState extends State<SupplementScreen>
 class _SupplementHistoryFilterSheet extends StatefulWidget {
   final _HistoryFilter initialFilter;
   final Function(_HistoryFilter) onApply;
+  final bool isSideSheet;
 
   const _SupplementHistoryFilterSheet({
     required this.initialFilter,
     required this.onApply,
+    this.isSideSheet = false,
   });
 
   @override
@@ -1215,148 +1499,201 @@ class _SupplementHistoryFilterSheetState extends State<_SupplementHistoryFilterS
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: EdgeInsets.fromLTRB(24.w, 12.h, 24.w, 40.h),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(32.r)),
-        border: Border.all(color: AppColors.white.withOpacity(0.05)),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Center(
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final bool isCompact = constraints.maxWidth < 600 && !widget.isSideSheet;
+        final double sheetWidth = widget.isSideSheet ? constraints.maxWidth : (isCompact ? constraints.maxWidth : 500.0);
+
+        return Center(
+          child: SizedBox(
+            width: sheetWidth,
             child: Container(
-              width: 40.w,
-              height: 4.h,
-              margin: EdgeInsets.only(bottom: 24.h),
+              height: widget.isSideSheet ? double.infinity : null,
+              padding: EdgeInsets.fromLTRB(
+                isCompact ? 24.w : 24.0, 
+                widget.isSideSheet ? 0 : (isCompact ? 12.h : 12.0), 
+                isCompact ? 24.w : 24.0, 
+                isCompact ? 40.h : 30.0
+              ),
               decoration: BoxDecoration(
-                color: AppColors.textSecondary.withOpacity(0.2),
-                borderRadius: BorderRadius.circular(2.r),
+                color: AppColors.surface,
+                borderRadius: widget.isSideSheet 
+                  ? const BorderRadius.horizontal(left: Radius.circular(24.0))
+                  : BorderRadius.vertical(top: Radius.circular(isCompact ? 32.r : 24.0)),
+                border: Border.all(color: AppColors.white.withValues(alpha: 0.05)),
               ),
-            ),
-          ),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text("LOG FILTERS", style: AppTextStyles.h3),
-              TextButton(
-                onPressed: () => setState(() => _currentFilter = _HistoryFilter()),
-                child: Text(
-                  "RESET",
-                  style: AppTextStyles.labelSmall.copyWith(
-                    color: AppColors.crimson,
-                    fontWeight: FontWeight.bold,
+              child: Column(
+                mainAxisSize: widget.isSideSheet ? MainAxisSize.max : MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (widget.isSideSheet) SizedBox(height: 24.0),
+                  if (!widget.isSideSheet)
+                    Center(
+                      child: Container(
+                        margin: EdgeInsets.only(bottom: isCompact ? 16.h : 12.0),
+                        width: isCompact ? 40.w : 40.0,
+                        height: isCompact ? 4.h : 4.0,
+                        decoration: BoxDecoration(
+                          color: AppColors.textSecondary.withOpacity(0.3),
+                          borderRadius: BorderRadius.circular(2.r),
+                        ),
+                      ),
+                    ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        "FILTER HISTORY", 
+                        style: AppTextStyles.h3.copyWith(fontSize: isCompact ? 20.sp : 18.0)
+                      ),
+                      Row(
+                        children: [
+                          TextButton(
+                            onPressed: () => setState(() => _currentFilter = _HistoryFilter()),
+                            child: Text(
+                              "RESET",
+                              style: AppTextStyles.labelSmall.copyWith(
+                                color: AppColors.crimson,
+                                fontWeight: FontWeight.w500,
+                                fontSize: isCompact ? 13.sp : 11.0,
+                              ),
+                            ),
+                          ),
+                          if (widget.isSideSheet)
+                            IconButton(
+                              icon: const Icon(Icons.close, color: AppColors.textSecondary, size: 20),
+                              onPressed: () => Navigator.pop(context),
+                            ),
+                        ],
+                      ),
+                    ],
                   ),
-                ),
-              ),
-            ],
-          ),
-          SizedBox(height: 24.h),
-          _buildSectionLabel("SORT ORDER"),
-          Row(
-            children: [
-              _buildToggleButton(
-                label: "NEWEST FIRST",
-                isSelected: _currentFilter.isDescending,
-                onTap: () => _updateFilter(_currentFilter.copyWith(isDescending: true)),
-              ),
-              SizedBox(width: 12.w),
-              _buildToggleButton(
-                label: "OLDEST FIRST",
-                isSelected: !_currentFilter.isDescending,
-                onTap: () => _updateFilter(_currentFilter.copyWith(isDescending: false)),
-              ),
-            ],
-          ),
-          SizedBox(height: 24.h),
-          _buildSectionLabel("LOG TYPE"),
-          Row(
-            children: [
-              _buildToggleButton(
-                label: "ALL",
-                isSelected: _currentFilter.type == "ALL",
-                onTap: () => _updateFilter(_currentFilter.copyWith(type: "ALL")),
-              ),
-              SizedBox(width: 8.w),
-              _buildToggleButton(
-                label: "INTAKE",
-                isSelected: _currentFilter.type == "INTAKE",
-                onTap: () => _updateFilter(_currentFilter.copyWith(type: "INTAKE")),
-              ),
-              SizedBox(width: 8.w),
-              _buildToggleButton(
-                label: "RESTOCK",
-                isSelected: _currentFilter.type == "RESTOCK",
-                onTap: () => _updateFilter(_currentFilter.copyWith(type: "RESTOCK")),
-              ),
-            ],
-          ),
-          SizedBox(height: 24.h),
-          _buildSectionLabel("SOURCE FILTERS"),
-          Wrap(
-            spacing: 8.w,
-            runSpacing: 8.h,
-            children: [
-              _buildSourceChip("MEAL", "MEAL LOGS"),
-              _buildSourceChip("NOTIF", "NOTIFICATIONS"),
-              _buildSourceChip("QUICK", "QUICK LOGS"),
-              _buildSourceChip("STACK", "STACK LOGS"),
-              _buildSourceChip("MANUAL", "MANUAL ENTRY"),
-            ],
-          ),
-          SizedBox(height: 32.h),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              onPressed: () {
-                widget.onApply(_currentFilter);
-                Navigator.pop(context);
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.crimson,
-                padding: EdgeInsets.symmetric(vertical: 16.h),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12.r),
-                ),
-              ),
-              child: Text(
-                "APPLY FILTERS",
-                style: AppTextStyles.buttonPrimary.copyWith(color: Colors.white),
+                  SizedBox(height: isCompact ? 24.h : 20.0),
+                  Flexible(
+                    child: SingleChildScrollView(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _buildSectionLabel("SORT ORDER", isCompact),
+                          Row(
+                            children: [
+                              _buildToggleButton(
+                                label: "NEWEST FIRST",
+                                isSelected: _currentFilter.isDescending,
+                                isCompact: isCompact,
+                                onTap: () => _updateFilter(_currentFilter.copyWith(isDescending: true)),
+                              ),
+                              SizedBox(width: isCompact ? 12.w : 12.0),
+                              _buildToggleButton(
+                                label: "OLDEST FIRST",
+                                isSelected: !_currentFilter.isDescending,
+                                isCompact: isCompact,
+                                onTap: () => _updateFilter(_currentFilter.copyWith(isDescending: false)),
+                              ),
+                            ],
+                          ),
+                          SizedBox(height: isCompact ? 24.h : 20.0),
+                          _buildSectionLabel("LOG TYPE", isCompact),
+                          Row(
+                            children: [
+                              _buildToggleButton(
+                                label: "ALL",
+                                isSelected: _currentFilter.type == "ALL",
+                                isCompact: isCompact,
+                                onTap: () => _updateFilter(_currentFilter.copyWith(type: "ALL")),
+                              ),
+                              SizedBox(width: isCompact ? 8.w : 8.0),
+                              _buildToggleButton(
+                                label: "INTAKE",
+                                isSelected: _currentFilter.type == "INTAKE",
+                                isCompact: isCompact,
+                                onTap: () => _updateFilter(_currentFilter.copyWith(type: "INTAKE")),
+                              ),
+                              SizedBox(width: isCompact ? 8.w : 8.0),
+                              _buildToggleButton(
+                                label: "RESTOCK",
+                                isSelected: _currentFilter.type == "RESTOCK",
+                                isCompact: isCompact,
+                                onTap: () => _updateFilter(_currentFilter.copyWith(type: "RESTOCK")),
+                              ),
+                            ],
+                          ),
+                          SizedBox(height: isCompact ? 24.h : 20.0),
+                          _buildSectionLabel("SOURCE FILTERS", isCompact),
+                          Wrap(
+                            spacing: isCompact ? 8.w : 8.0,
+                            runSpacing: isCompact ? 8.h : 8.0,
+                            children: [
+                              _buildSourceChip("MEAL", "MEAL LOGS", isCompact),
+                              _buildSourceChip("NOTIF", "NOTIFICATIONS", isCompact),
+                              _buildSourceChip("QUICK", "QUICK LOGS", isCompact),
+                              _buildSourceChip("STACK", "STACK LOGS", isCompact),
+                              _buildSourceChip("MANUAL", "MANUAL ENTRY", isCompact),
+                            ],
+                          ),
+                          SizedBox(height: isCompact ? 32.h : 24.0),
+                          SizedBox(
+                            width: double.infinity,
+                            child: ElevatedButton(
+                              onPressed: () {
+                                widget.onApply(_currentFilter);
+                                Navigator.pop(context);
+                              },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppColors.crimson,
+                                padding: EdgeInsets.symmetric(vertical: isCompact ? 16.h : 14.0),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(isCompact ? 12.r : 10.0),
+                                ),
+                              ),
+                              child: Text(
+                                "APPLY FILTERS",
+                                style: AppTextStyles.buttonPrimary.copyWith(
+                                  color: Colors.white,
+                                  fontSize: isCompact ? 14.sp : 13.0,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 
-  Widget _buildSectionLabel(String label) {
+  Widget _buildSectionLabel(String label, bool isCompact) {
     return Padding(
-      padding: EdgeInsets.only(bottom: 12.h),
+      padding: EdgeInsets.only(bottom: isCompact ? 12.h : 10.0),
       child: Text(
         label,
         style: AppTextStyles.labelSmall.copyWith(
-          color: AppColors.textSecondary.withOpacity(0.5),
+          color: AppColors.textSecondary.withValues(alpha: 0.5),
           letterSpacing: 1.5,
-          fontWeight: FontWeight.w900,
+          fontWeight: FontWeight.w500,
+          fontSize: isCompact ? 11.sp : 10.0,
         ),
       ),
     );
   }
 
-  Widget _buildToggleButton({required String label, required bool isSelected, required VoidCallback onTap}) {
+  Widget _buildToggleButton({required String label, required bool isSelected, required VoidCallback onTap, required bool isCompact}) {
     return Expanded(
       child: GestureDetector(
         onTap: onTap,
         child: Container(
-          padding: EdgeInsets.symmetric(vertical: 12.h),
+          padding: EdgeInsets.symmetric(vertical: isCompact ? 12.h : 12.0),
           decoration: BoxDecoration(
-            color: isSelected ? AppColors.crimson.withOpacity(0.1) : Colors.transparent,
-            borderRadius: BorderRadius.circular(12.r),
+            color: isSelected ? AppColors.crimson.withValues(alpha: 0.1) : Colors.transparent,
+            borderRadius: BorderRadius.circular(isCompact ? 12.r : 10.0),
             border: Border.all(
-              color: isSelected ? AppColors.crimson : AppColors.white.withOpacity(0.1),
+              color: isSelected ? AppColors.crimson : AppColors.white.withValues(alpha: 0.1),
             ),
           ),
           child: Center(
@@ -1364,7 +1701,8 @@ class _SupplementHistoryFilterSheetState extends State<_SupplementHistoryFilterS
               label,
               style: AppTextStyles.labelSmall.copyWith(
                 color: isSelected ? AppColors.crimson : AppColors.textSecondary,
-                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                fontWeight: FontWeight.w500,
+                fontSize: isCompact ? 11.sp : 10.0,
               ),
             ),
           ),
@@ -1373,7 +1711,7 @@ class _SupplementHistoryFilterSheetState extends State<_SupplementHistoryFilterS
     );
   }
 
-  Widget _buildSourceChip(String source, String label) {
+  Widget _buildSourceChip(String source, String label, bool isCompact) {
     final bool isSelected = _currentFilter.sources.contains(source);
     return GestureDetector(
       onTap: () {
@@ -1387,20 +1725,23 @@ class _SupplementHistoryFilterSheetState extends State<_SupplementHistoryFilterS
       },
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
+        padding: EdgeInsets.symmetric(
+          horizontal: isCompact ? 12.w : 12.0, 
+          vertical: isCompact ? 8.h : 8.0
+        ),
         decoration: BoxDecoration(
-          color: isSelected ? AppColors.crimson.withOpacity(0.1) : Colors.transparent,
-          borderRadius: BorderRadius.circular(8.r),
+          color: isSelected ? AppColors.crimson.withValues(alpha: 0.1) : Colors.transparent,
+          borderRadius: BorderRadius.circular(isCompact ? 8.r : 6.0),
           border: Border.all(
-            color: isSelected ? AppColors.crimson : AppColors.white.withOpacity(0.1),
+            color: isSelected ? AppColors.crimson : AppColors.white.withValues(alpha: 0.1),
           ),
         ),
         child: Text(
           label.toUpperCase(),
           style: AppTextStyles.labelSmall.copyWith(
             color: isSelected ? AppColors.crimson : AppColors.textSecondary,
-            fontSize: 10.sp,
-            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+            fontSize: isCompact ? 10.sp : 9.0,
+            fontWeight: FontWeight.w500,
           ),
         ),
       ),

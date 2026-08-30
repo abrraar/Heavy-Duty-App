@@ -57,23 +57,53 @@ class SleepAlarmProvider with ChangeNotifier {
         if (context.mounted) {
           final proceed = await showDialog<bool>(
             context: context,
-            builder: (context) => AlertDialog(
-              backgroundColor: const Color(0xFF1A1A1A),
-              title: const Text("Alarm Permissions", style: TextStyle(color: Colors.white)),
-              content: const Text(
-                "To wake you up reliably, Heavy Duty needs permission to set exact alarms. Please enable this in the next screen.",
-                style: TextStyle(color: Colors.white70),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context, false),
-                  child: const Text("CANCEL", style: TextStyle(color: Colors.white54)),
-                ),
-                TextButton(
-                  onPressed: () => Navigator.pop(context, true),
-                  child: const Text("OPEN SETTINGS", style: TextStyle(color: Color(0xFFD32F2F))),
-                ),
-              ],
+            builder: (context) => LayoutBuilder(
+              builder: (context, constraints) {
+                final bool isCompact = constraints.maxWidth < 600;
+                return AlertDialog(
+                  backgroundColor: const Color(0xFF1A1A1A),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(isCompact ? 28 : 20.0),
+                  ),
+                  title: Text(
+                    "Alarm Permissions", 
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: isCompact ? null : 18.0,
+                    )
+                  ),
+                  content: Text(
+                    "To wake you up reliably, Heavy Duty needs permission to set exact alarms. Please enable this in the next screen.",
+                    style: TextStyle(
+                      color: Colors.white70,
+                      fontSize: isCompact ? null : 13.0,
+                    ),
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context, false),
+                      child: Text(
+                        "CANCEL", 
+                        style: TextStyle(
+                          color: Colors.white54,
+                          fontSize: isCompact ? null : 12.0,
+                        )
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: () => Navigator.pop(context, true),
+                      child: Text(
+                        "OPEN SETTINGS", 
+                        style: TextStyle(
+                          color: const Color(0xFFD32F2F),
+                          fontSize: isCompact ? null : 12.0,
+                          fontWeight: FontWeight.w500,
+                        )
+                      ),
+                    ),
+                  ],
+                );
+              },
             ),
           );
 

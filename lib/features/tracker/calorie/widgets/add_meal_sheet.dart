@@ -17,6 +17,7 @@ class AddMealSheet extends StatefulWidget {
   final List<SavedMeal> savedMeals;
   final Function(CalorieLog, bool, double servings, bool multiplySupps) onSave;
   final bool isLibraryOnly;
+  final bool isSideSheet;
 
   const AddMealSheet({
     super.key,
@@ -24,6 +25,7 @@ class AddMealSheet extends StatefulWidget {
     required this.onSave,
     required this.savedMeals,
     this.isLibraryOnly = false,
+    this.isSideSheet = false,
   });
 
   @override
@@ -42,11 +44,8 @@ class _AddMealSheetState extends State<AddMealSheet> {
   double _multiplier = 1.0;
   bool _multiplySupps = true;
 
-  // ID -> Amount (in units, e.g. 1.5 scoops)
   final Map<String, double> _supplementAmounts = {};
-  // StackID -> { SupplementID -> Amount }
   final Map<String, Map<String, double>> _stackItemAmounts = {};
-  // ID -> Use Servings mode toggle
   final Map<String, bool> _useServingsForSupps = {};
 
   @override
@@ -62,7 +61,6 @@ class _AddMealSheetState extends State<AddMealSheet> {
       
       _multiplierController.text = (_multiplier % 1 == 0 ? _multiplier.toInt() : _multiplier.toStringAsFixed(2)).toString();
       
-      // Load selected Supplements and their amounts
       if (meal.addedSupplementsJson != null) {
         try {
           final decoded = jsonDecode(meal.addedSupplementsJson!);
@@ -72,7 +70,6 @@ class _AddMealSheetState extends State<AddMealSheet> {
                 final String? id = item['id']?.toString();
                 if (id == null) continue;
                 final double totalAmount = (item['amount'] as num?)?.toDouble() ?? 0.0;
-                // If they were multiplied, we divide by the saved servings to get the BASE
                 _supplementAmounts[id] = _multiplySupps 
                     ? totalAmount / (meal.servings > 0 ? meal.servings : 1.0)
                     : totalAmount;
@@ -85,7 +82,6 @@ class _AddMealSheetState extends State<AddMealSheet> {
         }
       }
 
-      // Load selected Stacks and their ingredient amounts
       if (meal.addedStacksJson != null) {
         try {
           final decoded = jsonDecode(meal.addedStacksJson!);
@@ -113,7 +109,6 @@ class _AddMealSheetState extends State<AddMealSheet> {
         }
       }
 
-      // Calculate Supplement/Stack offsets to extract "Base Food" values
       double suppCals = 0;
       double suppPro = 0, suppCarbs = 0, suppFats = 0;
       List<String> suppNames = [];
@@ -364,168 +359,206 @@ class _AddMealSheetState extends State<AddMealSheet> {
       return s.isActive || _supplementAmounts.containsKey(s.id);
     }).toList();
 
-    return Container(
-      padding: EdgeInsets.fromLTRB(24.w, 20.h, 24.w, MediaQuery.of(context).viewInsets.bottom + 40.h),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(32.r)),
-        border: Border.all(color: AppColors.white.withValues(alpha: 0.05)),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          _buildHandle(),
-          Flexible(
-            child: SingleChildScrollView(
-              physics: const BouncingScrollPhysics(),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final bool isCompact = constraints.maxWidth < 600 && !widget.isSideSheet;
+        final double sheetWidth = widget.isSideSheet ? constraints.maxWidth : (isCompact ? constraints.maxWidth : 600.0);
+
+        return Align(
+          alignment: widget.isSideSheet ? Alignment.center : Alignment.bottomCenter,
+          child: SizedBox(
+            width: sheetWidth,
+            child: Container(
+              height: widget.isSideSheet ? double.infinity : null,
+              padding: EdgeInsets.fromLTRB(
+                isCompact ? 24.w : 24.0, 
+                widget.isSideSheet ? 0 : (isCompact ? 20.h : 16.0), 
+                isCompact ? 24.w : 24.0, 
+                MediaQuery.of(context).viewInsets.bottom + (isCompact ? 40.h : 32.0)
+              ),
+              decoration: BoxDecoration(
+                color: AppColors.surface,
+                borderRadius: widget.isSideSheet 
+                  ? const BorderRadius.horizontal(left: Radius.circular(24.0))
+                  : BorderRadius.vertical(top: Radius.circular(isCompact ? 32.r : 24.0)),
+                border: Border.all(color: AppColors.white.withValues(alpha: 0.05)),
+              ),
               child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: widget.isSideSheet ? MainAxisSize.max : MainAxisSize.min,
                 children: [
-                  Text(widget.existingMeal != null ? "EDIT MEAL ENTRY" : "ADD MEAL ENTRY", style: AppTextStyles.h3),
-                  SizedBox(height: 24.h),
-                  _buildSectionHeader("MEAL NAME"),
-                  SizedBox(height: 8.h),
-                  _buildTextFieldWithoutLabel(_mealNameController, hint: "e.g. Breakfast"),
-                  SizedBox(height: 16.h),
-                  _buildMultiplierSection(),
-                  SizedBox(height: 16.h),
-                  _buildSectionHeader("FOOD ITEMS"),
-                  SizedBox(height: 8.h),
-                  _buildTextFieldWithoutLabel(_foodItemsController, hint: "e.g. Oats, Whey, Berries"),
-                  SizedBox(height: 24.h),
-                  
-                  if (visibleSupps.isNotEmpty || supplementStacks.isNotEmpty) ...[
-                    _buildSectionHeader("QUICK ADD SUPPLEMENTS"),
-                    SizedBox(height: 12.h),
-                    SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
+                  if (widget.isSideSheet) SizedBox(height: 24.0),
+                  if (!widget.isSideSheet) _buildHandle(isCompact),
+                  Flexible(
+                    child: SingleChildScrollView(
                       physics: const BouncingScrollPhysics(),
-                      child: Row(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          ...supplementStacks.map((stack) => _buildQuickAddChip(
-                            label: stack.name,
-                            isSelected: _stackItemAmounts.containsKey(stack.id),
-                            onTap: () => _toggleStack(stack),
-                            isStack: true,
-                          )),
-                          ...visibleSupps.map((supp) => _buildQuickAddChip(
-                            label: supp.name,
-                            isSelected: _supplementAmounts.containsKey(supp.id),
-                            onTap: () => _toggleSupplement(supp),
-                          )),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                widget.existingMeal != null ? "EDIT MEAL ENTRY" : "ADD MEAL ENTRY", 
+                                style: AppTextStyles.h3.copyWith(fontSize: isCompact ? null : 18.0)
+                              ),
+                              if (widget.isSideSheet)
+                                IconButton(
+                                  icon: const Icon(Icons.close, color: AppColors.textSecondary, size: 20),
+                                  onPressed: () => Navigator.pop(context),
+                                ),
+                            ],
+                          ),
+                          SizedBox(height: isCompact ? 24.h : 20.0),
+                          _buildSectionHeader("MEAL NAME", isCompact),
+                          SizedBox(height: isCompact ? 8.h : 6.0),
+                          _buildTextFieldWithoutLabel(_mealNameController, hint: "e.g. Breakfast", isCompact: isCompact),
+                          SizedBox(height: isCompact ? 16.h : 12.0),
+                          _buildMultiplierSection(isCompact),
+                          SizedBox(height: isCompact ? 16.h : 12.0),
+                          _buildSectionHeader("FOOD ITEMS", isCompact),
+                          SizedBox(height: isCompact ? 8.h : 6.0),
+                          _buildTextFieldWithoutLabel(_foodItemsController, hint: "e.g. Oats, Whey, Berries", isCompact: isCompact),
+                          SizedBox(height: isCompact ? 24.h : 20.0),
+                          
+                          if (visibleSupps.isNotEmpty || supplementStacks.isNotEmpty) ...[
+                            _buildSectionHeader("QUICK ADD SUPPLEMENTS", isCompact),
+                            SizedBox(height: isCompact ? 12.h : 10.0),
+                            SingleChildScrollView(
+                              scrollDirection: Axis.horizontal,
+                              physics: const BouncingScrollPhysics(),
+                              child: Row(
+                                children: [
+                                  ...supplementStacks.map((stack) => _buildQuickAddChip(
+                                    label: stack.name,
+                                    isSelected: _stackItemAmounts.containsKey(stack.id),
+                                    onTap: () => _toggleStack(stack),
+                                    isStack: true,
+                                    isCompact: isCompact,
+                                  )),
+                                  ...visibleSupps.map((supp) => _buildQuickAddChip(
+                                    label: supp.name,
+                                    isSelected: _supplementAmounts.containsKey(supp.id),
+                                    onTap: () => _toggleSupplement(supp),
+                                    isCompact: isCompact,
+                                  )),
+                                ],
+                              ),
+                            ),
+                            if (_supplementAmounts.isNotEmpty || _stackItemAmounts.isNotEmpty) ...[
+                              SizedBox(height: isCompact ? 16.h : 12.0),
+                              _buildIngredientConfigSection(allSupplements, supplementStacks, isCompact),
+                            ],
+                            SizedBox(height: isCompact ? 24.h : 20.0),
+                          ] else ...[
+                            _buildSectionHeader("QUICK ADD SUPPLEMENTS", isCompact),
+                            SizedBox(height: isCompact ? 12.h : 10.0),
+                            Container(
+                              width: double.infinity,
+                              padding: EdgeInsets.all(isCompact ? 16.r : 16.0),
+                              decoration: BoxDecoration(
+                                color: AppColors.white.withValues(alpha: 0.03),
+                                borderRadius: BorderRadius.circular(isCompact ? 12.r : 10.0),
+                                border: Border.all(color: AppColors.white.withValues(alpha: 0.05)),
+                              ),
+                              child: Text(
+                                "NO ACTIVE SUPPLEMENTS OR STACKS AVAILABLE.\nPLEASE CREATE OR ACTIVATE THEM IN THE LIBRARY.",
+                                textAlign: TextAlign.center,
+                                style: AppTextStyles.labelSmall.copyWith(
+                                  color: AppColors.textSecondary.withValues(alpha: 0.6),
+                                  fontSize: isCompact ? 10.sp : 10.0,
+                                  fontWeight: FontWeight.w500,
+                                  letterSpacing: 0.5,
+                                ),
+                              ),
+                            ),
+                            SizedBox(height: isCompact ? 24.h : 20.0),
+                          ],
+
+                          _buildSectionHeader("CALORIES", isCompact),
+                          SizedBox(height: isCompact ? 8.h : 6.0),
+                          _buildTextFieldWithoutLabel(
+                            _caloriesController, 
+                            isNumber: true, 
+                            suffix: "kcal",
+                            isCompact: isCompact,
+                            inputFormatters: [
+                              TextInputFormatter.withFunction((oldValue, newValue) {
+                                final text = newValue.text;
+                                if (text.isEmpty) return newValue;
+                                if (double.tryParse(text) == null && text != '.') return oldValue;
+                                if (RegExp(r'^\d{0,4}(\.\d{0,3})?$').hasMatch(text)) {
+                                  return newValue;
+                                }
+                                return oldValue;
+                              }),
+                            ],
+                          ),
+                          SizedBox(height: isCompact ? 24.h : 20.0),
+                          _buildSectionHeader("MACROS (OPTIONAL)", isCompact),
+                          SizedBox(height: isCompact ? 16.h : 12.0),
+                          Row(
+                            children: [
+                              Expanded(child: _buildMacroInputBlock("PROTEIN", "4 kcal/g", _proteinController, isCompact)),
+                              SizedBox(width: isCompact ? 12.w : 12.0),
+                              Expanded(child: _buildMacroInputBlock("CARBS", "4 kcal/g", _carbsController, isCompact)),
+                              SizedBox(width: isCompact ? 12.w : 12.0),
+                              Expanded(child: _buildMacroInputBlock("FATS", "9 kcal/g", _fatsController, isCompact)),
+                            ],
+                          ),
+                          if (!_isMacroValid) ...[
+                            SizedBox(height: isCompact ? 16.h : 12.0),
+                            _buildMacroError(isCompact),
+                          ],
+                          SizedBox(height: isCompact ? 32.h : 24.0),
+                          _buildActionButtons(isCompact),
                         ],
                       ),
                     ),
-                    if (_supplementAmounts.isNotEmpty || _stackItemAmounts.isNotEmpty) ...[
-                      SizedBox(height: 16.h),
-                      _buildIngredientConfigSection(allSupplements, supplementStacks),
-                    ],
-                    SizedBox(height: 24.h),
-                  ] else ...[
-                    _buildSectionHeader("QUICK ADD SUPPLEMENTS"),
-                    SizedBox(height: 12.h),
-                    Container(
-                      width: double.infinity,
-                      padding: EdgeInsets.all(16.r),
-                      decoration: BoxDecoration(
-                        color: AppColors.white.withValues(alpha: 0.03),
-                        borderRadius: BorderRadius.circular(12.r),
-                        border: Border.all(color: AppColors.white.withValues(alpha: 0.05)),
-                      ),
-                      child: Text(
-                        "NO ACTIVE SUPPLEMENTS OR STACKS AVAILABLE.\nPLEASE CREATE OR ACTIVATE THEM IN THE LIBRARY.",
-                        textAlign: TextAlign.center,
-                        style: AppTextStyles.labelSmall.copyWith(
-                          color: AppColors.textSecondary.withValues(alpha: 0.6),
-                          fontSize: 10.sp,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 0.5,
-                        ),
-                      ),
-                    ),
-                    SizedBox(height: 24.h),
-                  ],
-
-                  _buildSectionHeader("CALORIES"),
-                  SizedBox(height: 8.h),
-                  _buildTextFieldWithoutLabel(
-                    _caloriesController, 
-                    isNumber: true, 
-                    suffix: "kcal",
-                    inputFormatters: [
-                      TextInputFormatter.withFunction((oldValue, newValue) {
-                        final text = newValue.text;
-                        if (text.isEmpty) return newValue;
-                        if (double.tryParse(text) == null && text != '.') return oldValue;
-                        if (RegExp(r'^\d{0,4}(\.\d{0,3})?$').hasMatch(text)) {
-                          return newValue;
-                        }
-                        return oldValue;
-                      }),
-                    ],
                   ),
-                  SizedBox(height: 24.h),
-                  _buildSectionHeader("MACROS (OPTIONAL)"),
-                  SizedBox(height: 16.h),
-                  Row(
-                    children: [
-                      Expanded(child: _buildMacroInputBlock("PROTEIN", "4 kcal/g", _proteinController)),
-                      SizedBox(width: 12.w),
-                      Expanded(child: _buildMacroInputBlock("CARBS", "4 kcal/g", _carbsController)),
-                      SizedBox(width: 12.w),
-                      Expanded(child: _buildMacroInputBlock("FATS", "9 kcal/g", _fatsController)),
-                    ],
-                  ),
-                  if (!_isMacroValid) ...[
-                    SizedBox(height: 16.h),
-                    _buildMacroError(),
-                  ],
-                  SizedBox(height: 32.h),
-                  _buildActionButtons(),
                 ],
               ),
             ),
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 
-  Widget _buildMacroInputBlock(String label, String energy, TextEditingController controller) {
+  Widget _buildMacroInputBlock(String label, String energy, TextEditingController controller, bool isCompact) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(label, style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary, fontSize: 9.sp)),
-            Text(energy, style: AppTextStyles.labelSmall.copyWith(color: AppColors.crimson, fontSize: 9.sp, fontWeight: FontWeight.bold)),
+            Text(label, style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary, fontSize: isCompact ? 9.sp : 9.0)),
+            Text(energy, style: AppTextStyles.labelSmall.copyWith(color: AppColors.crimson, fontSize: isCompact ? 9.sp : 9.0, fontWeight: FontWeight.w500)),
           ],
         ),
-        SizedBox(height: 8.h),
-        _buildMacroField(controller),
+        SizedBox(height: isCompact ? 8.h : 6.0),
+        _buildMacroField(controller, isCompact),
       ],
     );
   }
 
-  Widget _buildSectionHeader(String title) {
+  Widget _buildSectionHeader(String title, bool isCompact) {
     return Row(
       children: [
         Container(
-          width: 3.w,
-          height: 12.h,
+          width: isCompact ? 3.w : 3.0,
+          height: isCompact ? 12.h : 12.0,
           decoration: BoxDecoration(
             color: AppColors.crimson,
             borderRadius: BorderRadius.circular(2.r),
           ),
         ),
-        SizedBox(width: 8.w),
+        SizedBox(width: isCompact ? 8.w : 8.0),
         Text(
           title,
           style: AppTextStyles.labelSmall.copyWith(
             color: AppColors.textSecondary.withValues(alpha: 0.8),
-            fontSize: 10.sp,
+            fontSize: isCompact ? 10.sp : 10.0,
           ),
         ),
       ],
@@ -536,18 +569,22 @@ class _AddMealSheetState extends State<AddMealSheet> {
     required String label,
     required bool isSelected,
     required VoidCallback onTap,
+    required bool isCompact,
     bool isStack = false,
   }) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        margin: EdgeInsets.only(right: 8.w),
-        padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+        margin: EdgeInsets.only(right: isCompact ? 8.w : 8.0),
+        padding: EdgeInsets.symmetric(
+          horizontal: isCompact ? 16.w : 14.0, 
+          vertical: isCompact ? 8.h : 6.0
+        ),
         decoration: BoxDecoration(
           color: isSelected 
               ? AppColors.crimson.withValues(alpha: 0.2) 
               : AppColors.surfaceLight.withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(20.r),
+          borderRadius: BorderRadius.circular(isCompact ? 20.r : 16.0),
           border: Border.all(
             color: isSelected 
                 ? AppColors.crimson 
@@ -558,16 +595,16 @@ class _AddMealSheetState extends State<AddMealSheet> {
           children: [
             Icon(
               isStack ? Icons.layers_rounded : Icons.medication_rounded,
-              size: 14.r,
+              size: isCompact ? 14.r : 14.0,
               color: isSelected ? AppColors.crimson : AppColors.textSecondary,
             ),
-            SizedBox(width: 6.w),
+            SizedBox(width: isCompact ? 6.w : 6.0),
             Text(
               label.toUpperCase(),
               style: AppTextStyles.labelSmall.copyWith(
                 color: isSelected ? Colors.white : AppColors.textSecondary,
-                fontSize: 10.sp,
-                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                fontSize: isCompact ? 10.sp : 10.0,
+                fontWeight: FontWeight.w500,
               ),
             ),
           ],
@@ -576,32 +613,32 @@ class _AddMealSheetState extends State<AddMealSheet> {
     );
   }
 
-  Widget _buildTextFieldWithoutLabel(TextEditingController controller, {bool isNumber = false, String? suffix, String? hint, List<TextInputFormatter>? inputFormatters}) {
+  Widget _buildTextFieldWithoutLabel(TextEditingController controller, {bool isNumber = false, String? suffix, String? hint, List<TextInputFormatter>? inputFormatters, required bool isCompact}) {
     return TextField(
       controller: controller,
       keyboardType: isNumber ? const TextInputType.numberWithOptions(decimal: true) : TextInputType.text,
       inputFormatters: inputFormatters,
-      style: AppTextStyles.labelSmall.copyWith(color: Colors.white, fontSize: 14.sp),
+      style: AppTextStyles.labelSmall.copyWith(color: Colors.white, fontSize: isCompact ? 14.sp : 14.0),
       decoration: InputDecoration(
         hintText: hint,
-        hintStyle: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary.withValues(alpha: 0.3)),
+        hintStyle: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary.withValues(alpha: 0.3), fontSize: isCompact ? null : 14.0),
         suffixText: suffix,
-        suffixStyle: AppTextStyles.labelSmall.copyWith(color: AppColors.crimson),
+        suffixStyle: AppTextStyles.labelSmall.copyWith(color: AppColors.crimson, fontSize: isCompact ? null : 14.0),
         filled: true,
         fillColor: AppColors.background.withValues(alpha: 0.5),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12.r), borderSide: BorderSide.none),
-        contentPadding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(isCompact ? 12.r : 10.0), borderSide: BorderSide.none),
+        contentPadding: EdgeInsets.symmetric(horizontal: isCompact ? 16.w : 16.0, vertical: isCompact ? 14.h : 12.0),
       ),
     );
   }
 
-  Widget _buildMacroField(TextEditingController controller) {
+  Widget _buildMacroField(TextEditingController controller, bool isCompact) {
     return Container(
-      height: 60.h,
-      padding: EdgeInsets.symmetric(horizontal: 16.w),
+      height: isCompact ? 60.h : 52.0,
+      padding: EdgeInsets.symmetric(horizontal: isCompact ? 16.w : 14.0),
       decoration: BoxDecoration(
         color: AppColors.background.withValues(alpha: 0.5),
-        borderRadius: BorderRadius.circular(16.r),
+        borderRadius: BorderRadius.circular(isCompact ? 16.r : 12.0),
         border: Border.all(color: AppColors.white.withValues(alpha: 0.05)),
       ),
       child: Row(
@@ -614,8 +651,8 @@ class _AddMealSheetState extends State<AddMealSheet> {
               textAlign: TextAlign.center,
               style: AppTextStyles.h2.copyWith(
                 color: Colors.white, 
-                fontSize: 20.sp,
-                fontWeight: FontWeight.w900,
+                fontSize: isCompact ? 20.sp : 18.0,
+                fontWeight: FontWeight.w500,
               ),
               inputFormatters: [
                 TextInputFormatter.withFunction((oldValue, newValue) {
@@ -640,8 +677,8 @@ class _AddMealSheetState extends State<AddMealSheet> {
             "g",
             style: AppTextStyles.labelSmall.copyWith(
               color: AppColors.crimson, 
-              fontSize: 14.sp,
-              fontWeight: FontWeight.w900,
+              fontSize: isCompact ? 14.sp : 14.0,
+              fontWeight: FontWeight.w500,
             ),
           ),
         ],
@@ -649,7 +686,7 @@ class _AddMealSheetState extends State<AddMealSheet> {
     );
   }
 
-  Widget _buildMultiplierSection() {
+  Widget _buildMultiplierSection(bool isCompact) {
     final supplementProvider = context.watch<SupplementProvider>();
     final bool hasActiveSupps = supplementProvider.library.any((s) => s.isActive);
     final bool hasStacks = supplementProvider.supplementStacks.isNotEmpty;
@@ -658,14 +695,14 @@ class _AddMealSheetState extends State<AddMealSheet> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildSectionHeader("SERVING"),
-        SizedBox(height: 12.h),
+        _buildSectionHeader("SERVING", isCompact),
+        SizedBox(height: isCompact ? 12.h : 10.0),
         Container(
-          height: 60.h,
-          padding: EdgeInsets.symmetric(horizontal: 6.w),
+          height: isCompact ? 60.h : 54.0,
+          padding: EdgeInsets.symmetric(horizontal: isCompact ? 6.w : 4.0),
           decoration: BoxDecoration(
             color: AppColors.background.withValues(alpha: 0.6),
-            borderRadius: BorderRadius.circular(16.r),
+            borderRadius: BorderRadius.circular(isCompact ? 16.r : 12.0),
             border: Border.all(color: AppColors.white.withValues(alpha: 0.05)),
           ),
           child: Row(
@@ -678,7 +715,7 @@ class _AddMealSheetState extends State<AddMealSheet> {
                     _multiplierController.text = (newVal % 1 == 0 ? newVal.toInt() : newVal.toStringAsFixed(2)).toString();
                   });
                 }
-              }),
+              }, isCompact),
               Expanded(
                 child: Container(
                   alignment: Alignment.center,
@@ -694,8 +731,8 @@ class _AddMealSheetState extends State<AddMealSheet> {
                           textAlign: TextAlign.center,
                           style: AppTextStyles.h2.copyWith(
                             color: Colors.white, 
-                            fontSize: 22.sp,
-                            fontWeight: FontWeight.w900,
+                            fontSize: isCompact ? 22.sp : 20.0,
+                            fontWeight: FontWeight.w500,
                           ),
                           decoration: const InputDecoration(
                             border: InputBorder.none,
@@ -728,8 +765,8 @@ class _AddMealSheetState extends State<AddMealSheet> {
                         "X",
                         style: AppTextStyles.h2.copyWith(
                           color: AppColors.crimson, 
-                          fontSize: 18.sp,
-                          fontWeight: FontWeight.w900,
+                          fontSize: isCompact ? 18.sp : 16.0,
+                          fontWeight: FontWeight.w500,
                         ),
                       ),
                     ],
@@ -744,12 +781,12 @@ class _AddMealSheetState extends State<AddMealSheet> {
                     _multiplierController.text = (newVal % 1 == 0 ? newVal.toInt() : newVal.toStringAsFixed(2)).toString();
                   });
                 }
-              }),
+              }, isCompact),
             ],
           ),
         ),
         
-        SizedBox(height: 16.h),
+        SizedBox(height: isCompact ? 16.h : 12.0),
         Opacity(
           opacity: canMultiply ? 1.0 : 0.3,
           child: IgnorePointer(
@@ -758,24 +795,24 @@ class _AddMealSheetState extends State<AddMealSheet> {
               onTap: () => setState(() => _multiplySupps = !_multiplySupps),
               behavior: HitTestBehavior.opaque,
               child: Container(
-                padding: EdgeInsets.symmetric(vertical: 4.h),
+                padding: EdgeInsets.symmetric(vertical: isCompact ? 4.h : 4.0),
                 child: Row(
                   children: [
                     AnimatedContainer(
                       duration: const Duration(milliseconds: 200),
-                      width: 20.r,
-                      height: 20.r,
+                      width: isCompact ? 20.r : 20.0,
+                      height: isCompact ? 20.r : 20.0,
                       decoration: BoxDecoration(
                         color: (canMultiply && _multiplySupps) ? AppColors.crimson : Colors.transparent,
                         border: Border.all(
                           color: (canMultiply && _multiplySupps) ? AppColors.crimson : AppColors.white.withValues(alpha: 0.2), 
                           width: 2,
                         ),
-                        borderRadius: BorderRadius.circular(6.r),
+                        borderRadius: BorderRadius.circular(isCompact ? 6.r : 6.0),
                       ),
-                      child: (canMultiply && _multiplySupps) ? Icon(Icons.check, color: Colors.white, size: 14.r) : null,
+                      child: (canMultiply && _multiplySupps) ? Icon(Icons.check, color: Colors.white, size: isCompact ? 14.r : 14.0) : null,
                     ),
-                    SizedBox(width: 12.w),
+                    SizedBox(width: isCompact ? 12.w : 12.0),
                     Expanded(
                       child: Text(
                         canMultiply 
@@ -783,8 +820,8 @@ class _AddMealSheetState extends State<AddMealSheet> {
                             : "MULTIPLY SUPPLEMENT DOSAGE (DISABLED - NO ACTIVE SUPPS)",
                         style: AppTextStyles.labelSmall.copyWith(
                           color: (canMultiply && _multiplySupps) ? Colors.white : AppColors.textSecondary,
-                          fontSize: 9.sp,
-                          fontWeight: (canMultiply && _multiplySupps) ? FontWeight.bold : FontWeight.normal,
+                          fontSize: isCompact ? 9.sp : 9.0,
+                          fontWeight: FontWeight.w500,
                           letterSpacing: 0.5,
                         ),
                       ),
@@ -799,18 +836,18 @@ class _AddMealSheetState extends State<AddMealSheet> {
     );
   }
 
-  Widget _multiplierStepBtn(IconData icon, VoidCallback onTap) {
+  Widget _multiplierStepBtn(IconData icon, VoidCallback onTap, bool isCompact) {
     return GestureDetector(
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
       child: Container(
-        width: 48.r,
-        height: 48.r,
-        margin: EdgeInsets.symmetric(vertical: 6.h),
+        width: isCompact ? 48.r : 44.0,
+        height: isCompact ? 48.r : 44.0,
+        margin: EdgeInsets.symmetric(vertical: isCompact ? 6.h : 4.0),
         alignment: Alignment.center,
         decoration: BoxDecoration(
           color: const Color(0xFF0A0A0A),
-          borderRadius: BorderRadius.circular(12.r),
+          borderRadius: BorderRadius.circular(isCompact ? 12.r : 10.0),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withValues(alpha: 0.2),
@@ -819,28 +856,28 @@ class _AddMealSheetState extends State<AddMealSheet> {
             ),
           ],
         ),
-        child: Icon(icon, color: AppColors.crimson, size: 20.r),
+        child: Icon(icon, color: AppColors.crimson, size: isCompact ? 20.r : 20.0),
       ),
     );
   }
 
-  Widget _buildHandle() {
+  Widget _buildHandle(bool isCompact) {
     return Center(
       child: Container(
-        margin: EdgeInsets.only(bottom: 20.h),
-        width: 40.w,
-        height: 4.h,
+        margin: EdgeInsets.only(bottom: isCompact ? 20.h : 16.0),
+        width: isCompact ? 40.w : 40.0,
+        height: isCompact ? 4.h : 4.0,
         decoration: BoxDecoration(color: AppColors.textSecondary.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(2.r)),
       ),
     );
   }
 
-  Widget _buildIngredientConfigSection(List<Supplement> allSupps, List<SupplementStack> stacks) {
+  Widget _buildIngredientConfigSection(List<Supplement> allSupps, List<SupplementStack> stacks, bool isCompact) {
     return Container(
-      padding: EdgeInsets.all(20.r),
+      padding: EdgeInsets.all(isCompact ? 20.r : 16.0),
       decoration: BoxDecoration(
         color: AppColors.background.withValues(alpha: 0.6),
-        borderRadius: BorderRadius.circular(20.r),
+        borderRadius: BorderRadius.circular(isCompact ? 20.r : 16.0),
         border: Border.all(color: AppColors.white.withValues(alpha: 0.08)),
       ),
       child: Column(
@@ -848,20 +885,20 @@ class _AddMealSheetState extends State<AddMealSheet> {
         children: [
           Row(
             children: [
-              Icon(Icons.tune_rounded, size: 14.r, color: AppColors.crimson),
-              SizedBox(width: 10.w),
+              Icon(Icons.tune_rounded, size: isCompact ? 14.r : 14.0, color: AppColors.crimson),
+              SizedBox(width: isCompact ? 10.w : 10.0),
               Text(
                 "DOSAGE CONFIGURATION",
                 style: AppTextStyles.labelSmall.copyWith(
                   color: Colors.white.withValues(alpha: 0.9),
-                  fontSize: 10.sp,
-                  fontWeight: FontWeight.w900,
+                  fontSize: isCompact ? 10.sp : 10.0,
+                  fontWeight: FontWeight.w500,
                   letterSpacing: 1.2,
                 ),
               ),
             ],
           ),
-          SizedBox(height: 16.h),
+          SizedBox(height: isCompact ? 16.h : 12.0),
           
           ..._supplementAmounts.entries.map((entry) {
             final supp = allSupps.cast<Supplement?>().firstWhere((s) => s?.id == entry.key, orElse: () => null);
@@ -875,6 +912,7 @@ class _AddMealSheetState extends State<AddMealSheet> {
               weightUnit: supp.weightUnit,
               weightPerServing: supp.weightPerServing,
               initialUseServing: _useServingsForSupps[supp.id] ?? true,
+              isCompact: isCompact,
               onChanged: (newVal, useServing) {
                 setState(() {
                   _supplementAmounts[entry.key] = newVal;
@@ -893,31 +931,31 @@ class _AddMealSheetState extends State<AddMealSheet> {
               children: [
                 if (_supplementAmounts.isNotEmpty || _stackItemAmounts.keys.first != entry.key) 
                   Padding(
-                    padding: EdgeInsets.symmetric(vertical: 8.h),
+                    padding: EdgeInsets.symmetric(vertical: isCompact ? 8.h : 6.0),
                     child: Divider(color: AppColors.white.withValues(alpha: 0.05)),
                   ),
                 Row(
                   children: [
-                    Icon(Icons.layers_rounded, size: 14.r, color: AppColors.crimson),
-                    SizedBox(width: 10.w),
+                    Icon(Icons.layers_rounded, size: isCompact ? 14.r : 14.0, color: AppColors.crimson),
+                    SizedBox(width: isCompact ? 10.w : 10.0),
                     Text(
                       stack.name.toUpperCase(),
                       style: AppTextStyles.labelSmall.copyWith(
                         color: Colors.white, 
-                        fontWeight: FontWeight.w900,
-                        fontSize: 11.sp,
+                        fontWeight: FontWeight.w500,
+                        fontSize: isCompact ? 11.sp : 11.0,
                         letterSpacing: 0.5,
                       ),
                     ),
                   ],
                 ),
-                SizedBox(height: 12.h),
+                SizedBox(height: isCompact ? 12.h : 10.0),
                 ...entry.value.entries.map((itemEntry) {
                   final item = stack.items.cast<Supplement?>().firstWhere((i) => i?.id == itemEntry.key, orElse: () => null);
                   if (item == null) return const SizedBox.shrink();
 
                   return Padding(
-                    padding: EdgeInsets.only(left: 12.w),
+                    padding: EdgeInsets.only(left: isCompact ? 12.w : 12.0),
                     child: _buildAmountRow(
                       id: item.id,
                       label: item.name,
@@ -927,6 +965,7 @@ class _AddMealSheetState extends State<AddMealSheet> {
                       weightPerServing: item.weightPerServing,
                       initialUseServing: _useServingsForSupps[item.id] ?? true,
                       isNested: true,
+                      isCompact: isCompact,
                       onChanged: (newVal, useServing) {
                         setState(() {
                           _stackItemAmounts[entry.key]![itemEntry.key] = newVal;
@@ -952,11 +991,12 @@ class _AddMealSheetState extends State<AddMealSheet> {
     required String weightUnit,
     required double weightPerServing,
     required Function(double, bool) onChanged,
+    required bool isCompact,
     bool initialUseServing = true,
     bool isNested = false,
   }) {
     return Padding(
-      padding: EdgeInsets.symmetric(vertical: 10.h),
+      padding: EdgeInsets.symmetric(vertical: isCompact ? 10.h : 8.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -964,23 +1004,23 @@ class _AddMealSheetState extends State<AddMealSheet> {
             label,
             style: AppTextStyles.labelSmall.copyWith(
               color: isNested ? AppColors.textSecondary : Colors.white.withValues(alpha: 0.9), 
-              fontSize: 11.sp,
-              fontWeight: isNested ? FontWeight.normal : FontWeight.bold,
+              fontSize: isCompact ? 11.sp : 11.0,
+              fontWeight: FontWeight.w500,
               letterSpacing: 0.5,
             ),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
-          SizedBox(height: 10.h),
+          SizedBox(height: isCompact ? 10.h : 8.0),
           Row(
             children: [
               Expanded(
                 child: Container(
-                  height: 48.h,
-                  padding: EdgeInsets.symmetric(horizontal: 8.w),
+                  height: isCompact ? 48.h : 44.0,
+                  padding: EdgeInsets.symmetric(horizontal: isCompact ? 8.w : 8.0),
                   decoration: BoxDecoration(
                     color: AppColors.background.withValues(alpha: 0.4),
-                    borderRadius: BorderRadius.circular(12.r),
+                    borderRadius: BorderRadius.circular(isCompact ? 12.r : 10.0),
                     border: Border.all(color: AppColors.white.withValues(alpha: 0.05)),
                   ),
                   child: Row(
@@ -988,7 +1028,7 @@ class _AddMealSheetState extends State<AddMealSheet> {
                       _miniStepBtn(Icons.remove, () {
                         final step = initialUseServing ? 0.5 : 1.0;
                         onChanged((value - step).clamp(0, 999.0), initialUseServing);
-                      }),
+                      }, isCompact),
                       Expanded(
                         child: TextField(
                           controller: TextEditingController(
@@ -996,7 +1036,7 @@ class _AddMealSheetState extends State<AddMealSheet> {
                           ),
                           keyboardType: const TextInputType.numberWithOptions(decimal: true),
                           textAlign: TextAlign.center,
-                          style: AppTextStyles.h3.copyWith(fontSize: 16.sp, color: Colors.white),
+                          style: AppTextStyles.h3.copyWith(fontSize: isCompact ? 16.sp : 14.0, color: Colors.white),
                           decoration: const InputDecoration(
                             border: InputBorder.none,
                             isDense: true,
@@ -1022,16 +1062,17 @@ class _AddMealSheetState extends State<AddMealSheet> {
                       _miniStepBtn(Icons.add, () {
                         final step = initialUseServing ? 0.5 : 1.0;
                         onChanged((value + step).clamp(0, 999.0), initialUseServing);
-                      }),
+                      }, isCompact),
                     ],
                   ),
                 ),
               ),
-              SizedBox(width: 12.w),
+              SizedBox(width: isCompact ? 12.w : 12.0),
               _buildUnitToggle(
                 leftLabel: servingUnit,
                 rightLabel: weightUnit,
                 isLeftSelected: initialUseServing,
+                isCompact: isCompact,
                 onToggle: () {
                   double newValue;
                   if (initialUseServing) {
@@ -1054,75 +1095,76 @@ class _AddMealSheetState extends State<AddMealSheet> {
     required String rightLabel,
     required bool isLeftSelected,
     required VoidCallback onToggle,
+    required bool isCompact,
   }) {
     return Container(
-      height: 48.h,
-      padding: EdgeInsets.all(4.r),
+      height: isCompact ? 48.h : 44.0,
+      padding: EdgeInsets.all(isCompact ? 4.r : 4.0),
       decoration: BoxDecoration(
         color: AppColors.background.withValues(alpha: 0.4),
-        borderRadius: BorderRadius.circular(12.r),
+        borderRadius: BorderRadius.circular(isCompact ? 12.r : 10.0),
         border: Border.all(color: AppColors.white.withValues(alpha: 0.05)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          _buildToggleOption(leftLabel, isLeftSelected, onToggle),
-          _buildToggleOption(rightLabel, !isLeftSelected, onToggle),
+          _buildToggleOption(leftLabel, isLeftSelected, onToggle, isCompact),
+          _buildToggleOption(rightLabel, !isLeftSelected, onToggle, isCompact),
         ],
       ),
     );
   }
 
-  Widget _buildToggleOption(String text, bool isSelected, VoidCallback onTap) {
+  Widget _buildToggleOption(String text, bool isSelected, VoidCallback onTap, bool isCompact) {
     return GestureDetector(
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        padding: EdgeInsets.symmetric(horizontal: 14.w),
+        padding: EdgeInsets.symmetric(horizontal: isCompact ? 14.w : 12.0),
         alignment: Alignment.center,
         decoration: BoxDecoration(
           color: isSelected ? AppColors.crimson : Colors.transparent,
-          borderRadius: BorderRadius.circular(8.r),
+          borderRadius: BorderRadius.circular(isCompact ? 8.r : 6.0),
         ),
         child: Text(
           text.toUpperCase(),
           style: AppTextStyles.labelSmall.copyWith(
             color: isSelected ? Colors.white : AppColors.textSecondary,
-            fontSize: 9.sp,
-            fontWeight: FontWeight.bold,
+            fontSize: isCompact ? 9.sp : 9.0,
+            fontWeight: FontWeight.w500,
           ),
         ),
       ),
     );
   }
 
-  Widget _miniStepBtn(IconData icon, VoidCallback onTap) {
+  Widget _miniStepBtn(IconData icon, VoidCallback onTap, bool isCompact) {
     return GestureDetector(
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
       child: Container(
-        padding: EdgeInsets.all(8.r),
+        padding: EdgeInsets.all(isCompact ? 8.r : 8.0),
         decoration: BoxDecoration(
           color: const Color(0xFF0A0A0A),
-          borderRadius: BorderRadius.circular(8.r),
+          borderRadius: BorderRadius.circular(isCompact ? 8.r : 6.0),
         ),
-        child: Icon(icon, color: AppColors.crimson, size: 18.r),
+        child: Icon(icon, color: AppColors.crimson, size: isCompact ? 18.r : 18.0),
       ),
     );
   }
 
-  Widget _buildMacroError() {
+  Widget _buildMacroError(bool isCompact) {
     return Container(
-      padding: EdgeInsets.all(12.r),
-      decoration: BoxDecoration(color: AppColors.error.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(12.r), border: Border.all(color: AppColors.error.withValues(alpha: 0.2))),
+      padding: EdgeInsets.all(isCompact ? 12.r : 12.0),
+      decoration: BoxDecoration(color: AppColors.error.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(isCompact ? 12.r : 10.0), border: Border.all(color: AppColors.error.withValues(alpha: 0.2))),
       child: Row(
         children: [
-          Icon(Icons.warning_amber_rounded, color: AppColors.error, size: 18.r),
-          SizedBox(width: 10.w),
+          Icon(Icons.warning_amber_rounded, color: AppColors.error, size: isCompact ? 18.r : 18.0),
+          SizedBox(width: isCompact ? 10.w : 10.0),
           Expanded(
             child: Text(
               "Macros (${_calculatedCalories.toInt()} kcal) exceed total calories",
-              style: AppTextStyles.labelSmall.copyWith(color: AppColors.error, fontSize: 10.sp),
+              style: AppTextStyles.labelSmall.copyWith(color: AppColors.error, fontSize: isCompact ? 10.sp : 10.0),
             ),
           ),
         ],
@@ -1130,7 +1172,7 @@ class _AddMealSheetState extends State<AddMealSheet> {
     );
   }
 
-  Widget _buildActionButtons() {
+  Widget _buildActionButtons(bool isCompact) {
     final enabled = _canSubmit;
     final String label = _getButtonLabel(""); 
 
@@ -1138,6 +1180,7 @@ class _AddMealSheetState extends State<AddMealSheet> {
       return _buildButton(
         label: enabled ? "SAVE MEAL" : label,
         enabled: enabled,
+        isCompact: isCompact,
         onTap: () => _handleSave(true),
       );
     }
@@ -1148,13 +1191,13 @@ class _AddMealSheetState extends State<AddMealSheet> {
           onTap: enabled ? () => _handleSave(false) : null,
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 200),
-            height: 50.h,
+            height: isCompact ? 50.h : 44.0,
             width: double.infinity,
             decoration: BoxDecoration(
               color: enabled 
                   ? AppColors.crimson.withValues(alpha: 0.1) 
                   : Colors.transparent,
-              borderRadius: BorderRadius.circular(12.r),
+              borderRadius: BorderRadius.circular(isCompact ? 12.r : 10.0),
               border: Border.all(
                 color: enabled 
                     ? AppColors.crimson.withValues(alpha: 0.5) 
@@ -1166,17 +1209,18 @@ class _AddMealSheetState extends State<AddMealSheet> {
               enabled ? "LOG MEAL" : label,
               style: AppTextStyles.buttonPrimary.copyWith(
                 color: enabled ? AppColors.crimson : AppColors.textSecondary.withValues(alpha: 0.3),
-                fontSize: 12.sp,
-                fontWeight: enabled ? FontWeight.bold : FontWeight.normal,
+                fontSize: isCompact ? 12.sp : 12.0,
+                fontWeight: FontWeight.w500,
                 letterSpacing: 1.2,
               ),
             ),
           ),
         ),
-        SizedBox(height: 12.h),
+        SizedBox(height: isCompact ? 12.h : 10.0),
         _buildButton(
           label: enabled ? "LOG AND SAVE MEAL" : label,
           enabled: enabled,
+          isCompact: isCompact,
           onTap: () => _handleSave(true),
         ),
       ],
@@ -1187,16 +1231,17 @@ class _AddMealSheetState extends State<AddMealSheet> {
     required String label,
     required bool enabled,
     required VoidCallback onTap,
+    required bool isCompact,
   }) {
     return GestureDetector(
       onTap: enabled ? onTap : null,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        height: enabled ? 54.h : 50.h,
+        height: isCompact ? (enabled ? 54.h : 50.h) : 48.0,
         width: double.infinity,
         decoration: BoxDecoration(
           color: enabled ? AppColors.crimson : AppColors.white.withValues(alpha: 0.03),
-          borderRadius: BorderRadius.circular(12.r),
+          borderRadius: BorderRadius.circular(isCompact ? 12.r : 10.0),
           boxShadow: enabled ? [
             BoxShadow(
               color: AppColors.crimson.withValues(alpha: 0.2),
@@ -1210,8 +1255,8 @@ class _AddMealSheetState extends State<AddMealSheet> {
           label,
           style: AppTextStyles.buttonPrimary.copyWith(
             color: enabled ? Colors.white : AppColors.textSecondary.withValues(alpha: 0.3),
-            fontSize: 12.sp,
-            fontWeight: enabled ? FontWeight.bold : FontWeight.normal,
+            fontSize: isCompact ? 12.sp : 12.0,
+            fontWeight: FontWeight.w500,
             letterSpacing: 1.2,
           ),
         ),

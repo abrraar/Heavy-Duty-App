@@ -60,75 +60,97 @@ class _ImportMealScreenState extends State<ImportMealScreen> {
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
-        child: Column(
-          children: [
-            _buildHeader(),
-            Expanded(
-              child: SingleChildScrollView(
-                padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 20.h),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildSenderInfo(),
-                    SizedBox(height: 32.h),
-                    Text(
-                      "MEAL COMPOSITION",
-                      style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary, letterSpacing: 2),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final bool isCompact = constraints.maxWidth < 600;
+            return Column(
+              children: [
+                _buildHeader(isCompact),
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: isCompact ? 24.w : 24.0, 
+                      vertical: isCompact ? 20.h : 20.0
                     ),
-                    SizedBox(height: 16.h),
-                    _buildMealSummary(),
-                    SizedBox(height: 40.h),
-                    _buildActions(),
-                  ],
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildSenderInfo(isCompact),
+                        SizedBox(height: isCompact ? 32.h : 32.0),
+                        Text(
+                          "MEAL COMPOSITION",
+                          style: AppTextStyles.labelSmall.copyWith(
+                            color: AppColors.textSecondary, 
+                            letterSpacing: 2,
+                            fontSize: isCompact ? null : 11.0,
+                          ),
+                        ),
+                        SizedBox(height: isCompact ? 16.h : 16.0),
+                        _buildMealSummary(isCompact),
+                        SizedBox(height: isCompact ? 40.h : 40.0),
+                        _buildActions(isCompact),
+                      ],
+                    ),
+                  ),
                 ),
-              ),
-            ),
-          ],
+              ],
+            );
+          }
         ),
       ),
     );
   }
 
-  Widget _buildHeader() {
+  Widget _buildHeader(bool isCompact) {
     return Padding(
-      padding: EdgeInsets.symmetric(vertical: 24.h, horizontal: 8.w),
-      child: Center(
-        child: Text(
-          "SHARED MEAL",
-          style: AppTextStyles.h2.copyWith(color: AppColors.white, fontWeight: FontWeight.w900, letterSpacing: 2),
+      padding: EdgeInsets.symmetric(
+        vertical: isCompact ? 24.h : 24.0, 
+        horizontal: isCompact ? 24.w : 24.0
+      ),
+      child: Text(
+        "SHARED MEAL",
+        textAlign: TextAlign.center,
+        style: AppTextStyles.h2.copyWith(
+          color: AppColors.white, 
+          fontWeight: FontWeight.w500, 
+          letterSpacing: 2,
+          fontSize: isCompact ? null : 20.0,
         ),
       ),
     );
   }
 
-  Widget _buildSenderInfo() {
+  Widget _buildSenderInfo(bool isCompact) {
     return Container(
       width: double.infinity,
-      padding: EdgeInsets.all(20.r),
+      padding: EdgeInsets.all(isCompact ? 20.r : 16.0),
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.circular(16.r),
+        borderRadius: BorderRadius.circular(isCompact ? 16.r : 12.0),
         border: Border.all(color: AppColors.white.withOpacity(0.05)),
       ),
       child: Column(
         children: [
-          Icon(Icons.restaurant_menu_rounded, color: AppColors.crimson, size: 40.r),
-          SizedBox(height: 12.h),
+          Icon(Icons.restaurant_menu_rounded, color: AppColors.crimson, size: isCompact ? 40.r : 36.0),
+          SizedBox(height: isCompact ? 12.h : 12.0),
           Text(
             widget.senderName.toUpperCase(),
-            style: AppTextStyles.h3.copyWith(fontSize: 18.sp),
+            style: AppTextStyles.h3.copyWith(fontSize: isCompact ? 18.sp : 16.0),
           ),
           Text(
             "HAS SHARED A MEAL TEMPLATE WITH YOU",
             textAlign: TextAlign.center,
-            style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary.withOpacity(0.5), fontSize: 10.sp),
+            style: AppTextStyles.labelSmall.copyWith(
+              color: AppColors.textSecondary.withOpacity(0.5), 
+              fontSize: isCompact ? 10.sp : 11.0
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildMealSummary() {
+  Widget _buildMealSummary(bool isCompact) {
     final name = _mealData!['name'] as String;
     final foodItems = _mealData!['foodItems'] as String;
     final calories = (_mealData!['calories'] as num).toDouble();
@@ -138,28 +160,34 @@ class _ImportMealScreenState extends State<ImportMealScreen> {
 
     return Container(
       width: double.infinity,
-      padding: EdgeInsets.all(20.r),
+      padding: EdgeInsets.all(isCompact ? 20.r : 16.0),
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.circular(20.r),
+        borderRadius: BorderRadius.circular(isCompact ? 20.r : 16.0),
         border: Border.all(color: AppColors.white.withOpacity(0.05)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(name.toUpperCase(), style: AppTextStyles.h3.copyWith(color: Colors.white, fontSize: 20.sp)),
+          Text(name.toUpperCase(), style: AppTextStyles.h3.copyWith(
+            color: Colors.white, 
+            fontSize: isCompact ? 20.sp : 18.0
+          )),
           if (foodItems.isNotEmpty) ...[
-            SizedBox(height: 8.h),
-            Text(foodItems, style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary, fontSize: 12.sp)),
+            SizedBox(height: isCompact ? 8.h : 8.0),
+            Text(foodItems, style: AppTextStyles.labelSmall.copyWith(
+              color: AppColors.textSecondary, 
+              fontSize: isCompact ? 12.sp : 12.0
+            )),
           ],
-          SizedBox(height: 20.h),
+          SizedBox(height: isCompact ? 20.h : 20.0),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              _buildMetric("CALORIES", calories.toInt().toString(), "KCAL"),
-              if (protein != null) _buildMetric("PROTEIN", protein.toInt().toString(), "G"),
-              if (carbs != null) _buildMetric("CARBS", carbs.toInt().toString(), "G"),
-              if (fats != null) _buildMetric("FATS", fats.toInt().toString(), "G"),
+              _buildMetric("CALORIES", calories.toInt().toString(), "KCAL", isCompact),
+              if (protein != null) _buildMetric("PROTEIN", protein.toInt().toString(), "G", isCompact),
+              if (carbs != null) _buildMetric("CARBS", carbs.toInt().toString(), "G", isCompact),
+              if (fats != null) _buildMetric("FATS", fats.toInt().toString(), "G", isCompact),
             ],
           ),
         ],
@@ -167,24 +195,34 @@ class _ImportMealScreenState extends State<ImportMealScreen> {
     );
   }
 
-  Widget _buildMetric(String label, String value, String unit) {
+  Widget _buildMetric(String label, String value, String unit, bool isCompact) {
     return Column(
       children: [
-        Text(label, style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary.withOpacity(0.5), fontSize: 8.sp, fontWeight: FontWeight.bold)),
-        Text(value, style: AppTextStyles.h3.copyWith(color: AppColors.crimson, fontSize: 18.sp)),
-        Text(unit, style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary.withOpacity(0.3), fontSize: 7.sp)),
+        Text(label, style: AppTextStyles.labelSmall.copyWith(
+          color: AppColors.textSecondary.withOpacity(0.5), 
+          fontSize: isCompact ? 8.sp : 9.0, 
+          fontWeight: FontWeight.w500,
+        )),
+        Text(value, style: AppTextStyles.h3.copyWith(
+          color: AppColors.crimson, 
+          fontSize: isCompact ? 18.sp : 16.0
+        )),
+        Text(unit, style: AppTextStyles.labelSmall.copyWith(
+          color: AppColors.textSecondary.withOpacity(0.3), 
+          fontSize: isCompact ? 7.sp : 8.0
+        )),
       ],
     );
   }
 
-  Widget _buildActions() {
+  Widget _buildActions(bool isCompact) {
     return Column(
       children: [
         ElevatedButton(
           style: ElevatedButton.styleFrom(
             backgroundColor: AppColors.crimson,
-            minimumSize: Size(double.infinity, 56.h),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.r)),
+            minimumSize: Size(double.infinity, isCompact ? 56.h : 50.0),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(isCompact ? 12.r : 10.0)),
           ),
           onPressed: () async {
             await context.read<CalorieProvider>().importSharedMeal(_mealData!);
@@ -195,12 +233,19 @@ class _ImportMealScreenState extends State<ImportMealScreen> {
               context.go('/tracker/calorie?tab=2'); 
             }
           },
-          child: Text("SAVE TO LIBRARY", style: AppTextStyles.labelMedium.copyWith(color: Colors.white, fontWeight: FontWeight.w900)),
+          child: Text("SAVE TO LIBRARY", style: AppTextStyles.labelMedium.copyWith(
+            color: Colors.white, 
+            fontWeight: FontWeight.w500,
+            fontSize: isCompact ? null : 14.0,
+          )),
         ),
-        SizedBox(height: 12.h),
+        SizedBox(height: isCompact ? 12.h : 12.0),
         TextButton(
           onPressed: () => context.go(AppRoutes.home),
-          child: Text("CANCEL", style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary)),
+          child: Text("CANCEL", style: AppTextStyles.labelSmall.copyWith(
+            color: AppColors.textSecondary,
+            fontSize: isCompact ? null : 12.0,
+          )),
         ),
       ],
     );
@@ -209,30 +254,54 @@ class _ImportMealScreenState extends State<ImportMealScreen> {
   Widget _buildExpiredState() {
     return Scaffold(
       backgroundColor: AppColors.background,
-      body: Center(
-        child: Padding(
-          padding: EdgeInsets.all(40.r),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.timer_off_rounded, color: AppColors.textSecondary.withOpacity(0.2), size: 80.r),
-              SizedBox(height: 24.h),
-              Text("LINK EXPIRED", style: AppTextStyles.h2.copyWith(letterSpacing: 4)),
-              SizedBox(height: 16.h),
-              Text(
-                "THIS SHARED MEAL IS NO LONGER AVAILABLE. SHARE LINKS IN HEAVY DUTY ARE VALID FOR 7 DAYS ONLY.",
-                textAlign: TextAlign.center,
-                style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary, height: 1.5),
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          final bool isCompact = constraints.maxWidth < 600;
+          return Center(
+            child: Padding(
+              padding: EdgeInsets.all(isCompact ? 40.r : 24.0),
+              child: ConstrainedBox(
+                constraints: BoxConstraints(maxWidth: isCompact ? double.infinity : 400),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.timer_off_rounded, color: AppColors.textSecondary.withOpacity(0.2), size: isCompact ? 80.r : 70.0),
+                    SizedBox(height: isCompact ? 24.h : 20.0),
+                    Text(
+                      "LINK EXPIRED", 
+                      style: AppTextStyles.h2.copyWith(
+                        letterSpacing: 4,
+                        fontSize: isCompact ? null : 22.0,
+                      )
+                    ),
+                    SizedBox(height: isCompact ? 16.h : 16.0),
+                    Text(
+                      "THIS SHARED MEAL IS NO LONGER AVAILABLE. SHARE LINKS IN HEAVY DUTY ARE VALID FOR 7 DAYS ONLY.",
+                      textAlign: TextAlign.center,
+                      style: AppTextStyles.labelSmall.copyWith(
+                        color: AppColors.textSecondary, 
+                        height: 1.5,
+                        fontSize: isCompact ? null : 12.0,
+                      ),
+                    ),
+                    SizedBox(height: isCompact ? 40.h : 40.0),
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.surface, 
+                        minimumSize: Size(isCompact ? 200.w : 180.0, isCompact ? 50.h : 46.0)
+                      ),
+                      onPressed: () => context.go(AppRoutes.home),
+                      child: Text("RETURN TO HOME", style: AppTextStyles.labelSmall.copyWith(
+                        color: Colors.white,
+                        fontSize: isCompact ? null : 12.0,
+                      )),
+                    ),
+                  ],
+                ),
               ),
-              SizedBox(height: 40.h),
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(backgroundColor: AppColors.surface, minimumSize: Size(200.w, 50.h)),
-                onPressed: () => context.go(AppRoutes.home),
-                child: Text("RETURN TO HOME", style: AppTextStyles.labelSmall.copyWith(color: Colors.white)),
-              ),
-            ],
-          ),
-        ),
+            ),
+          );
+        }
       ),
     );
   }

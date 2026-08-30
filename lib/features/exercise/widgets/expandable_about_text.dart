@@ -17,11 +17,18 @@ class _ExpandableAboutTextState extends State<ExpandableAboutText> {
 
   @override
   Widget build(BuildContext context) {
+    final bool isCompact = MediaQuery.sizeOf(context).width < 600;
+
     return LayoutBuilder(
       builder: (context, constraints) {
+        final style = AppTextStyles.bodySmall.copyWith(
+          color: AppColors.textSecondary, 
+          height: 1.5,
+          fontSize: isCompact ? null : 10.0,
+        );
         final span = TextSpan(
           text: widget.text,
-          style: AppTextStyles.bodySmall.copyWith(color: AppColors.textSecondary, height: 1.5),
+          style: style,
         );
         final tp = TextPainter(
           text: span,
@@ -42,17 +49,14 @@ class _ExpandableAboutTextState extends State<ExpandableAboutText> {
                 widget.text,
                 maxLines: _isExpanded ? null : 4,
                 overflow: _isExpanded ? TextOverflow.visible : TextOverflow.ellipsis,
-                style: AppTextStyles.bodySmall.copyWith(
-                  color: AppColors.textSecondary,
-                  height: 1.5,
-                ),
+                style: style,
               ),
             ),
             if (_needsExpansion)
               GestureDetector(
                 onTap: () => setState(() => _isExpanded = !_isExpanded),
                 child: Padding(
-                  padding: EdgeInsets.only(top: 8.h),
+                  padding: EdgeInsets.only(top: isCompact ? 8.h : 6.0),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
@@ -60,15 +64,15 @@ class _ExpandableAboutTextState extends State<ExpandableAboutText> {
                         _isExpanded ? "SHOW LESS" : "SHOW MORE",
                         style: AppTextStyles.labelSmall.copyWith(
                           color: AppColors.crimson,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 10.sp,
+                          fontWeight: FontWeight.w500,
+                          fontSize: isCompact ? 10.sp : 9.0,
                         ),
                       ),
                       SizedBox(width: 4.w),
                       Icon(
                         _isExpanded ? Icons.keyboard_arrow_up_rounded : Icons.keyboard_arrow_down_rounded,
                         color: AppColors.crimson,
-                        size: 16.r,
+                        size: isCompact ? 16.r : 14.0,
                       ),
                     ],
                   ),

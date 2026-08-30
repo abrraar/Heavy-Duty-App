@@ -7,9 +7,14 @@ import 'package:heavy_duty/core/providers/sync_provider.dart';
 
 class UiProvider with ChangeNotifier {
   UiLocalRepository? _localRepo;
-  final UiCloudRepository _cloudRepo = UiCloudRepository();
+  UiCloudRepository _cloudRepo = UiCloudRepository();
   UiSettings _settings = UiSettings();
   bool _isLoading = false;
+
+  void setRepositories({UiLocalRepository? local, UiCloudRepository? cloud}) {
+    if (local != null) _localRepo = local;
+    if (cloud != null) _cloudRepo = cloud;
+  }
 
   UiSettings get settings => _settings;
   bool get isLoading => _isLoading;

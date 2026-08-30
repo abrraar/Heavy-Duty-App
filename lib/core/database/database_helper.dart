@@ -20,9 +20,8 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 3, 
+      version: 1,
       onCreate: _createDB,
-      onUpgrade: _onUpgrade,
       onConfigure: _onConfigure,
     );
   }
@@ -512,30 +511,4 @@ class DatabaseHelper {
     ''');
   }
 
-  Future _onUpgrade(Database db, int oldVersion, int newVersion) async {
-    if (oldVersion < 2) {
-      await db.execute('ALTER TABLE hit_cycles ADD COLUMN updated_at TEXT DEFAULT CURRENT_TIMESTAMP');
-      await db.execute('ALTER TABLE hit_workouts ADD COLUMN updated_at TEXT DEFAULT CURRENT_TIMESTAMP');
-      await db.execute('ALTER TABLE hit_exercises ADD COLUMN updated_at TEXT DEFAULT CURRENT_TIMESTAMP');
-      await db.execute('ALTER TABLE exercise_logs ADD COLUMN updated_at TEXT DEFAULT CURRENT_TIMESTAMP');
-    }
-    
-    if (oldVersion < 3) {
-      final tables = [
-        'ss_supplements', 'ss_stack', 'ss_records', 'hydration_logs', 'hydration_settings',
-        'sleep_logs', 'sleep_alarm_settings', 'calorie_meal_logs', 'calorie_settings', 'calorie_meals',
-        'body_comp_weight_logs', 'body_comp_fats_logs', 'body_comp_muscle_logs', 'exercise_templates',
-        'hit_settings', 'pending_deletions', 'home_widget_settings', 'affirmations',
-        'affirmation_settings', 'user_emails', 'profiles', 'body_comp_settings', 'sleep_settings', 'ss_settings'
-      ];
-      
-      for (var table in tables) {
-        try {
-          await db.execute('ALTER TABLE $table ADD COLUMN updated_at TEXT DEFAULT CURRENT_TIMESTAMP');
-        } catch (e) {
-          // Column might already exist if migration partially failed or was manually added
-        }
-      }
-    }
-  }
 }

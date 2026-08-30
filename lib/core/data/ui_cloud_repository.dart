@@ -1,7 +1,7 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class UiCloudRepository {
-  final _supabase = Supabase.instance.client;
+  SupabaseClient get _supabase => Supabase.instance.client;
 
   Future<Map<String, dynamic>?> getSettings() async {
     final userId = _supabase.auth.currentUser?.id;

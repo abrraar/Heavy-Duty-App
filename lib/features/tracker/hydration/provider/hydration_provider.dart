@@ -17,10 +17,16 @@ import 'package:heavy_duty/core/providers/sync_provider.dart';
 
 class HydrationProvider with ChangeNotifier {
   HydrationLocalRepository? _localRepo;
-  final HydrationCloudRepository _cloudRepo = HydrationCloudRepository();
-  final NotificationService _notificationService = NotificationService();
-  final SupabaseClient _supabase = Supabase.instance.client;
+  HydrationCloudRepository _cloudRepo = HydrationCloudRepository();
+  NotificationService _notificationService = NotificationService();
+  SupabaseClient get _supabase => Supabase.instance.client;
   RealtimeChannel? _realtimeChannel;
+
+  void setRepositories({HydrationLocalRepository? local, HydrationCloudRepository? cloud, NotificationService? notifications}) {
+    if (local != null) _localRepo = local;
+    if (cloud != null) _cloudRepo = cloud;
+    if (notifications != null) _notificationService = notifications;
+  }
   
   List<HydrationLog> _logs = [];
   HydrationSettings _settings = HydrationSettings();

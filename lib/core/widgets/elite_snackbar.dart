@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:flutter/scheduler.dart';
 import '../theme/app_colors.dart';
-import '../theme/app_text_styles.dart';
 
 class EliteSnackbar extends StatefulWidget {
   final String message;
@@ -24,14 +23,27 @@ class EliteSnackbar extends StatefulWidget {
     bool isError = false,
   }) {
     final overlay = Overlay.of(context);
+    if (overlay == null) return;
+
     late OverlayEntry overlayEntry;
+    bool removed = false;
 
     overlayEntry = OverlayEntry(
       builder: (context) => EliteSnackbar(
         message: message,
         onUndo: onUndo,
         isError: isError,
-        onDismissed: () => overlayEntry.remove(),
+        onDismissed: () {
+          if (!removed) {
+            removed = true;
+            // CRITICAL: Ensure removal happens AFTER the current frame
+            SchedulerBinding.instance.addPostFrameCallback((_) {
+              if (overlayEntry.mounted) {
+                overlayEntry.remove();
+              }
+            });
+          }
+        },
       ),
     );
 
@@ -46,6 +58,7 @@ class _EliteSnackbarState extends State<EliteSnackbar> with SingleTickerProvider
   late AnimationController _controller;
   late Animation<Offset> _offsetAnimation;
   double _dragOffset = 0.0;
+  bool _isDismissing = false;
 
   @override
   void initState() {
@@ -71,9 +84,14 @@ class _EliteSnackbarState extends State<EliteSnackbar> with SingleTickerProvider
   }
 
   void _dismiss() async {
-    if (!mounted) return;
+    if (!mounted || _isDismissing) return;
+    _isDismissing = true;
+    
+    // Smoothly animate out before removal
     await _controller.reverse();
-    widget.onDismissed();
+    if (mounted) {
+      widget.onDismissed();
+    }
   }
 
   @override
@@ -84,87 +102,102 @@ class _EliteSnackbarState extends State<EliteSnackbar> with SingleTickerProvider
 
   @override
   Widget build(BuildContext context) {
+    // Use screen-independent dimensions for the root overlay entry
+    final Size screenSize = MediaQuery.of(context).size;
+    final bool isCompact = screenSize.width < 600;
+    final double effectiveMaxWidth = isCompact ? (screenSize.width - 40.0) : 460.0;
+    final double bottomPadding = isCompact ? 40.0 : 30.0;
+
     return Positioned(
-      bottom: 40.h + _dragOffset,
-      left: 20.w,
-      right: 20.w,
-      child: GestureDetector(
-        onVerticalDragUpdate: (details) {
-          if (details.primaryDelta! > 0) {
-            setState(() {
-              _dragOffset -= details.primaryDelta!;
-            });
-          }
-        },
-        onVerticalDragEnd: (details) {
-          if (_dragOffset < -40.h) {
-            _dismiss();
-          } else {
-            setState(() {
-              _dragOffset = 0.0;
-            });
-          }
-        },
-        child: SlideTransition(
-          position: _offsetAnimation,
-          child: Material(
-            color: Colors.transparent,
-            child: Container(
-              padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
-              decoration: BoxDecoration(
-                color: widget.isError ? AppColors.error.withOpacity(0.9) : AppColors.surfaceLight,
-                borderRadius: BorderRadius.circular(16.r),
-                border: Border.all(color: Colors.white.withOpacity(0.05)),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.4),
-                    blurRadius: 15,
-                    offset: const Offset(0, 8),
-                  )
-                ],
-              ),
-              child: Row(
-                children: [
-                  Icon(
-                    widget.isError ? Icons.error_outline_rounded : Icons.check_circle_outline_rounded,
-                    color: widget.isError ? Colors.white : AppColors.success,
-                    size: 20.r,
+      bottom: bottomPadding + _dragOffset,
+      left: 0,
+      right: 0,
+      child: Center(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(maxWidth: effectiveMaxWidth.clamp(0.0, double.infinity)),
+          child: GestureDetector(
+            onVerticalDragUpdate: (details) {
+              final delta = details.primaryDelta ?? 0;
+              if (delta > 0) {
+                setState(() {
+                  _dragOffset -= delta;
+                });
+              }
+            },
+            onVerticalDragEnd: (details) {
+              // Dismiss if dragged down sufficiently
+              if (_dragOffset < -20.0) {
+                _dismiss();
+              } else {
+                setState(() {
+                  _dragOffset = 0.0;
+                });
+              }
+            },
+            child: SlideTransition(
+              position: _offsetAnimation,
+              child: Material(
+                color: Colors.transparent,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+                  decoration: BoxDecoration(
+                    color: widget.isError ? AppColors.error.withValues(alpha: 0.9) : AppColors.surfaceLight,
+                    borderRadius: BorderRadius.circular(12.0),
+                    border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.4),
+                        blurRadius: 15,
+                        offset: const Offset(0, 8),
+                      )
+                    ],
                   ),
-                  SizedBox(width: 12.w),
-                  Expanded(
-                    child: Text(
-                      widget.message.toUpperCase(),
-                      style: AppTextStyles.labelSmall.copyWith(
-                        color: Colors.white,
-                        fontSize: 13.sp,
-                        fontWeight: FontWeight.w500,
-                        letterSpacing: 0.5,
+                  child: Row(
+                    children: [
+                      Icon(
+                        widget.isError ? Icons.error_outline_rounded : Icons.check_circle_outline_rounded,
+                        color: widget.isError ? Colors.white : AppColors.success,
+                        size: 20.0,
                       ),
-                    ),
-                  ),
-                  if (widget.onUndo != null)
-                    GestureDetector(
-                      onTap: () {
-                        widget.onUndo!();
-                        _dismiss();
-                      },
-                      child: Container(
-                        padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
-                        decoration: BoxDecoration(
-                          color: AppColors.crimson.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(8.r),
-                        ),
+                      const SizedBox(width: 12.0),
+                      Expanded(
                         child: Text(
-                          "UNDO",
-                          style: AppTextStyles.labelSmall.copyWith(
-                            color: AppColors.crimson,
-                            fontSize: 13.sp,
+                          widget.message.toUpperCase(),
+                          style: const TextStyle(
+                            fontFamily: 'Impact',
+                            color: Colors.white,
+                            fontSize: 11.0,
                             fontWeight: FontWeight.w500,
+                            letterSpacing: 0.5,
                           ),
                         ),
                       ),
-                    ),
-                ],
+                      if (widget.onUndo != null)
+                        GestureDetector(
+                          onTap: () {
+                            widget.onUndo!();
+                            _dismiss();
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 6.0),
+                            decoration: BoxDecoration(
+                              color: AppColors.crimson.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(6.0),
+                            ),
+                            child: const Text(
+                              "UNDO",
+                              style: TextStyle(
+                                fontFamily: 'Impact',
+                                color: AppColors.crimson,
+                                fontSize: 11.0,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
               ),
             ),
           ),

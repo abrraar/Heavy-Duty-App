@@ -13,9 +13,14 @@ import 'package:heavy_duty/core/providers/sync_provider.dart';
 
 class SleepProvider with ChangeNotifier {
   SleepLocalRepository? _localRepo;
-  final SleepCloudRepository _cloudRepo = SleepCloudRepository();
-  final SupabaseClient _supabase = Supabase.instance.client;
+  SleepCloudRepository _cloudRepo = SleepCloudRepository();
+  SupabaseClient get _supabase => Supabase.instance.client;
   RealtimeChannel? _realtimeChannel;
+
+  void setRepositories({SleepLocalRepository? local, SleepCloudRepository? cloud}) {
+    if (local != null) _localRepo = local;
+    if (cloud != null) _cloudRepo = cloud;
+  }
 
   List<SleepLog> _logs = [];
   SleepSettings _settings = SleepSettings(userId: '');

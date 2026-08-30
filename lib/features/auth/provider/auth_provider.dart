@@ -12,7 +12,7 @@ import 'package:heavy_duty/core/services/connectivity_service.dart';
 import 'package:heavy_duty/core/providers/sync_provider.dart';
 
 class AuthProvider with ChangeNotifier {
-  static final AuthProvider _instance = AuthProvider._internal();
+  static AuthProvider _instance = AuthProvider._internal();
   factory AuthProvider() => _instance;
 
   AuthProvider._internal() {
@@ -34,7 +34,7 @@ class AuthProvider with ChangeNotifier {
     }
   }
 
-  final SupabaseClient _supabase = Supabase.instance.client;
+  SupabaseClient get _supabase => Supabase.instance.client;
   User? _currentUser;
   bool _isLoading = false;
   String? _pendingEmail;

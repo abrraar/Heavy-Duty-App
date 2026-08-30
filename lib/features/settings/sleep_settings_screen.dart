@@ -18,6 +18,9 @@ class SleepSettingsScreen extends StatefulWidget {
 class _SleepSettingsScreenState extends State<SleepSettingsScreen> {
   @override
   Widget build(BuildContext context) {
+    final double deviceWidth = MediaQuery.of(context).size.width;
+    final bool isLargeScreen = deviceWidth >= 600;
+
     return Consumer<SleepProvider>(
       builder: (context, provider, _) {
         final settings = provider.settings;
@@ -25,41 +28,53 @@ class _SleepSettingsScreenState extends State<SleepSettingsScreen> {
         return Scaffold(
           backgroundColor: AppColors.background,
           body: SafeArea(
-            child: Column(
-              children: [
-                const EliteSettingsAppBar(title: "SLEEP SETTINGS"),
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final bool isCompact = constraints.maxWidth < 600 && !isLargeScreen;
+                final bool isWideLandscape = isLargeScreen && MediaQuery.of(context).orientation == Orientation.landscape;
 
-                // Content
-                Expanded(
-                  child: SingleChildScrollView(
-                    padding: EdgeInsets.symmetric(horizontal: 24.w),
-                    physics: const BouncingScrollPhysics(),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        SizedBox(height: 16.h),
-                        
-                        _buildSectionHeader("GLOBAL PREFERENCES"),
-                        
-                        EliteUnitToggleCard(
-                          title: "Time Format",
-                          subtitle: "Switch between 12H and 24H clock",
-                          options: const ["12H", "24H"],
-                          selectedIndex: settings.use24HourClock ? 1 : 0,
-                          selectedColor: AppColors.crimson,
-                          onSelected: (v) {
-                            provider.updateSettings(settings.copyWith(
-                              use24HourClock: v == 1,
-                            ));
-                          },
-                        ),
-                        
-                        SizedBox(height: 40.h),
-                      ],
+                return Column(
+                  children: [
+                    EliteSettingsAppBar(
+                      title: "SLEEP SETTINGS", 
+                      isCompact: isCompact,
+                      showBackButton: !isWideLandscape,
                     ),
-                  ),
-                ),
-              ],
+
+                    Expanded(
+                      child: SingleChildScrollView(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: isLargeScreen ? 24.0 : 24.w
+                        ),
+                        physics: const BouncingScrollPhysics(),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                                SizedBox(height: isLargeScreen ? 16.0 : 16.h),
+                                
+                                _buildSectionHeader("GLOBAL PREFERENCES", isLargeScreen),
+                                
+                                EliteUnitToggleCard(
+                                  title: "Time Format",
+                                  subtitle: "Switch between 12H and 24H clock",
+                                  options: const ["12H", "24H"],
+                                  selectedIndex: settings.use24HourClock ? 1 : 0,
+                                  selectedColor: AppColors.crimson,
+                                  onSelected: (v) {
+                                    provider.updateSettings(settings.copyWith(
+                                      use24HourClock: v == 1,
+                                    ));
+                                  },
+                                ),
+                                
+                                SizedBox(height: isLargeScreen ? 40.0 : 40.h),
+                              ],
+                            ),
+                      ),
+                    ),
+                  ],
+                );
+              }
             ),
           ),
         );
@@ -67,17 +82,19 @@ class _SleepSettingsScreenState extends State<SleepSettingsScreen> {
     );
   }
 
-  // ─── REUSABLE COMPONENTS ──────────────────────────────────────────────────
-
-  Widget _buildSectionHeader(String title) {
+  Widget _buildSectionHeader(String title, bool isLargeScreen) {
     return Padding(
-      padding: EdgeInsets.only(bottom: 12.h, left: 4.w),
+      padding: EdgeInsets.only(
+        bottom: isLargeScreen ? 12.0 : 12.h, 
+        left: isLargeScreen ? 4.0 : 4.w
+      ),
       child: Text(
         title,
         style: AppTextStyles.labelSmall.copyWith(
           color: AppColors.crimson,
-          fontWeight: FontWeight.w900,
+          fontWeight: FontWeight.w500,
           letterSpacing: 1.5,
+          fontSize: isLargeScreen ? 11.0 : null,
         ),
       ),
     );

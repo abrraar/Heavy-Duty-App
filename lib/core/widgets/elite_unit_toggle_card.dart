@@ -23,48 +23,55 @@ class EliteUnitToggleCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: EdgeInsets.all(16.r),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(16.r),
-        border: Border.all(color: AppColors.white.withValues(alpha: 0.05)),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: AppTextStyles.labelSmall.copyWith(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                SizedBox(height: 4.h),
-                Text(
-                  subtitle,
-                  style: AppTextStyles.labelSmall.copyWith(
-                    color: AppColors.textSecondary,
-                    fontSize: 10.sp,
-                    letterSpacing: 0,
-                  ),
-                ),
-              ],
-            ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final bool isCompact = MediaQuery.of(context).size.width < 600;
+        return Container(
+          padding: EdgeInsets.all(isCompact ? 16.r : 16.0),
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: BorderRadius.circular(isCompact ? 16.r : 12.0),
+            border: Border.all(color: AppColors.white.withValues(alpha: 0.05)),
           ),
-          SizedBox(width: 12.w),
-          _EliteToggle(
-            options: options,
-            selectedIndex: selectedIndex,
-            onSelected: onSelected,
-            selectedColor: selectedColor,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: AppTextStyles.labelSmall.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w500,
+                        fontSize: isCompact ? null : 12.0,
+                      ),
+                    ),
+                    SizedBox(height: isCompact ? 4.h : 4.0),
+                    Text(
+                      subtitle,
+                      style: AppTextStyles.labelSmall.copyWith(
+                        color: AppColors.textSecondary,
+                        fontSize: isCompact ? 10.sp : 10.0,
+                        letterSpacing: 0,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              SizedBox(width: isCompact ? 12.w : 12.0),
+              _EliteToggle(
+                options: options,
+                selectedIndex: selectedIndex,
+                onSelected: onSelected,
+                selectedColor: selectedColor,
+                isCompact: isCompact,
+              ),
+            ],
           ),
-        ],
-      ),
+        );
+      }
     );
   }
 }
@@ -74,21 +81,23 @@ class _EliteToggle extends StatelessWidget {
   final int selectedIndex;
   final Function(int) onSelected;
   final Color selectedColor;
+  final bool isCompact;
 
   const _EliteToggle({
     required this.options,
     required this.selectedIndex,
     required this.onSelected,
     required this.selectedColor,
+    required this.isCompact,
   });
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: EdgeInsets.all(4.r),
+      padding: EdgeInsets.all(isCompact ? 4.r : 4.0),
       decoration: BoxDecoration(
         color: const Color(0xFF0A0A0A), // Deep carbon black background
-        borderRadius: BorderRadius.circular(14.r),
+        borderRadius: BorderRadius.circular(isCompact ? 14.r : 12.0),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -98,10 +107,13 @@ class _EliteToggle extends StatelessWidget {
             onTap: () => onSelected(index),
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 200),
-              padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+              padding: EdgeInsets.symmetric(
+                horizontal: isCompact ? 16.w : 16.0, 
+                vertical: isCompact ? 8.h : 8.0
+              ),
               decoration: BoxDecoration(
                 color: isSelected ? selectedColor : Colors.transparent,
-                borderRadius: BorderRadius.circular(10.r),
+                borderRadius: BorderRadius.circular(isCompact ? 10.r : 8.0),
                 boxShadow: isSelected ? [
                   BoxShadow(
                     color: selectedColor.withValues(alpha: 0.2),
@@ -116,7 +128,7 @@ class _EliteToggle extends StatelessWidget {
                 style: AppTextStyles.labelSmall.copyWith(
                   color: isSelected ? Colors.white : AppColors.textSecondary.withValues(alpha: 0.4),
                   fontWeight: isSelected ? FontWeight.w500 : FontWeight.w500,
-                  fontSize: 11.sp,
+                  fontSize: isCompact ? 11.sp : 11.0,
                   letterSpacing: 1.0,
                 ),
               ),

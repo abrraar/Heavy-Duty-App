@@ -7,8 +7,13 @@ import 'package:heavy_duty/core/theme/app_text_styles.dart';
 
 class SupplementItemCard extends StatelessWidget {
   final SupplementItem entry;
+  final bool isCompact;
 
-  const SupplementItemCard({super.key, required this.entry});
+  const SupplementItemCard({
+    super.key, 
+    required this.entry,
+    this.isCompact = true,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -49,25 +54,25 @@ class SupplementItemCard extends StatelessWidget {
     }
 
     return Container(
-      margin: EdgeInsets.only(bottom: 12.h),
-      padding: EdgeInsets.all(16.r),
+      margin: EdgeInsets.only(bottom: isCompact ? 12.h : 10.0),
+      padding: EdgeInsets.all(isCompact ? 16.r : 14.0),
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.circular(16.r),
-        border: Border.all(color: AppColors.white.withOpacity(0.02)),
+        borderRadius: BorderRadius.circular(isCompact ? 16.r : 12.0),
+        border: Border.all(color: AppColors.white.withValues(alpha: 0.02)),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            padding: EdgeInsets.all(10.r),
+            padding: EdgeInsets.all(isCompact ? 10.r : 8.0),
             decoration: BoxDecoration(
-              color: iconColor.withOpacity(0.1),
+              color: iconColor.withValues(alpha: 0.1),
               shape: BoxShape.circle,
             ),
-            child: Icon(iconData, color: iconColor, size: 18.r),
+            child: Icon(iconData, color: iconColor, size: isCompact ? 18.r : 16.0),
           ),
-          SizedBox(width: 15.w),
+          SizedBox(width: isCompact ? 15.w : 12.0),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -82,27 +87,31 @@ class SupplementItemCard extends StatelessWidget {
                             child: Text(
                               entry.supplementName.toUpperCase(),
                               style: AppTextStyles.labelMedium.copyWith(
-                                fontSize: 14.sp,
+                                fontSize: isCompact ? 13.sp : 13.0,
+                                fontWeight: FontWeight.w500,
                               ),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                             ),
                           ),
                           if (badgeText != null) ...[
-                            SizedBox(width: 8.w),
+                            SizedBox(width: isCompact ? 8.w : 6.0),
                             Container(
-                              padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 2.h),
+                              padding: EdgeInsets.symmetric(
+                                horizontal: isCompact ? 6.w : 6.0, 
+                                vertical: isCompact ? 2.h : 2.0
+                              ),
                               decoration: BoxDecoration(
-                                color: badgeColor!.withOpacity(0.1),
-                                borderRadius: BorderRadius.circular(4.r),
-                                border: Border.all(color: badgeColor.withOpacity(0.2)),
+                                color: badgeColor!.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(isCompact ? 4.r : 4.0),
+                                border: Border.all(color: badgeColor.withValues(alpha: 0.2)),
                               ),
                               child: Text(
                                 badgeText,
                                 style: AppTextStyles.labelSmall.copyWith(
                                   color: badgeColor,
-                                  fontSize: 7.sp,
-                                  fontWeight: FontWeight.w900,
+                                  fontSize: isCompact ? 10.sp : 9.0,
+                                  fontWeight: FontWeight.w500,
                                   letterSpacing: 0.5,
                                 ),
                               ),
@@ -115,17 +124,19 @@ class SupplementItemCard extends StatelessWidget {
                       DateFormat('HH:mm | MMM d').format(entry.timestamp),
                       style: AppTextStyles.labelSmall.copyWith(
                         color: AppColors.textSecondary,
-                        fontSize: 10.sp,
+                        fontSize: isCompact ? 11.sp : 10.0,
+                        fontWeight: FontWeight.w500,
                       ),
                     ),
                   ],
                 ),
-                SizedBox(height: 4.h),
+                SizedBox(height: isCompact ? 4.h : 4.0),
                 Text(
                   entry.details,
                   style: AppTextStyles.labelSmall.copyWith(
                     color: Colors.white70,
-                    fontSize: 10.sp,
+                    fontSize: isCompact ? 11.sp : 10.0,
+                    fontWeight: FontWeight.w500,
                     letterSpacing: 0.3,
                   ),
                 ),

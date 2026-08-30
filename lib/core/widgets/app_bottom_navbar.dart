@@ -43,22 +43,16 @@ class AppBottomNavbar extends StatelessWidget {
         height: 48.h,
         padding: EdgeInsets.symmetric(horizontal: isSelected ? 20.w : 12.w),
         decoration: BoxDecoration(
-          color: isSelected ? AppColors.crimson : Colors.transparent,
+          color: isSelected ? AppColors.crimson.withValues(alpha: 0.12) : Colors.transparent,
           borderRadius: BorderRadius.circular(24.r),
-          boxShadow: isSelected ? [
-            BoxShadow(
-              color: AppColors.crimson.withOpacity(0.2),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-            )
-          ] : null,
+          // Removed border for a soft, "faded" edge look
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(
               icon,
-              color: isSelected ? AppColors.white : AppColors.textMuted,
+              color: isSelected ? AppColors.white : AppColors.white.withValues(alpha: 0.2),
               size: 24.r,
             ),
             AnimatedSize(

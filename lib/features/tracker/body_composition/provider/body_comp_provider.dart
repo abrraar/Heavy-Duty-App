@@ -12,10 +12,16 @@ import 'package:heavy_duty/core/providers/sync_provider.dart';
 
 class BodyCompProvider with ChangeNotifier {
   BodyCompLocalRepository? _localRepo;
-  final BodyCompCloudRepository _cloudRepo = BodyCompCloudRepository();
-  final NotificationService _notificationService = NotificationService();
-  final SupabaseClient _supabase = Supabase.instance.client;
+  BodyCompCloudRepository _cloudRepo = BodyCompCloudRepository();
+  NotificationService _notificationService = NotificationService();
+  SupabaseClient get _supabase => Supabase.instance.client;
   RealtimeChannel? _realtimeChannel;
+
+  void setRepositories({BodyCompLocalRepository? local, BodyCompCloudRepository? cloud, NotificationService? notifications}) {
+    if (local != null) _localRepo = local;
+    if (cloud != null) _cloudRepo = cloud;
+    if (notifications != null) _notificationService = notifications;
+  }
 
   List<BodyCompLog> _logs = [];
   BodyCompSettings _settings = BodyCompSettings();

@@ -1,6 +1,7 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:heavy_duty/core/constants/dimensions.dart';
 import 'package:heavy_duty/core/theme/app_colors.dart';
 import 'package:heavy_duty/core/theme/app_text_styles.dart';
 import 'package:intl/intl.dart';
@@ -10,6 +11,7 @@ class CycleAnalyticalGraph extends StatefulWidget {
   final Map<String, List<double?>> data;
   final Set<String> visibleMetrics;
   final Function(int) onPointSelected;
+  final bool isCompact;
 
   const CycleAnalyticalGraph({
     super.key,
@@ -17,6 +19,7 @@ class CycleAnalyticalGraph extends StatefulWidget {
     required this.data,
     required this.visibleMetrics,
     required this.onPointSelected,
+    this.isCompact = false,
   });
 
   @override
@@ -44,29 +47,32 @@ class _CycleAnalyticalGraphState extends State<CycleAnalyticalGraph> {
   @override
   Widget build(BuildContext context) {
     if (widget.dates.isEmpty) return const SizedBox.shrink();
+
+    final bool isCompact = widget.isCompact;
     final bool hasSelection = widget.visibleMetrics.isNotEmpty;
 
     return Column(
       children: [
         // The Chart Area
         SizedBox(
-          height: 220.h,
+          height: isCompact ? 220.h : 180.0,
           child: Stack(
             children: [
               // Line Chart Background
               if (hasSelection)
                 Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 40.w),
-                  child: LineChart(_buildChartData()),
+                  padding: EdgeInsets.symmetric(horizontal: isCompact ? 40.w : 32.0),
+                  child: LineChart(_buildChartData(isCompact)),
                 )
               else
                 Center(
                   child: Text(
                     "SELECT A METRIC TO VIEW TRENDS",
                     style: AppTextStyles.labelSmall.copyWith(
-                      color: AppColors.textSecondary.withOpacity(0.2),
+                      color: AppColors.textSecondary.withValues(alpha : 0.2),
                       letterSpacing: 1.5,
-                      fontWeight: FontWeight.w900,
+                      fontWeight: FontWeight.w500,
+                      fontSize: isCompact ? 11.sp : 9.0,
                     ),
                   ),
                 ),
@@ -94,16 +100,16 @@ class _CycleAnalyticalGraphState extends State<CycleAnalyticalGraph> {
                 IgnorePointer(
                   child: Center(
                     child: Container(
-                      width: 2.w,
+                      width: isCompact ? 2.w : 2.0,
                       height: double.infinity,
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
                           begin: Alignment.topCenter,
                           end: Alignment.bottomCenter,
                           colors: [
-                            AppColors.crimson.withOpacity(0.0),
-                            AppColors.crimson.withOpacity(0.2),
-                            AppColors.crimson.withOpacity(0.0),
+                            AppColors.crimson.withValues(alpha : 0.0),
+                            AppColors.crimson.withValues(alpha : 0.2),
+                            AppColors.crimson.withValues(alpha : 0.0),
                           ],
                         ),
                       ),
@@ -114,22 +120,22 @@ class _CycleAnalyticalGraphState extends State<CycleAnalyticalGraph> {
           ),
         ),
         
-        SizedBox(height: 24.h),
+        SizedBox(height: isCompact ? 24.h : 20.0),
 
         // Metrics Display for Current Point
         if (hasSelection)
           Padding(
-            padding: EdgeInsets.symmetric(horizontal: 24.w),
+            padding: EdgeInsets.symmetric(horizontal: isCompact ? 24.w : 20.0),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
-                _buildStatMini("STRENGTH", widget.data["strength"]?[_currentIndex], AppColors.crimson),
-                _buildStatMini("VOLUME", widget.data["volume"]?[_currentIndex], Colors.orangeAccent),
+                _buildStatMini("STRENGTH", widget.data["strength"]?[_currentIndex], AppColors.crimson, isCompact),
+                _buildStatMini("VOLUME", widget.data["volume"]?[_currentIndex], Colors.orangeAccent, isCompact),
               ],
             ),
           ),
         
-        SizedBox(height: hasSelection ? 32.h : 0),
+        SizedBox(height: hasSelection ? (isCompact ? 32.h : 24.0) : 0),
 
         // Date Display for Current Point
         if (hasSelection) ...[
@@ -137,21 +143,22 @@ class _CycleAnalyticalGraphState extends State<CycleAnalyticalGraph> {
             DateFormat('MMM dd, yyyy').format(widget.dates[_currentIndex]).toUpperCase(),
             style: AppTextStyles.labelSmall.copyWith(
               color: Colors.white,
-              fontWeight: FontWeight.w900,
+              fontWeight: FontWeight.w500,
               letterSpacing: 1.5,
+              fontSize: isCompact ? 13.sp : 11.0,
             ),
           ),
-          SizedBox(height: 8.h),
+          SizedBox(height: 4.0),
           Text(
             DateFormat('hh:mm a').format(widget.dates[_currentIndex]),
             style: AppTextStyles.labelSmall.copyWith(
-              color: AppColors.textSecondary.withOpacity(0.4),
-              fontSize: 10.sp,
+              color: AppColors.textSecondary.withValues(alpha: 0.4),
+              fontSize: isCompact ? 11.sp : 9.0,
             ),
           ),
         ],
 
-        SizedBox(height: 24.h),
+        SizedBox(height: isCompact ? 24.h : 20.0),
 
         // Slider / Positional Bar
         Opacity(
@@ -159,13 +166,13 @@ class _CycleAnalyticalGraphState extends State<CycleAnalyticalGraph> {
           child: IgnorePointer(
             ignoring: !hasSelection,
             child: Padding(
-              padding: EdgeInsets.symmetric(horizontal: 40.w),
+              padding: EdgeInsets.symmetric(horizontal: isCompact ? 40.w : 32.0),
               child: Column(
                 children: [
                   LayoutBuilder(
                     builder: (context, constraints) {
                       final double trackWidth = constraints.maxWidth;
-                      final double indicatorWidth = (trackWidth / (widget.dates.isEmpty ? 1 : widget.dates.length)).clamp(40.w, trackWidth);
+                      final double indicatorWidth = (trackWidth / (widget.dates.isEmpty ? 1 : widget.dates.length)).clamp(isCompact ? 40.w : 40.0, trackWidth);
                       final double scrollableWidth = trackWidth - indicatorWidth;
                       
                       final double leftOffset = widget.dates.length > 1 
@@ -194,10 +201,10 @@ class _CycleAnalyticalGraphState extends State<CycleAnalyticalGraph> {
                         },
                         child: Container(
                           width: trackWidth,
-                          height: 8.h, 
+                          height: isCompact ? 8.h : 6.0, 
                           alignment: Alignment.centerLeft,
                           decoration: BoxDecoration(
-                            color: AppColors.white.withOpacity(0.1),
+                            color: AppColors.white.withValues(alpha : 0.1),
                             borderRadius: BorderRadius.circular(10.r),
                           ),
                           child: Stack(
@@ -206,7 +213,7 @@ class _CycleAnalyticalGraphState extends State<CycleAnalyticalGraph> {
                                 left: leftOffset,
                                 child: Container(
                                   width: indicatorWidth,
-                                  height: 8.h,
+                                  height: isCompact ? 8.h : 6.0,
                                   decoration: BoxDecoration(
                                     color: AppColors.crimson,
                                     borderRadius: BorderRadius.circular(10.r),
@@ -219,22 +226,22 @@ class _CycleAnalyticalGraphState extends State<CycleAnalyticalGraph> {
                       );
                     },
                   ),
-                  SizedBox(height: 8.h),
+                  SizedBox(height: 4.0),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
                         "START",
                         style: AppTextStyles.labelSmall.copyWith(
-                          fontSize: 8.sp,
-                          color: AppColors.textSecondary.withOpacity(0.2),
+                          fontSize: 8.0,
+                          color: AppColors.textSecondary.withValues(alpha : 0.2),
                         ),
                       ),
                       Text(
                         "LATEST",
                         style: AppTextStyles.labelSmall.copyWith(
-                          fontSize: 8.sp,
-                          color: AppColors.textSecondary.withOpacity(0.2),
+                          fontSize: 8.0,
+                          color: AppColors.textSecondary.withValues(alpha : 0.2),
                         ),
                       ),
                     ],
@@ -248,32 +255,32 @@ class _CycleAnalyticalGraphState extends State<CycleAnalyticalGraph> {
     );
   }
 
-  Widget _buildStatMini(String label, double? value, Color color) {
+  Widget _buildStatMini(String label, double? value, Color color, bool isCompact) {
     return Column(
       children: [
         Text(
           label,
           style: AppTextStyles.labelSmall.copyWith(
-            color: AppColors.textSecondary.withOpacity(0.4),
-            fontSize: 7.sp, // Smaller label
-            fontWeight: FontWeight.w900,
+            color: AppColors.textSecondary.withValues(alpha : 0.4),
+            fontSize: isCompact ? 10.sp : 8.0,
+            fontWeight: FontWeight.w500,
             letterSpacing: 1.5,
           ),
         ),
-        SizedBox(height: 6.h),
+        SizedBox(height: 4.0),
         Text(
           value != null ? value.toStringAsFixed(1) : "--",
           style: AppTextStyles.h3.copyWith(
             color: color,
-            fontSize: 22.sp, // Larger value for impact
-            fontWeight: FontWeight.w900,
+            fontSize: isCompact ? 20.sp : 15.0,
+            fontWeight: FontWeight.w500,
           ),
         ),
       ],
     );
   }
 
-  LineChartData _buildChartData() {
+  LineChartData _buildChartData(bool isCompact) {
     final List<LineChartBarData> lineBarsData = [];
     
     final metrics = {
@@ -332,14 +339,14 @@ class _CycleAnalyticalGraphState extends State<CycleAnalyticalGraph> {
           isCurved: true,
           curveSmoothness: 0.35,
           color: entry.value,
-          barWidth: 3.w,
+          barWidth: isCompact ? 3.w : 2.0,
           isStrokeCapRound: true,
           dotData: FlDotData(
             show: true,
             getDotPainter: (spot, percent, barData, index) {
               final bool isSelected = spot.x.round() == _currentIndex;
               return FlDotCirclePainter(
-                radius: isSelected ? 6.r : 3.r,
+                radius: isSelected ? (isCompact ? 6.r : 5.0) : (isCompact ? 3.r : 2.0),
                 color: isSelected ? Colors.white : entry.value,
                 strokeWidth: isSelected ? 3 : 0,
                 strokeColor: entry.value,
@@ -351,7 +358,7 @@ class _CycleAnalyticalGraphState extends State<CycleAnalyticalGraph> {
             gradient: LinearGradient(
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
-              colors: [entry.value.withOpacity(0.15), entry.value.withOpacity(0)],
+              colors: [entry.value.withValues(alpha : 0.15), entry.value.withValues(alpha : 0)],
             ),
           ),
         ));
@@ -365,7 +372,7 @@ class _CycleAnalyticalGraphState extends State<CycleAnalyticalGraph> {
         drawVerticalLine: false,
         horizontalInterval: 20,
         getDrawingHorizontalLine: (value) => FlLine(
-          color: AppColors.white.withOpacity(0.05),
+          color: AppColors.white.withValues(alpha : 0.05),
           strokeWidth: 1,
           dashArray: [5, 5],
         ),
@@ -402,42 +409,47 @@ class CycleComparisonWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: EdgeInsets.all(24.r),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(28.r),
-        border: Border.all(color: AppColors.white.withOpacity(0.05)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final bool isCompact = constraints.maxWidth < kMobileBreakpoint;
+        return Container(
+          padding: EdgeInsets.all(isCompact ? 24.r : 20.0),
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: BorderRadius.circular(isCompact ? 28.r : 24.0),
+            border: Border.all(color: AppColors.white.withValues(alpha : 0.05)),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildPointPicker("POINT A", idx1, idx2, dates, onPointAChanged, context),
-              SizedBox(width: 16.w),
-              _buildPointPicker("POINT B", idx2, idx1, dates, onPointBChanged, context, isEnd: true),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  _buildPointPicker("POINT A", idx1, idx2, dates, onPointAChanged, context, isCompact: isCompact),
+                  SizedBox(width: isCompact ? 16.w : 12.0),
+                  _buildPointPicker("POINT B", idx2, idx1, dates, onPointBChanged, context, isEnd: true, isCompact: isCompact),
+                ],
+              ),
+              if (idx1 != null && idx2 != null) ...[
+                SizedBox(height: isCompact ? 24.h : 20.0),
+                _buildComparisonDetails(isCompact),
+              ] else ...[
+                SizedBox(height: isCompact ? 32.h : 24.0),
+                Center(
+                  child: Text(
+                "SELECT TWO POINTS TO COMPARE",
+                style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary.withValues(alpha : 0.2), fontSize: isCompact ? 10.sp : 8.0),
+              ),
+                ),
+              ],
             ],
           ),
-          if (idx1 != null && idx2 != null) ...[
-            SizedBox(height: 24.h),
-            _buildComparisonDetails(),
-          ] else ...[
-            SizedBox(height: 32.h),
-            Center(
-              child: Text(
-                "SELECT TWO POINTS TO COMPARE",
-                style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary.withOpacity(0.2)),
-              ),
-            ),
-          ],
-        ],
-      ),
+        );
+      }
     );
   }
 
-  Widget _buildPointPicker(String title, int? selectedIdx, int? otherIdx, List<DateTime> dates, Function(int?) onChanged, BuildContext context, {bool isEnd = false}) {
+  Widget _buildPointPicker(String title, int? selectedIdx, int? otherIdx, List<DateTime> dates, Function(int?) onChanged, BuildContext context, {bool isEnd = false, required bool isCompact}) {
     final labels = dates.map((d) => DateFormat('MMM dd, HH:mm').format(d).toUpperCase()).toList();
     return Expanded(
       child: Column(
@@ -450,43 +462,43 @@ class CycleComparisonWidget extends StatelessWidget {
                 GestureDetector(
                   onTap: () => onChanged(null),
                   child: Container(
-                    padding: EdgeInsets.all(4.r),
-                    decoration: BoxDecoration(color: AppColors.error.withOpacity(0.1), shape: BoxShape.circle),
-                    child: Icon(Icons.close_rounded, color: AppColors.error, size: 12.r),
+                    padding: EdgeInsets.all(isCompact ? 4.r : 4.0),
+                    decoration: BoxDecoration(color: AppColors.error.withValues(alpha : 0.1), shape: BoxShape.circle),
+                    child: Icon(Icons.close_rounded, color: AppColors.error, size: isCompact ? 12.r : 10.0),
                   ),
                 ),
-                SizedBox(width: 8.w),
+                SizedBox(width: isCompact ? 8.w : 6.0),
               ],
-              Text(title, style: AppTextStyles.labelSmall.copyWith(color: selectedIdx != null ? AppColors.crimson : AppColors.textSecondary.withOpacity(0.4), fontSize: 11.sp, fontWeight: FontWeight.w900)),
+              Text(title, style: AppTextStyles.labelSmall.copyWith(color: selectedIdx != null ? AppColors.crimson : AppColors.textSecondary.withValues(alpha : 0.4), fontSize: isCompact ? 10.sp : 8.0, fontWeight: FontWeight.w500)),
               if (selectedIdx != null && !isEnd) ...[
-                SizedBox(width: 8.w),
+                SizedBox(width: isCompact ? 8.w : 6.0),
                 GestureDetector(
                   onTap: () => onChanged(null),
                   child: Container(
-                    padding: EdgeInsets.all(4.r),
-                    decoration: BoxDecoration(color: AppColors.error.withOpacity(0.1), shape: BoxShape.circle),
-                    child: Icon(Icons.close_rounded, color: AppColors.error, size: 12.r),
+                    padding: EdgeInsets.all(isCompact ? 4.r : 4.0),
+                    decoration: BoxDecoration(color: AppColors.error.withValues(alpha : 0.1), shape: BoxShape.circle),
+                    child: Icon(Icons.close_rounded, color: AppColors.error, size: isCompact ? 12.r : 10.0),
                   ),
                 ),
               ],
             ],
           ),
-          SizedBox(height: 10.h),
+          SizedBox(height: isCompact ? 10.h : 8.0),
           GestureDetector(
-            onTap: () => _showPicker(context, selectedIdx, otherIdx, dates, onChanged),
+            onTap: () => _showPicker(context, selectedIdx, otherIdx, dates, onChanged, isCompact),
             child: Container(
-              padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 12.h),
+              padding: EdgeInsets.symmetric(horizontal: isCompact ? 14.w : 12.0, vertical: isCompact ? 12.h : 10.0),
               decoration: BoxDecoration(
-                color: selectedIdx != null ? AppColors.crimson.withOpacity(0.05) : AppColors.surfaceLight.withOpacity(0.3),
-                borderRadius: BorderRadius.circular(12.r),
-                border: Border.all(color: selectedIdx != null ? AppColors.crimson.withOpacity(0.4) : AppColors.white.withOpacity(0.05)),
+                color: selectedIdx != null ? AppColors.crimson.withValues(alpha : 0.05) : AppColors.surfaceLight.withValues(alpha : 0.3),
+                borderRadius: BorderRadius.circular(isCompact ? 12.r : 10.0),
+                border: Border.all(color: selectedIdx != null ? AppColors.crimson.withValues(alpha : 0.4) : AppColors.white.withValues(alpha : 0.05)),
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(selectedIdx != null ? Icons.event_available_rounded : Icons.event_note_rounded, color: selectedIdx != null ? AppColors.crimson : AppColors.textSecondary.withOpacity(0.3), size: 18.r),
-                  SizedBox(width: 10.w),
-                  Flexible(child: Text(selectedIdx != null ? labels[selectedIdx] : "SET POINT", overflow: TextOverflow.ellipsis, style: AppTextStyles.labelSmall.copyWith(fontSize: 11.sp, color: selectedIdx != null ? Colors.white : AppColors.textSecondary.withOpacity(0.4)))),
+                  Icon(selectedIdx != null ? Icons.event_available_rounded : Icons.event_note_rounded, color: selectedIdx != null ? AppColors.crimson : AppColors.textSecondary.withValues(alpha : 0.3), size: isCompact ? 18.r : 16.0),
+                  SizedBox(width: isCompact ? 10.w : 8.0),
+                  Flexible(child: Text(selectedIdx != null ? labels[selectedIdx] : "SET POINT", overflow: TextOverflow.ellipsis, style: AppTextStyles.labelSmall.copyWith(fontSize: isCompact ? 11.sp : 9.0, color: selectedIdx != null ? Colors.white : AppColors.textSecondary.withValues(alpha : 0.4)))),
                 ],
               ),
             ),
@@ -496,7 +508,7 @@ class CycleComparisonWidget extends StatelessWidget {
     );
   }
 
-  void _showPicker(BuildContext context, int? current, int? other, List<DateTime> dates, Function(int?) onChanged) async {
+  void _showPicker(BuildContext context, int? current, int? other, List<DateTime> dates, Function(int?) onChanged, bool isCompact) async {
     final Map<String, List<int>> dateGroups = {};
     for (int i = 0; i < dates.length; i++) {
       final dateKey = DateFormat('yyyy-MM-dd').format(dates[i]);
@@ -509,46 +521,46 @@ class CycleComparisonWidget extends StatelessWidget {
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) => Container(
-        padding: EdgeInsets.fromLTRB(24.w, 12.h, 24.w, 40.h),
+        padding: EdgeInsets.fromLTRB(isCompact ? 24.w : 20.0, isCompact ? 12.h : 10.0, isCompact ? 24.w : 20.0, isCompact ? 40.h : 32.0),
         decoration: BoxDecoration(
           color: AppColors.surface,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(32.r)),
-          border: Border.all(color: AppColors.white.withOpacity(0.05)),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(isCompact ? 32.r : 24.0)),
+          border: Border.all(color: AppColors.white.withValues(alpha : 0.05)),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             Container(
-              width: 40.w, height: 4.h, margin: EdgeInsets.only(bottom: 24.h),
-              decoration: BoxDecoration(color: AppColors.textSecondary.withOpacity(0.2), borderRadius: BorderRadius.circular(2.r)),
+              width: isCompact ? 40.w : 40.0, height: isCompact ? 4.h : 4.0, margin: EdgeInsets.only(bottom: isCompact ? 24.h : 20.0),
+              decoration: BoxDecoration(color: AppColors.textSecondary.withValues(alpha : 0.2), borderRadius: BorderRadius.circular(2.r)),
             ),
             Row(
               children: [
                 Container(
-                  padding: EdgeInsets.all(10.r),
-                  decoration: BoxDecoration(color: AppColors.crimson.withOpacity(0.1), shape: BoxShape.circle),
-                  child: Icon(Icons.event_note_rounded, color: AppColors.crimson, size: 24.r),
+                  padding: EdgeInsets.all(isCompact ? 10.r : 8.0),
+                  decoration: BoxDecoration(color: AppColors.crimson.withValues(alpha : 0.1), shape: BoxShape.circle),
+                  child: Icon(Icons.event_note_rounded, color: AppColors.crimson, size: isCompact ? 24.r : 20.0),
                 ),
-                SizedBox(width: 16.w),
+                SizedBox(width: isCompact ? 16.w : 12.0),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text("SELECT RECORDING", style: AppTextStyles.h3.copyWith(fontSize: 18.sp)),
-                      Text("CHOOSE A DATE FROM YOUR HISTORY", style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary.withOpacity(0.5), letterSpacing: 1)),
+              Text("SELECT RECORDING", style: AppTextStyles.h3.copyWith(fontSize: isCompact ? 20.sp : 16.0)),
+              Text("CHOOSE A DATE FROM YOUR HISTORY", style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary.withValues(alpha : 0.5), letterSpacing: 1, fontSize: isCompact ? 11.sp : 9.0)),
                     ],
                   ),
                 ),
               ],
             ),
-            SizedBox(height: 24.h),
+            SizedBox(height: isCompact ? 24.h : 20.0),
             ConstrainedBox(
               constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.5),
               child: ListView.separated(
                 shrinkWrap: true,
                 padding: EdgeInsets.zero,
                 itemCount: sortedDateKeys.length,
-                separatorBuilder: (context, index) => SizedBox(height: 12.h),
+                separatorBuilder: (context, index) => SizedBox(height: isCompact ? 12.h : 10.0),
                 itemBuilder: (context, i) {
                   final String dateKey = sortedDateKeys[i];
                   final List<int> indices = dateGroups[dateKey]!;
@@ -567,24 +579,24 @@ class CycleComparisonWidget extends StatelessWidget {
                           backgroundColor: Colors.transparent,
                           builder: (ctx) => Container(
                             padding: EdgeInsets.all(24.r),
-                            decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.vertical(top: Radius.circular(32.r))),
+                            decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.vertical(top: Radius.circular(isCompact ? 32.r : 24.0))),
                             child: Column(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                Text("SELECT TIME", style: AppTextStyles.labelMedium.copyWith(color: AppColors.crimson, letterSpacing: 1.2)),
+                                Text("SELECT TIME", style: AppTextStyles.labelMedium.copyWith(color: AppColors.crimson, letterSpacing: 1.2, fontSize: isCompact ? 13.sp : 11.0)),
                                 SizedBox(height: 20.h),
                                 ...indices.map((idx) {
                                   final bool isCurrent = idx == current;
                                   final bool isOther = idx == other;
                                   return ListTile(
-                                    contentPadding: EdgeInsets.symmetric(horizontal: 16.w),
+                                    contentPadding: EdgeInsets.symmetric(horizontal: isCompact ? 16.w : 12.0),
                                     leading: Icon(
                                       isCurrent ? Icons.check_circle_rounded : (isOther ? Icons.info_outline_rounded : Icons.radio_button_off_rounded),
-                                      color: isCurrent ? AppColors.crimson : (isOther ? AppColors.textSecondary.withOpacity(0.5) : AppColors.textSecondary.withOpacity(0.2)),
+                                      color: isCurrent ? AppColors.crimson : (isOther ? AppColors.textSecondary.withValues(alpha : 0.5) : AppColors.textSecondary.withValues(alpha : 0.2)),
                                     ),
                                     title: Text(
                                       DateFormat('hh:mm a').format(dates[idx]),
-                                      style: AppTextStyles.labelSmall.copyWith(color: isCurrent ? Colors.white : (isOther ? AppColors.textSecondary.withOpacity(0.5) : AppColors.textSecondary)),
+                                      style: AppTextStyles.labelSmall.copyWith(color: isCurrent ? Colors.white : (isOther ? AppColors.textSecondary.withValues(alpha : 0.5) : AppColors.textSecondary), fontSize: isCompact ? 11.sp : 9.0),
                                     ),
                                     onTap: () => Navigator.pop(ctx, idx),
                                   );
@@ -598,12 +610,12 @@ class CycleComparisonWidget extends StatelessWidget {
                     },
                     child: AnimatedContainer(
                       duration: const Duration(milliseconds: 200),
-                      padding: EdgeInsets.all(16.r),
+                      padding: EdgeInsets.all(isCompact ? 16.r : 14.0),
                       decoration: BoxDecoration(
-                        color: isPartiallySelected ? AppColors.crimson.withOpacity(0.1) : AppColors.background.withOpacity(0.5),
-                        borderRadius: BorderRadius.circular(16.r),
+                        color: isPartiallySelected ? AppColors.crimson.withValues(alpha : 0.1) : AppColors.background.withValues(alpha : 0.5),
+                        borderRadius: BorderRadius.circular(isCompact ? 16.r : 12.0),
                         border: Border.all(
-                          color: isPartiallySelected ? AppColors.crimson : (isOccupiedByOther ? AppColors.crimson.withOpacity(0.3) : AppColors.white.withOpacity(0.05)),
+                          color: isPartiallySelected ? AppColors.crimson : (isOccupiedByOther ? AppColors.crimson.withValues(alpha : 0.3) : AppColors.white.withValues(alpha : 0.05)),
                           width: 1.5,
                         ),
                       ),
@@ -611,24 +623,24 @@ class CycleComparisonWidget extends StatelessWidget {
                         children: [
                           Icon(
                             isPartiallySelected ? Icons.check_circle_rounded : (isOccupiedByOther ? Icons.info_outline_rounded : Icons.calendar_today_rounded),
-                            color: isPartiallySelected ? AppColors.crimson : (isOccupiedByOther ? AppColors.crimson.withOpacity(0.5) : AppColors.textSecondary.withOpacity(0.2)),
-                            size: 20.r,
+                            color: isPartiallySelected ? AppColors.crimson : (isOccupiedByOther ? AppColors.crimson.withValues(alpha : 0.5) : AppColors.textSecondary.withValues(alpha : 0.2)),
+                            size: isCompact ? 20.r : 18.0,
                           ),
-                          SizedBox(width: 16.w),
+                          SizedBox(width: isCompact ? 16.w : 12.0),
                           Text(
                             DateFormat('MMMM dd, yyyy').format(displayDate).toUpperCase(),
                             style: AppTextStyles.labelSmall.copyWith(
                               color: isPartiallySelected ? Colors.white : AppColors.textSecondary,
-                              fontWeight: isPartiallySelected ? FontWeight.bold : FontWeight.normal,
-                              fontSize: 13.sp,
+                              fontWeight: FontWeight.w500,
+                              fontSize: isCompact ? 12.sp : 10.0,
                             ),
                           ),
                           const Spacer(),
                           if (indices.length > 1)
                             Container(
-                              padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
-                              decoration: BoxDecoration(color: AppColors.white.withOpacity(0.05), borderRadius: BorderRadius.circular(8.r)),
-                              child: Text("${indices.length} LOGS", style: AppTextStyles.labelSmall.copyWith(fontSize: 9.sp, color: AppColors.textSecondary.withOpacity(0.5))),
+                              padding: EdgeInsets.symmetric(horizontal: isCompact ? 8.w : 6.0, vertical: isCompact ? 4.h : 2.0),
+                              decoration: BoxDecoration(color: AppColors.white.withValues(alpha : 0.05), borderRadius: BorderRadius.circular(isCompact ? 8.r : 6.0)),
+                              child: Text("${indices.length} LOGS", style: AppTextStyles.labelSmall.copyWith(fontSize: isCompact ? 9.sp : 7.0, color: AppColors.textSecondary.withValues(alpha : 0.5))),
                             ),
                         ],
                       ),
@@ -644,7 +656,7 @@ class CycleComparisonWidget extends StatelessWidget {
     if (result != null) onChanged(result);
   }
 
-  Widget _buildComparisonDetails() {
+  Widget _buildComparisonDetails(bool isCompact) {
     final List<Widget> items = [];
     
     final metrics = [
@@ -656,17 +668,17 @@ class CycleComparisonWidget extends StatelessWidget {
       final v1 = data[m['key']]?[idx1!];
       final v2 = data[m['key']]?[idx2!];
       if (v1 != null && v2 != null) {
-        items.add(_buildMetricComparison(m['label'] as String, v1, v2, m['unit'] as String, m['color'] as Color));
+        items.add(_buildMetricComparison(m['label'] as String, v1, v2, m['unit'] as String, m['color'] as Color, isCompact));
       }
     }
 
     if (items.isEmpty) {
       return Center(
         child: Padding(
-          padding: EdgeInsets.symmetric(vertical: 20.h),
+          padding: EdgeInsets.symmetric(vertical: isCompact ? 20.h : 16.0),
           child: Text(
             "NO OVERLAPPING METRICS ON THESE DATES", 
-            style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary.withOpacity(0.3), fontSize: 8.sp)
+            style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary.withValues(alpha : 0.3), fontSize: 7.0)
           ),
         ),
       );
@@ -675,39 +687,39 @@ class CycleComparisonWidget extends StatelessWidget {
     return Column(children: items);
   }
 
-  Widget _buildMetricComparison(String label, double v1, double v2, String unit, Color color) {
+  Widget _buildMetricComparison(String label, double v1, double v2, String unit, Color color, bool isCompact) {
     final delta = v2 - v1;
     final percent = v1 != 0 ? (delta / v1.abs()) * 100 : 0.0;
 
     return Container(
-      margin: EdgeInsets.only(bottom: 16.h),
-      padding: EdgeInsets.all(20.r),
+      margin: EdgeInsets.only(bottom: 12.0),
+      padding: EdgeInsets.all(16.0),
       decoration: BoxDecoration(
-        color: AppColors.surfaceLight.withOpacity(0.3),
-        borderRadius: BorderRadius.circular(20.r),
+        color: AppColors.surfaceLight.withValues(alpha : 0.3),
+        borderRadius: BorderRadius.circular(16.0),
       ),
       child: Column(
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(label, style: AppTextStyles.labelSmall.copyWith(color: color, fontWeight: FontWeight.w900, fontSize: 13.sp, letterSpacing: 1)),
+            Text(label, style: AppTextStyles.labelSmall.copyWith(color: color, fontWeight: FontWeight.w500, fontSize: isCompact ? 13.sp : 11.0, letterSpacing: 1)),
               Row(
                 children: [
-                  Icon(delta >= 0 ? Icons.trending_up_rounded : Icons.trending_down_rounded, color: delta >= 0 ? Colors.greenAccent : Colors.redAccent, size: 18.r),
-                  SizedBox(width: 6.w),
-                  Text("${delta >= 0 ? '+' : ''}${percent.toStringAsFixed(1)}%", style: AppTextStyles.labelSmall.copyWith(color: delta >= 0 ? Colors.greenAccent : Colors.redAccent, fontWeight: FontWeight.w900, fontSize: 14.sp)),
+                  Icon(delta >= 0 ? Icons.trending_up_rounded : Icons.trending_down_rounded, color: delta >= 0 ? Colors.greenAccent : Colors.redAccent, size: 14.0),
+                  SizedBox(width: 4.0),
+                  Text("${delta >= 0 ? '+' : ''}${percent.toStringAsFixed(1)}%", style: AppTextStyles.labelSmall.copyWith(color: delta >= 0 ? Colors.greenAccent : Colors.redAccent, fontWeight: FontWeight.w500, fontSize: isCompact ? 13.sp : 11.0)),
                 ],
               ),
             ],
           ),
-          SizedBox(height: 20.h),
+          SizedBox(height: 12.0),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              _valItem("Point A", v1, unit),
-              _valItem("Point B", v2, unit),
-              _valItem("Difference", delta, unit, isDelta: true),
+              _valItem("Point A", v1, unit, isCompact),
+              _valItem("Point B", v2, unit, isCompact),
+              _valItem("Difference", delta, unit, isCompact, isDelta: true),
             ],
           ),
         ],
@@ -715,12 +727,12 @@ class CycleComparisonWidget extends StatelessWidget {
     );
   }
 
-  Widget _valItem(String l, double v, String u, {bool isDelta = false}) {
+  Widget _valItem(String l, double v, String u, bool isCompact, {bool isDelta = false}) {
     return Column(
       children: [
-        Text(l, style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary.withOpacity(0.4), fontSize: 10.sp, fontWeight: FontWeight.bold)),
-        SizedBox(height: 4.h),
-        Text("${v >= 0 && isDelta ? '+' : ''}${v.toStringAsFixed(1)}$u", style: AppTextStyles.labelMedium.copyWith(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 16.sp)),
+        Text(l, style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary.withValues(alpha : 0.4), fontSize: isCompact ? 10.sp : 8.0, fontWeight: FontWeight.w500)), 
+        SizedBox(height: 2.0),
+        Text("${v >= 0 && isDelta ? '+' : ''}${v.toStringAsFixed(1)}$u", style: AppTextStyles.labelMedium.copyWith(color: Colors.white, fontWeight: FontWeight.w500, fontSize: isCompact ? 16.sp : 13.0)), 
       ],
     );
   }

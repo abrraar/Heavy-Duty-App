@@ -55,7 +55,6 @@ class _CalorieSettingsScreenState extends State<CalorieSettingsScreen> {
     if (p + c + f > 100) {
       EliteSnackbar.show(context, "TOTAL RATIO CANNOT EXCEED 100%", isError: true);
       
-      // Revert the text in the controller immediately
       setState(() {
         if (type == 'p') _proteinController.text = currentSettings.proteinPercent.toString();
         if (type == 'c') _carbController.text = currentSettings.carbPercent.toString();
@@ -73,6 +72,9 @@ class _CalorieSettingsScreenState extends State<CalorieSettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final double deviceWidth = MediaQuery.of(context).size.width;
+    final bool isLargeScreen = deviceWidth >= 600;
+
     return Consumer<CalorieProvider>(
       builder: (context, provider, _) {
         final settings = provider.settings;
@@ -80,113 +82,137 @@ class _CalorieSettingsScreenState extends State<CalorieSettingsScreen> {
         return Scaffold(
           backgroundColor: AppColors.background,
           body: SafeArea(
-            child: Column(
-              children: [
-                const EliteSettingsAppBar(title: "CALORIE SETTINGS"),
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final bool isCompact = constraints.maxWidth < 600 && !isLargeScreen;
+                final bool isWideLandscape = isLargeScreen && MediaQuery.of(context).orientation == Orientation.landscape;
 
-                Expanded(
-                  child: SingleChildScrollView(
-                    padding: EdgeInsets.symmetric(horizontal: 24.w),
-                    physics: const BouncingScrollPhysics(),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        SizedBox(height: 16.h),
-                        
-                        _buildSectionHeader("NUTRITIONAL TARGETS"),
-                        
-                        _buildSettingCard(
-                          title: "DAILY CALORIE GOAL",
-                          subtitle: "TOTAL ENERGY INTAKE TARGET",
-                          trailing: _buildSmallTextField(
-                            controller: _goalController,
-                            suffix: "KCAL",
-                            maxLength: 5,
-                            onChanged: (val) {
-                              int? goal = int.tryParse(val);
-                              if (goal != null) {
-                                provider.updateSettings(settings.copyWith(dailyCalorieGoal: goal));
-                              }
-                            },
-                          ),
-                        ),
-
-                        SizedBox(height: 32.h),
-                        _buildSectionHeader("MACRO RATIOS (%)"),
-
-                        _buildSettingCard(
-                          title: "PROTEIN TARGET",
-                          subtitle: "PERCENTAGE OF TOTAL CALORIES",
-                          trailing: _buildSmallTextField(
-                            controller: _proteinController,
-                            suffix: "%",
-                            maxLength: 3,
-                            onChanged: (val) => _validateAndSaveRatios('p', val),
-                          ),
-                        ),
-
-                        _buildSettingCard(
-                          title: "CARBOHYDRATE TARGET",
-                          subtitle: "PERCENTAGE OF TOTAL CALORIES",
-                          trailing: _buildSmallTextField(
-                            controller: _carbController,
-                            suffix: "%",
-                            maxLength: 3,
-                            onChanged: (val) => _validateAndSaveRatios('c', val),
-                          ),
-                        ),
-
-                        _buildSettingCard(
-                          title: "FAT TARGET",
-                          subtitle: "PERCENTAGE OF TOTAL CALORIES",
-                          trailing: _buildSmallTextField(
-                            controller: _fatController,
-                            suffix: "%",
-                            maxLength: 3,
-                            onChanged: (val) => _validateAndSaveRatios('f', val),
-                          ),
-                        ),
-
-                        SizedBox(height: 12.h),
-                        Center(
-                          child: Text(
-                            "TOTAL: ${settings.proteinPercent + settings.carbPercent + settings.fatPercent}% / 100%",
-                            style: AppTextStyles.labelSmall.copyWith(
-                              color: (settings.proteinPercent + settings.carbPercent + settings.fatPercent) == 100 
-                                  ? Colors.greenAccent 
-                                  : AppColors.crimson,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-
-                        SizedBox(height: 32.h),
-                        _buildSectionHeader("DISPLAY PREFERENCES"),
-
-                        _buildToggleCard(
-                          title: "TRACK MACRONUTRIENTS",
-                          subtitle: "SHOW PROTEIN, CARBS, AND FATS",
-                          value: settings.trackMacros,
-                          onChanged: (val) {
-                            provider.updateSettings(settings.copyWith(trackMacros: val));
-                          },
-                        ),
-
-                        _buildToggleCard(
-                          title: "SHOW REMAINING",
-                          subtitle: "DISPLAY CALORIES LEFT FOR THE DAY",
-                          value: settings.showRemaining,
-                          onChanged: (val) {
-                            provider.updateSettings(settings.copyWith(showRemaining: val));
-                          },
-                        ),
-                        
-                        SizedBox(height: 40.h),
-                      ],
+                return Column(
+                  children: [
+                    EliteSettingsAppBar(
+                      title: "CALORIE SETTINGS", 
+                      isCompact: isCompact,
+                      showBackButton: !isWideLandscape,
                     ),
-                  ),
-                ),
-              ],
+
+                    Expanded(
+                      child: SingleChildScrollView(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: isLargeScreen ? 24.0 : 24.w
+                        ),
+                        physics: const BouncingScrollPhysics(),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                                SizedBox(height: isLargeScreen ? 16.0 : 16.h),
+                                
+                                _buildSectionHeader("NUTRITIONAL TARGETS", isLargeScreen),
+                                
+                                _buildSettingCard(
+                                  title: "DAILY CALORIE GOAL",
+                                  subtitle: "TOTAL ENERGY INTAKE TARGET",
+                                  isLargeScreen: isLargeScreen,
+                                  trailing: _buildSmallTextField(
+                                    controller: _goalController,
+                                    suffix: "KCAL",
+                                    maxLength: 5,
+                                    isLargeScreen: isLargeScreen,
+                                    onChanged: (val) {
+                                      int? goal = int.tryParse(val);
+                                      if (goal != null) {
+                                        provider.updateSettings(settings.copyWith(dailyCalorieGoal: goal));
+                                      }
+                                    },
+                                  ),
+                                ),
+
+                                SizedBox(height: isLargeScreen ? 32.0 : 32.h),
+                                _buildSectionHeader("MACRO RATIOS (%)", isLargeScreen),
+
+                                _buildSettingCard(
+                                  title: "PROTEIN TARGET",
+                                  subtitle: "PERCENTAGE OF TOTAL CALORIES",
+                                  isLargeScreen: isLargeScreen,
+                                  trailing: _buildSmallTextField(
+                                    controller: _proteinController,
+                                    suffix: "%",
+                                    maxLength: 3,
+                                    isLargeScreen: isLargeScreen,
+                                    onChanged: (val) => _validateAndSaveRatios('p', val),
+                                  ),
+                                ),
+
+                                _buildSettingCard(
+                                  title: "CARBOHYDRATE TARGET",
+                                  subtitle: "PERCENTAGE OF TOTAL CALORIES",
+                                  isLargeScreen: isLargeScreen,
+                                  trailing: _buildSmallTextField(
+                                    controller: _carbController,
+                                    suffix: "%",
+                                    maxLength: 3,
+                                    isLargeScreen: isLargeScreen,
+                                    onChanged: (val) => _validateAndSaveRatios('c', val),
+                                  ),
+                                ),
+
+                                _buildSettingCard(
+                                  title: "FAT TARGET",
+                                  subtitle: "PERCENTAGE OF TOTAL CALORIES",
+                                  isLargeScreen: isLargeScreen,
+                                  trailing: _buildSmallTextField(
+                                    controller: _fatController,
+                                    suffix: "%",
+                                    maxLength: 3,
+                                    isLargeScreen: isLargeScreen,
+                                    onChanged: (val) => _validateAndSaveRatios('f', val),
+                                  ),
+                                ),
+
+                                SizedBox(height: isLargeScreen ? 12.0 : 12.h),
+                                Center(
+                                  child: Text(
+                                    "TOTAL: ${settings.proteinPercent + settings.carbPercent + settings.fatPercent}% / 100%",
+                                    style: AppTextStyles.labelSmall.copyWith(
+                                      color: (settings.proteinPercent + settings.carbPercent + settings.fatPercent) == 100 
+                                          ? Colors.greenAccent 
+                                          : AppColors.crimson,
+                                      fontWeight: FontWeight.w500,
+                                      fontSize: isLargeScreen ? 12.0 : null,
+                                    ),
+                                  ),
+                                ),
+
+                                SizedBox(height: isLargeScreen ? 32.0 : 32.h),
+                                _buildSectionHeader("DISPLAY PREFERENCES", isLargeScreen),
+
+                                _buildToggleCard(
+                                  title: "TRACK MACRONUTRIENTS",
+                                  subtitle: "SHOW PROTEIN, CARBS, AND FATS",
+                                  value: settings.trackMacros,
+                                  isLargeScreen: isLargeScreen,
+                                  onChanged: (val) {
+                                    provider.updateSettings(settings.copyWith(trackMacros: val));
+                                  },
+                                ),
+
+                                _buildToggleCard(
+                                  title: "SHOW REMAINING",
+                                  subtitle: "DISPLAY CALORIES LEFT FOR THE DAY",
+                                  value: settings.showRemaining,
+                                  isLargeScreen: isLargeScreen,
+                                  onChanged: (val) {
+                                    provider.updateSettings(settings.copyWith(showRemaining: val));
+                                  },
+                                ),
+                                
+                                SizedBox(height: isLargeScreen ? 40.0 : 40.h),
+                              ],
+                            ),
+                      ),
+                    ),
+                  ],
+                );
+              }
             ),
           ),
         );
@@ -199,54 +225,64 @@ class _CalorieSettingsScreenState extends State<CalorieSettingsScreen> {
     required String suffix,
     required int maxLength,
     required ValueChanged<String> onChanged,
+    required bool isLargeScreen,
   }) {
     return Container(
-      width: 100.w,
-      padding: EdgeInsets.symmetric(horizontal: 12.w),
+      width: isLargeScreen ? 100.0 : 100.w,
+      padding: EdgeInsets.symmetric(horizontal: isLargeScreen ? 12.0 : 12.w),
       decoration: BoxDecoration(
         color: AppColors.background,
-        borderRadius: BorderRadius.circular(8.r),
+        borderRadius: BorderRadius.circular(isLargeScreen ? 6.0 : 8.r),
       ),
       child: TextField(
         controller: controller,
         keyboardType: TextInputType.number,
         maxLength: maxLength,
-        style: AppTextStyles.labelSmall.copyWith(fontSize: 12.sp, color: AppColors.white, fontWeight: FontWeight.bold),
+        style: AppTextStyles.labelSmall.copyWith(
+          fontSize: isLargeScreen ? 12.0 : 12.sp, 
+          color: AppColors.white, 
+          fontWeight: FontWeight.w500
+        ),
         inputFormatters: [FilteringTextInputFormatter.digitsOnly],
         decoration: InputDecoration(
           counterText: "",
           border: InputBorder.none,
           suffixText: suffix,
-          suffixStyle: AppTextStyles.labelSmall.copyWith(fontSize: 10.sp, color: AppColors.textSecondary),
+          suffixStyle: AppTextStyles.labelSmall.copyWith(
+            fontSize: isLargeScreen ? 10.0 : 10.sp, 
+            color: AppColors.textSecondary
+          ),
         ),
         onChanged: onChanged,
       ),
     );
   }
 
-  // ─── REUSABLE COMPONENTS (Matches Notification/Sleep Settings) ─────────────
-
-  Widget _buildSectionHeader(String title) {
+  Widget _buildSectionHeader(String title, bool isLargeScreen) {
     return Padding(
-      padding: EdgeInsets.only(bottom: 12.h, left: 4.w),
+      padding: EdgeInsets.only(
+        bottom: isLargeScreen ? 12.0 : 12.h, 
+        left: isLargeScreen ? 4.0 : 4.w
+      ),
       child: Text(
         title,
         style: AppTextStyles.labelSmall.copyWith(
           color: AppColors.crimson,
-          fontWeight: FontWeight.w900,
+          fontWeight: FontWeight.w500,
           letterSpacing: 1.5,
+          fontSize: isLargeScreen ? 11.0 : null,
         ),
       ),
     );
   }
 
-  Widget _buildSettingCard({required String title, required String subtitle, required Widget trailing}) {
+  Widget _buildSettingCard({required String title, required String subtitle, required Widget trailing, required bool isLargeScreen}) {
     return Container(
-      margin: EdgeInsets.only(bottom: 12.h),
-      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 16.h),
+      margin: EdgeInsets.only(bottom: isLargeScreen ? 12.0 : 12.h),
+      padding: EdgeInsets.all(isLargeScreen ? 16.0 : 16.r),
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.circular(12.r),
+        borderRadius: BorderRadius.circular(isLargeScreen ? 10.0 : 12.r),
         border: Border.all(color: AppColors.white.withValues(alpha: 0.05)),
       ),
       child: Row(
@@ -255,8 +291,16 @@ class _CalorieSettingsScreenState extends State<CalorieSettingsScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title, style: AppTextStyles.labelSmall.copyWith(color: AppColors.white, fontWeight: FontWeight.bold)),
-                Text(subtitle, style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary, fontSize: 10.sp, letterSpacing: 0)),
+                Text(title, style: AppTextStyles.labelSmall.copyWith(
+                  color: AppColors.white, 
+                  fontWeight: FontWeight.w500,
+                  fontSize: isLargeScreen ? 12.0 : null,
+                )),
+                Text(subtitle, style: AppTextStyles.labelSmall.copyWith(
+                  color: AppColors.textSecondary, 
+                  fontSize: isLargeScreen ? 10.0 : 10.sp, 
+                  letterSpacing: 0
+                )),
               ],
             ),
           ),
@@ -266,13 +310,13 @@ class _CalorieSettingsScreenState extends State<CalorieSettingsScreen> {
     );
   }
 
-  Widget _buildToggleCard({required String title, required String subtitle, required bool value, required ValueChanged<bool> onChanged}) {
+  Widget _buildToggleCard({required String title, required String subtitle, required bool value, required ValueChanged<bool> onChanged, required bool isLargeScreen}) {
     return Container(
-      margin: EdgeInsets.only(bottom: 12.h),
-      padding: EdgeInsets.all(16.r),
+      margin: EdgeInsets.only(bottom: isLargeScreen ? 12.0 : 12.h),
+      padding: EdgeInsets.all(isLargeScreen ? 16.0 : 16.r),
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.circular(12.r),
+        borderRadius: BorderRadius.circular(isLargeScreen ? 10.0 : 12.r),
         border: Border.all(color: AppColors.white.withValues(alpha: 0.05)),
       ),
       child: Row(
@@ -281,36 +325,21 @@ class _CalorieSettingsScreenState extends State<CalorieSettingsScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title, style: AppTextStyles.labelSmall.copyWith(color: AppColors.white, fontWeight: FontWeight.bold)),
-                Text(subtitle, style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary, fontSize: 10.sp, letterSpacing: 0)),
+                Text(title, style: AppTextStyles.labelSmall.copyWith(
+                  color: AppColors.white, 
+                  fontWeight: FontWeight.w500,
+                  fontSize: isLargeScreen ? 12.0 : null,
+                )),
+                Text(subtitle, style: AppTextStyles.labelSmall.copyWith(
+                  color: AppColors.textSecondary, 
+                  fontSize: isLargeScreen ? 10.0 : 10.sp, 
+                  letterSpacing: 0
+                )),
               ],
             ),
           ),
           Switch(value: value, activeThumbColor: AppColors.crimson, onChanged: onChanged),
         ],
-      ),
-    );
-  }
-
-  Widget _buildSmallDropdown<T>({required T value, required List<T> items, required String suffix, required Function(T?) onChanged}) {
-    return Container(
-      padding: EdgeInsets.symmetric(horizontal: 8.w),
-      decoration: BoxDecoration(
-        color: AppColors.background,
-        borderRadius: BorderRadius.circular(8.r),
-      ),
-      child: DropdownButton<T>(
-        value: value,
-        underline: const SizedBox(),
-        dropdownColor: AppColors.surface,
-        icon: Icon(Icons.keyboard_arrow_down, color: AppColors.crimson, size: 16.r),
-        items: items.map((T val) {
-          return DropdownMenuItem<T>(
-            value: val,
-            child: Text("$val $suffix", style: AppTextStyles.labelSmall.copyWith(fontSize: 10.sp, color: AppColors.white)),
-          );
-        }).toList(),
-        onChanged: onChanged,
       ),
     );
   }

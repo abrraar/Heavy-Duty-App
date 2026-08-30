@@ -6,7 +6,7 @@ import '../model/exercise.dart';
 import '../model/exercise_log.dart';
 
 class CycleCloudRepository {
-  final SupabaseClient _supabase = Supabase.instance.client;
+  SupabaseClient get _supabase => Supabase.instance.client;
 
   String? get _currentUserId => _supabase.auth.currentUser?.id;
 

@@ -108,60 +108,83 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
-        child: Column(
-          children: [
-            const EliteSettingsAppBar(title: "EDIT PROFILE"),
-            Expanded(
-              child: SingleChildScrollView(
-                padding: EdgeInsets.all(24.r),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildLabel("NAME"),
-                    _buildTextField(_nameController, "YOUR NAME", Icons.person_outline, onChanged: (_) => _triggerAutoSave()),
-                    SizedBox(height: 20.h),
-                    
-                    _buildLabel("GENDER"),
-                    _GenderSelector(
-                      selectedGender: _selectedGender,
-                      onChanged: (val) {
-                        setState(() => _selectedGender = val);
-                        _handleSave(); // Save immediately
-                      },
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final bool isCompact = constraints.maxWidth < 600;
+            return Column(
+              children: [
+                EliteSettingsAppBar(title: "EDIT PROFILE", isCompact: isCompact),
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: EdgeInsets.symmetric(horizontal: isCompact ? 24.w : 24.0, vertical: isCompact ? 24.r : 24.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                            _buildLabel("NAME", isCompact),
+                            _buildTextField(
+                              _nameController, 
+                              "YOUR NAME", 
+                              Icons.person_outline, 
+                              onChanged: (_) => _triggerAutoSave(),
+                              isCompact: isCompact,
+                            ),
+                            SizedBox(height: isCompact ? 20.h : 20.0),
+                            
+                            _buildLabel("GENDER", isCompact),
+                            _GenderSelector(
+                              selectedGender: _selectedGender,
+                              onChanged: (val) {
+                                setState(() => _selectedGender = val);
+                                _handleSave(); // Save immediately
+                              },
+                              isCompact: isCompact,
+                            ),
+                            SizedBox(height: isCompact ? 20.h : 20.0),
+                            
+                            _buildLabel("BIRTHDAY", isCompact),
+                            _SelectorField(
+                              hint: _selectedBirthday == null 
+                                  ? 'PICK BIRTHDAY' 
+                                  : DateFormat('MMM dd, yyyy').format(_selectedBirthday!).toUpperCase(),
+                              icon: Icons.cake_outlined,
+                              onTap: () => _selectBirthday(context),
+                              isCompact: isCompact,
+                            ),
+                            SizedBox(height: isCompact ? 20.h : 20.0),
+                            
+                            _buildLabel("HEIGHT (CM)", isCompact),
+                            _buildTextField(
+                              _heightController, 
+                              "180", 
+                              Icons.height_outlined, 
+                              isNumber: true, 
+                              onChanged: (_) => _triggerAutoSave(),
+                              isCompact: isCompact,
+                            ),
+                            SizedBox(height: isCompact ? 40.h : 40.0),
+                          ],
+                        ),
                     ),
-                    SizedBox(height: 20.h),
-                    
-                    _buildLabel("BIRTHDAY"),
-                    _SelectorField(
-                      hint: _selectedBirthday == null 
-                          ? 'PICK BIRTHDAY' 
-                          : DateFormat('MMM dd, yyyy').format(_selectedBirthday!).toUpperCase(),
-                      icon: Icons.cake_outlined,
-                      onTap: () => _selectBirthday(context),
-                    ),
-                    SizedBox(height: 20.h),
-                    
-                    _buildLabel("HEIGHT (CM)"),
-                    _buildTextField(_heightController, "180", Icons.height_outlined, isNumber: true, onChanged: (_) => _triggerAutoSave()),
-                    SizedBox(height: 40.h),
-                  ],
-                ),
-              ),
-            ),
-          ],
+                  ),
+              ],
+            );
+          },
         ),
       ),
     );
   }
 
-  Widget _buildNavigationRow({required String label, required VoidCallback onTap}) {
+  Widget _buildNavigationRow({required String label, required VoidCallback onTap, required bool isCompact}) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 18.h),
+        padding: EdgeInsets.symmetric(
+          horizontal: isCompact ? 20.w : 20.0, 
+          vertical: isCompact ? 18.h : 18.0
+        ),
         decoration: BoxDecoration(
-          color: AppColors.surfaceLight.withOpacity(0.3),
-          borderRadius: BorderRadius.circular(12.r),
+          color: AppColors.surfaceLight.withValues(alpha: 0.3),
+          borderRadius: BorderRadius.circular(isCompact ? 12.r : 10.0),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -172,43 +195,62 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 color: Colors.white,
                 fontWeight: FontWeight.w500,
                 letterSpacing: 1.0,
+                fontSize: isCompact ? 15.sp : 12.0,
               ),
             ),
-            Icon(Icons.arrow_forward_ios_rounded, color: AppColors.crimson, size: 16.r),
+            Icon(Icons.arrow_forward_ios_rounded, color: AppColors.crimson, size: isCompact ? 16.r : 16.0),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildLabel(String text) {
+  Widget _buildLabel(String text, bool isCompact) {
     return Padding(
-      padding: EdgeInsets.only(bottom: 8.h, left: 4.w),
+      padding: EdgeInsets.only(
+        bottom: isCompact ? 8.h : 8.0, 
+        left: isCompact ? 4.w : 4.0
+      ),
       child: Text(
         text,
         style: AppTextStyles.labelSmall.copyWith(
           color: AppColors.textSecondary,
           letterSpacing: 1.5,
           fontWeight: FontWeight.w500,
+          fontSize: isCompact ? 14.sp : 11.0,
         ),
       ),
     );
   }
 
-  Widget _buildTextField(TextEditingController controller, String hint, IconData icon, {bool isNumber = false, bool obscure = false, Function(String)? onChanged}) {
+  Widget _buildTextField(
+    TextEditingController controller, 
+    String hint, 
+    IconData icon, 
+    {bool isNumber = false, bool obscure = false, Function(String)? onChanged, required bool isCompact}
+  ) {
     return TextField(
       controller: controller,
       obscureText: obscure,
       onChanged: onChanged,
       keyboardType: isNumber ? const TextInputType.numberWithOptions(decimal: true) : TextInputType.text,
-      style: AppTextStyles.inputText.copyWith(color: Colors.white),
+      style: AppTextStyles.inputText.copyWith(
+        color: Colors.white,
+        fontSize: isCompact ? 16.sp : 14.0,
+      ),
       decoration: InputDecoration(
         hintText: hint,
-        hintStyle: const TextStyle(color: Colors.white24),
+        hintStyle: TextStyle(
+          color: Colors.white24,
+          fontSize: isCompact ? 16.sp : 14.0,
+        ),
         filled: true,
-        fillColor: AppColors.surfaceLight.withOpacity(0.3),
-        prefixIcon: Icon(icon, color: AppColors.crimson, size: 20.r),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12.r), borderSide: BorderSide.none),
+        fillColor: AppColors.surfaceLight.withValues(alpha: 0.3),
+        prefixIcon: Icon(icon, color: AppColors.crimson, size: isCompact ? 20.r : 20.0),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(isCompact ? 12.r : 10.0), 
+          borderSide: BorderSide.none
+        ),
       ),
     );
   }
@@ -218,14 +260,15 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 class _GenderSelector extends StatelessWidget {
   final String? selectedGender;
   final Function(String) onChanged;
-  const _GenderSelector({required this.selectedGender, required this.onChanged});
+  final bool isCompact;
+  const _GenderSelector({required this.selectedGender, required this.onChanged, this.isCompact = true});
 
   @override
   Widget build(BuildContext context) {
     return Row(
       children: [
         Expanded(child: _buildGenderButton('MALE', Icons.male_rounded)),
-        SizedBox(width: 12.w),
+        SizedBox(width: isCompact ? 12.w : 12.0),
         Expanded(child: _buildGenderButton('FEMALE', Icons.female_rounded)),
       ],
     );
@@ -237,18 +280,25 @@ class _GenderSelector extends StatelessWidget {
       onTap: () => onChanged(gender),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        height: 56.h,
+        height: isCompact ? 56.h : 54.0,
         decoration: BoxDecoration(
-          color: isSelected ? AppColors.crimson.withOpacity(0.1) : AppColors.surfaceLight.withOpacity(0.3),
-          borderRadius: BorderRadius.circular(12.r),
+          color: isSelected ? AppColors.crimson.withValues(alpha: 0.1) : AppColors.surfaceLight.withValues(alpha: 0.3),
+          borderRadius: BorderRadius.circular(isCompact ? 12.r : 10.0),
           border: Border.all(color: isSelected ? AppColors.crimson : Colors.transparent, width: 1.5),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, color: isSelected ? AppColors.crimson : AppColors.textSecondary, size: 20.r),
-            SizedBox(width: 8.w),
-            Text(gender, style: AppTextStyles.labelSmall.copyWith(color: isSelected ? Colors.white : AppColors.textSecondary, fontWeight: FontWeight.bold)),
+            Icon(icon, color: isSelected ? AppColors.crimson : AppColors.textSecondary, size: isCompact ? 20.r : 20.0),
+            SizedBox(width: isCompact ? 8.w : 8.0),
+            Text(
+              gender, 
+              style: AppTextStyles.labelSmall.copyWith(
+                color: isSelected ? Colors.white : AppColors.textSecondary, 
+                fontWeight: isSelected ? FontWeight.w500 : FontWeight.w500,
+                fontSize: isCompact ? 14.sp : 11.0,
+              )
+            ),
           ],
         ),
       ),
@@ -260,23 +310,33 @@ class _SelectorField extends StatelessWidget {
   final String hint;
   final IconData icon;
   final VoidCallback onTap;
-  const _SelectorField({required this.hint, required this.icon, required this.onTap});
+  final bool isCompact;
+  const _SelectorField({required this.hint, required this.icon, required this.onTap, this.isCompact = true});
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 16.h),
+        padding: EdgeInsets.symmetric(
+          horizontal: isCompact ? 16.w : 16.0, 
+          vertical: isCompact ? 16.h : 16.0
+        ),
         decoration: BoxDecoration(
-          color: AppColors.surfaceLight.withOpacity(0.3),
-          borderRadius: BorderRadius.circular(12.r),
+          color: AppColors.surfaceLight.withValues(alpha: 0.3),
+          borderRadius: BorderRadius.circular(isCompact ? 12.r : 10.0),
         ),
         child: Row(
           children: [
-            Icon(icon, color: AppColors.crimson, size: 20.r),
-            SizedBox(width: 12.w),
-            Text(hint, style: AppTextStyles.labelSmall.copyWith(color: Colors.white70)),
+            Icon(icon, color: AppColors.crimson, size: isCompact ? 20.r : 20.0),
+            SizedBox(width: isCompact ? 12.w : 12.0),
+            Text(
+              hint, 
+              style: AppTextStyles.labelSmall.copyWith(
+                color: Colors.white70,
+                fontSize: isCompact ? 15.sp : 12.0,
+              )
+            ),
           ],
         ),
       ),

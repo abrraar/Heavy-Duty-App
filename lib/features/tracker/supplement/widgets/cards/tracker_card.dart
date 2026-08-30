@@ -10,14 +10,16 @@ class TrackerCard extends StatefulWidget {
   final Supplement supplement;
   final VoidCallback onLogTap;
   final VoidCallback onNotificationTap;
-  final VoidCallback onQuickLogTap; // Added callback for the pin icon
+  final VoidCallback onQuickLogTap; 
+  final bool isCompact;
 
   const TrackerCard({
     super.key,
     required this.supplement,
     required this.onLogTap,
     required this.onNotificationTap,
-    required this.onQuickLogTap, // Added to constructor
+    required this.onQuickLogTap,
+    this.isCompact = true,
   });
 
   @override
@@ -62,12 +64,19 @@ class _TrackerCardState extends State<TrackerCard> {
       }
     }
 
+    final bool isCompact = widget.isCompact;
+
     return Container(
-      margin: EdgeInsets.only(bottom: 12.h),
-      padding: EdgeInsets.fromLTRB(16.r, 20.r, 12.r, 20.r),
+      margin: EdgeInsets.only(bottom: isCompact ? 12.h : 10.0),
+      padding: EdgeInsets.fromLTRB(
+        isCompact ? 16.r : 14.0, 
+        isCompact ? 20.r : 16.0, 
+        isCompact ? 12.r : 10.0, 
+        isCompact ? 20.r : 16.0
+      ),
       decoration: BoxDecoration(
         color: AppColors.surfaceLight.withValues(alpha: 0.3),
-        borderRadius: BorderRadius.circular(16.r),
+        borderRadius: BorderRadius.circular(isCompact ? 16.r : 12.0),
         border: Border.all(color: AppColors.white.withValues(alpha: 0.05)),
       ),
       child: Row(
@@ -75,11 +84,11 @@ class _TrackerCardState extends State<TrackerCard> {
         children: [
           // Intake Log Button
           Padding(
-            padding: EdgeInsets.only(top: 2.h),
+            padding: EdgeInsets.only(top: isCompact ? 2.h : 2.0),
             child: GestureDetector(
               onTap: widget.onLogTap,
               child: Container(
-                padding: EdgeInsets.all(8.r),
+                padding: EdgeInsets.all(isCompact ? 8.r : 6.0),
                 decoration: BoxDecoration(
                   color: AppColors.crimson.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
@@ -87,12 +96,12 @@ class _TrackerCardState extends State<TrackerCard> {
                 child: Icon(
                   Icons.add_rounded,
                   color: AppColors.crimson,
-                  size: 20.r,
+                  size: isCompact ? 20.r : 18.0,
                 ),
               ),
             ),
           ),
-          SizedBox(width: 15.w),
+          SizedBox(width: isCompact ? 15.w : 12.0),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -101,30 +110,34 @@ class _TrackerCardState extends State<TrackerCard> {
                   widget.supplement.name.toUpperCase(),
                   style: AppTextStyles.labelMedium.copyWith(
                     letterSpacing: 0.5,
-                    fontWeight: FontWeight.bold,
+                    fontWeight: FontWeight.w500,
+                    fontSize: isCompact ? 13.sp : 13.0,
                   ),
                 ),
 
                 if (widget.supplement.sharedBy != null) ...[
-                  SizedBox(height: 4.h),
+                  SizedBox(height: isCompact ? 4.h : 4.0),
                   Container(
-                    padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
+                    padding: EdgeInsets.symmetric(
+                      horizontal: isCompact ? 6.w : 6.0, 
+                      vertical: isCompact ? 2.h : 2.0
+                    ),
                     decoration: BoxDecoration(
                       color: Colors.blueAccent.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(6.r),
+                      borderRadius: BorderRadius.circular(isCompact ? 4.r : 4.0),
                       border: Border.all(color: Colors.blueAccent.withValues(alpha: 0.2)),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(Icons.share_rounded, color: Colors.blueAccent, size: 10.r),
-                        SizedBox(width: 4.w),
+                        Icon(Icons.share_rounded, color: Colors.blueAccent, size: isCompact ? 8.r : 8.0),
+                        SizedBox(width: isCompact ? 4.w : 4.0),
                         Text(
                           "SHARED BY ${widget.supplement.sharedBy!.toUpperCase()}",
                           style: AppTextStyles.labelSmall.copyWith(
                             color: Colors.blueAccent,
-                            fontSize: 8.sp,
-                            fontWeight: FontWeight.w900,
+                            fontSize: isCompact ? 10.sp : 9.0,
+                            fontWeight: FontWeight.w500,
                           ),
                         ),
                       ],
@@ -141,7 +154,7 @@ class _TrackerCardState extends State<TrackerCard> {
                       });
                     },
                     child: Padding(
-                      padding: EdgeInsets.only(top: 4.h, bottom: 4.h),
+                      padding: EdgeInsets.only(top: isCompact ? 4.h : 4.0, bottom: isCompact ? 4.h : 4.0),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
@@ -151,8 +164,8 @@ class _TrackerCardState extends State<TrackerCard> {
                                 : "Show Ingredients",
                             style: AppTextStyles.labelSmall.copyWith(
                               color: AppColors.white,
-                              fontSize: 10.sp,
-                              fontWeight: FontWeight.bold,
+                              fontSize: isCompact ? 11.sp : 10.0,
+                              fontWeight: FontWeight.w500,
                             ),
                           ),
                           SizedBox(width: 2.w),
@@ -161,7 +174,7 @@ class _TrackerCardState extends State<TrackerCard> {
                                 ? Icons.keyboard_arrow_up_rounded
                                 : Icons.keyboard_arrow_down_rounded,
                             color: AppColors.textSecondary,
-                            size: 14.r,
+                            size: isCompact ? 12.r : 12.0,
                           ),
                         ],
                       ),
@@ -171,19 +184,20 @@ class _TrackerCardState extends State<TrackerCard> {
                   // Ingredients breakdown column rendered right beneath the toggle action
                   if (_showIngredients)
                     Padding(
-                      padding: EdgeInsets.only(top: 2.h, bottom: 4.h),
+                      padding: EdgeInsets.only(top: isCompact ? 2.h : 2.0, bottom: isCompact ? 4.h : 4.0),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: widget.supplement.ingredients.map((
                           ingredient,
                         ) {
                           return Padding(
-                            padding: EdgeInsets.only(bottom: 2.h),
+                            padding: EdgeInsets.only(bottom: isCompact ? 2.h : 2.0),
                             child: Text(
                               "• ${ingredient.name}: ${ingredient.amount.toInt()}${ingredient.unit}",
                               style: AppTextStyles.labelSmall.copyWith(
                                 color: AppColors.textSecondary,
-                                fontSize: 10.sp,
+                                fontSize: isCompact ? 11.sp : 10.0,
+                                fontWeight: FontWeight.w500,
                               ),
                             ),
                           );
@@ -192,12 +206,13 @@ class _TrackerCardState extends State<TrackerCard> {
                     ),
                 ],
 
-                SizedBox(height: 4.h),
+                SizedBox(height: isCompact ? 4.h : 4.0),
                 Text(
                   "1 ${widget.supplement.servingUnit} (${widget.supplement.weightPerServing.toStringAsFixed(1)}${widget.supplement.weightUnit})",
                   style: AppTextStyles.labelSmall.copyWith(
                     color: AppColors.white,
-                    fontWeight: FontWeight.bold,
+                    fontWeight: FontWeight.w500,
+                    fontSize: isCompact ? 12.sp : 11.0,
                   ),
                 ),
                 Row(
@@ -206,19 +221,21 @@ class _TrackerCardState extends State<TrackerCard> {
                       "Stock: ",
                       style: AppTextStyles.labelSmall.copyWith(
                         color: AppColors.textSecondary,
-                        fontSize: 10.sp,
+                        fontSize: isCompact ? 11.sp : 10.0,
+                        fontWeight: FontWeight.w500,
                         letterSpacing: 0.5,
                       ),
                     ),
                     if (stockText.isNotEmpty) ...[
-                      SizedBox(height: 4.h),
+                      SizedBox(height: isCompact ? 4.h : 4.0),
                       Text(
                         stockText,
                         style: AppTextStyles.labelSmall.copyWith(
                           color: widget.supplement.remainingStock == null
                               ? AppColors.textSecondary.withValues(alpha: 0.6)
                               : provider.getStockColor(widget.supplement),
-                          fontSize: 10.sp,
+                          fontSize: isCompact ? 11.sp : 10.0,
+                          fontWeight: FontWeight.w500,
                           letterSpacing: 0.5,
                         ),
                       ),
@@ -228,12 +245,13 @@ class _TrackerCardState extends State<TrackerCard> {
 
                 // Expiry Date and Days metrics placed right beneath Stock line layout
                 if (expiryText.isNotEmpty) ...[
-                  SizedBox(height: 2.h),
+                  SizedBox(height: isCompact ? 2.h : 2.0),
                   Text(
                     expiryText,
                     style: AppTextStyles.labelSmall.copyWith(
                       color: expiryColor,
-                      fontSize: 10.sp,
+                      fontSize: isCompact ? 11.sp : 10.0,
+                      fontWeight: FontWeight.w500,
                       letterSpacing: 0.5,
                     ),
                   ),
@@ -241,18 +259,20 @@ class _TrackerCardState extends State<TrackerCard> {
               ],
             ),
           ),
-          SizedBox(width: 12.w),
+          SizedBox(width: isCompact ? 12.w : 10.0),
           // Pins Icon Button
           _buildQuickActionButton(
             icon: Icons.push_pin_rounded,
             isActive: widget.supplement.isPinnedToHome,
+            isCompact: isCompact,
             onTap: widget.onQuickLogTap,
           ),
-          SizedBox(width: 8.w),
+          SizedBox(width: isCompact ? 8.w : 6.0),
           // Notification Toggle Button
           _buildQuickActionButton(
             icon: Icons.notifications_active_outlined,
             isActive: widget.supplement.notificationsEnabled,
+            isCompact: isCompact,
             onTap: widget.onNotificationTap,
           ),
         ],
@@ -264,14 +284,15 @@ class _TrackerCardState extends State<TrackerCard> {
     required IconData icon,
     required bool isActive,
     required VoidCallback onTap,
+    required bool isCompact,
   }) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: EdgeInsets.all(8.r),
+        padding: EdgeInsets.all(isCompact ? 8.r : 6.0),
         decoration: BoxDecoration(
           color: isActive ? AppColors.crimson.withValues(alpha: 0.1) : AppColors.white.withValues(alpha: 0.03),
-          borderRadius: BorderRadius.circular(10.r),
+          borderRadius: BorderRadius.circular(isCompact ? 10.r : 8.0),
           border: Border.all(
             color: isActive ? AppColors.crimson.withValues(alpha: 0.3) : AppColors.white.withValues(alpha: 0.05),
           ),
@@ -279,7 +300,7 @@ class _TrackerCardState extends State<TrackerCard> {
         child: Icon(
           icon,
           color: isActive ? AppColors.crimson : AppColors.textSecondary,
-          size: 18.r,
+          size: isCompact ? 18.r : 16.0,
         ),
       ),
     );

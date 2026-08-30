@@ -14,10 +14,17 @@ import 'package:heavy_duty/core/providers/sync_provider.dart';
 
 class CalorieProvider with ChangeNotifier {
   CalorieLocalRepository? _localRepo;
-  final CalorieCloudRepository _cloudRepo = CalorieCloudRepository();
-  final NotificationService _notificationService = NotificationService();
-  final SupabaseClient _supabase = Supabase.instance.client;
+  CalorieCloudRepository _cloudRepo = CalorieCloudRepository();
+  NotificationService _notificationService = NotificationService();
+  SupabaseClient get _supabase => Supabase.instance.client;
   RealtimeChannel? _realtimeChannel;
+
+  // Added for testing injection
+  void setRepositories({CalorieLocalRepository? local, CalorieCloudRepository? cloud, NotificationService? notifications}) {
+    if (local != null) _localRepo = local;
+    if (cloud != null) _cloudRepo = cloud;
+    if (notifications != null) _notificationService = notifications;
+  }
 
   List<CalorieLog> _logs = [];
   List<SavedMeal> _savedMeals = [];

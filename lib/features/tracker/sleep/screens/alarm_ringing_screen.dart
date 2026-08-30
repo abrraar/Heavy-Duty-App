@@ -124,7 +124,7 @@ class _AlarmRingingScreenState extends State<AlarmRingingScreen> with SingleTick
                 style: AppTextStyles.labelSmall.copyWith(
                   color: AppColors.textSecondary,
                   letterSpacing: 2,
-                  fontWeight: FontWeight.bold,
+                  fontWeight: FontWeight.w500,
                 ),
               ),
               
@@ -181,7 +181,7 @@ class _AlarmRingingScreenState extends State<AlarmRingingScreen> with SingleTick
                   child: Text(
                     "SLIDE TO STOP",
                     style: AppTextStyles.labelSmall.copyWith(
-                      fontWeight: FontWeight.bold,
+                      fontWeight: FontWeight.w500,
                       letterSpacing: 1.5,
                       color: AppColors.textSecondary,
                     ),

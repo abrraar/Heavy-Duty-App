@@ -104,7 +104,7 @@ class SleepAlarmSettings {
 class SleepAlarmRepository {
   final String userId;
   final DatabaseHelper _dbHelper = DatabaseHelper.instance;
-  final SupabaseClient _supabase = Supabase.instance.client;
+  SupabaseClient get _supabase => Supabase.instance.client;
 
   SleepAlarmRepository({required this.userId});
 

@@ -11,7 +11,7 @@ import 'package:heavy_duty/core/widgets/elite_confirm_dialog.dart';
 import 'package:provider/provider.dart';
 import 'package:heavy_duty/core/widgets/elite_snackbar.dart';
 import 'package:heavy_duty/features/tracker/cycle_tracker/model/cycle_settings.dart'; // For WeightUnit
-
+import 'package:heavy_duty/core/constants/dimensions.dart';
 import '../../main_wrapper.dart';
 
 class BodyCompositionScreen extends StatefulWidget {
@@ -52,6 +52,11 @@ class _BodyCompositionScreenState extends State<BodyCompositionScreen> with Sing
       initialPage: 0,
     );
     _displayedMonth = DateTime(_selectedHistoryDate.year, _selectedHistoryDate.month);
+    
+    // Add listener to weight controller to dynamically enable/disable other fields
+    _weightController.addListener(() {
+      setState(() {});
+    });
   }
 
   @override
@@ -95,80 +100,97 @@ class _BodyCompositionScreenState extends State<BodyCompositionScreen> with Sing
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      body: Column(
-        children: [
-          Padding(
-            padding: EdgeInsets.fromLTRB(8.w, 16.h, 8.w, 8.h),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                IntrinsicHeight(
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      IconButton(
-                        icon: const Icon(
-                          Icons.arrow_back_ios_new_rounded,
-                          color: AppColors.white,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final double width = constraints.maxWidth;
+        final bool isCompact = width < kMobileBreakpoint;
+        final double hPad = !isCompact
+            ? (width - kMaxContentWidth).clamp(24.0, double.infinity) / 2
+            : 8.w;
+
+        return Scaffold(
+          backgroundColor: AppColors.background,
+          body: Column(
+            children: [
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: hPad),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Padding(
+                      padding: EdgeInsets.symmetric(vertical: isCompact ? 24.h : 20.0),
+                      child: IntrinsicHeight(
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            IconButton(
+                              icon: Icon(
+                                Icons.arrow_back_ios_new_rounded,
+                                color: AppColors.white,
+                                size: isCompact ? 24.r : 20.0,
+                              ),
+                              onPressed: () => Navigator.pop(context),
+                            ),
+                            Expanded(
+                              child: Text(
+                                'BODY COMPOSITION',
+                                textAlign: TextAlign.center,
+                                style: AppTextStyles.h2.copyWith(
+                                  color: AppColors.white,
+                                  fontWeight: FontWeight.w500,
+                                  fontSize: isCompact ? 20.sp : 18.0,
+                                ),
+                              ),
+                            ),
+                            IconButton(
+                              icon: Icon(
+                                Icons.info_outline_rounded,
+                                color: Colors.transparent, // Keeping for alignment symmetry
+                                size: isCompact ? 24.r : 20.0,
+                              ),
+                              onPressed: null,
+                            ),
+                          ],
                         ),
-                        onPressed: () => Navigator.pop(context),
                       ),
-                      Expanded(
-                        child: Text(
-                          'BODY COMPOSITION',
-                          textAlign: TextAlign.center,
-                          style: AppTextStyles.h2.copyWith(
-                            color: AppColors.white,
-                            fontWeight: FontWeight.w400,
-                          ),
-                        ),
+                    ),
+                    TabBar(
+                      controller: _tabController,
+                      indicatorColor: AppColors.crimson,
+                      indicatorSize: TabBarIndicatorSize.tab,
+                      labelStyle: AppTextStyles.labelSmall.copyWith(
+                        fontWeight: FontWeight.w500,
+                        letterSpacing: 1.5,
+                        fontSize: isCompact ? 11.sp : 9.0,
                       ),
-                      const Opacity(
-                        opacity: 0,
-                        child: IconButton(
-                          icon: Icon(Icons.history_rounded),
-                          onPressed: null,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                TabBar(
-                  controller: _tabController,
-                  indicatorColor: AppColors.crimson,
-                  indicatorSize: TabBarIndicatorSize.tab,
-                  labelStyle: AppTextStyles.labelSmall.copyWith(
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: 1.5,
-                  ),
-                  unselectedLabelColor: AppColors.textSecondary,
-                  labelColor: AppColors.crimson,
-                  dividerColor: Colors.transparent,
-                  tabs: const [
-                    Tab(text: "TRACKER"),
-                    Tab(text: "LOGS"),
+                      unselectedLabelColor: AppColors.textSecondary,
+                      labelColor: AppColors.crimson,
+                      dividerColor: Colors.transparent,
+                      tabs: const [
+                        Tab(text: "TRACKER"),
+                        Tab(text: "LOGS"),
+                      ],
+                    ),
                   ],
                 ),
-              ],
-            ),
+              ),
+              Expanded(
+                child: TabBarView(
+                  controller: _tabController,
+                  children: [
+                    _buildTrackerTab(isCompact),
+                    _buildRecordsTab(isCompact),
+                  ],
+                ),
+              ),
+            ],
           ),
-          Expanded(
-            child: TabBarView(
-              controller: _tabController,
-              children: [
-                _buildTrackerTab(),
-                _buildRecordsTab(),
-              ],
-            ),
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 
-  Widget _buildTrackerTab() {
+  Widget _buildTrackerTab(bool isCompact) {
     return Consumer<BodyCompProvider>(
       builder: (context, provider, _) {
         final bool hasData = provider.logs.isNotEmpty;
@@ -217,89 +239,179 @@ class _BodyCompositionScreenState extends State<BodyCompositionScreen> with Sing
           onRefresh: () => provider.forceRefresh(),
           color: AppColors.crimson,
           backgroundColor: AppColors.surface,
-          child: SingleChildScrollView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            padding: EdgeInsets.symmetric(horizontal: 24.r, vertical: 12.h),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildSectionHeader("PROGRESS TREND"),
-                SizedBox(height: 24.h),
-                if (hasData)
-                  BodyCompGraph(
-                    dates: sortedMoments,
-                    data: aggregatedData,
-                    visibleMetrics: _visibleMetrics,
-                    onPointSelected: (idx) {},
-                  )
-                else
-                  SizedBox(
-                    height: 240.h,
-                    width: double.infinity,
-                    child: Center(
-                      child: Text(
-                        "LOG DATA TO SEE TRENDS",
-                        style: AppTextStyles.labelSmall.copyWith(
-                          color: AppColors.textSecondary.withValues(alpha: 0.3),
-                          letterSpacing: 1.5,
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final bool isWide = constraints.maxWidth > 700;
+
+              if (isWide) {
+                return Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // --- LEFT COLUMN: TRENDS & OVERLAY ---
+                    Expanded(
+                      child: SingleChildScrollView(
+                        padding: EdgeInsets.all(isCompact ? 24.r : 20.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _buildSectionHeader("PROGRESS TREND", isCompact),
+                            SizedBox(height: isCompact ? 24.h : 20.0),
+                            if (hasData)
+                              BodyCompGraph(
+                                dates: sortedMoments,
+                                data: aggregatedData,
+                                visibleMetrics: _visibleMetrics,
+                                onPointSelected: (idx) {},
+                                isCompact: isCompact,
+                              )
+                            else
+                              _buildEmptyTrendState(isCompact),
+                            SizedBox(height: isCompact ? 32.h : 24.0),
+                            _buildSectionHeader("METRIC OVERLAY", isCompact),
+                            SizedBox(height: isCompact ? 16.h : 12.0),
+                            Wrap(
+                              spacing: isCompact ? 10.w : 10.0,
+                              runSpacing: isCompact ? 10.h : 10.0,
+                              children: [
+                                _buildMetricToggle("WEIGHT", "weight", Colors.tealAccent, isCompact, enabled: hasData),
+                                _buildMetricToggle("FAT", "fat", Colors.redAccent, isCompact, enabled: hasData),
+                                _buildMetricToggle("MUSCLE", "muscle", Colors.lightGreenAccent, isCompact, enabled: hasData),
+                              ],
+                            ),
+                          ],
                         ),
                       ),
                     ),
-                  ),
-                
-                SizedBox(height: 32.h),
-                _buildSectionHeader("METRIC OVERLAY"),
-                SizedBox(height: 16.h),
-                Wrap(
-                  spacing: 10.w,
-                  runSpacing: 10.h,
-                  children: [
-                    _buildMetricToggle("WEIGHT", "weight", Colors.tealAccent, enabled: hasData),
-                    _buildMetricToggle("FAT", "fat", Colors.redAccent, enabled: hasData),
-                    _buildMetricToggle("MUSCLE", "muscle", Colors.lightGreenAccent, enabled: hasData),
-                  ],
-                ),
-                
-                SizedBox(height: 40.h),
-                _buildSectionHeader("DATA COMPARISON"),
-                SizedBox(height: 16.h),
-                if (hasData)
-                  BodyCompComparisonWidget(
-                    idx1: _comparisonIdx1,
-                    idx2: _comparisonIdx2,
-                    dates: sortedMoments,
-                    data: aggregatedData,
-                    onPointAChanged: (val) => setState(() => _comparisonIdx1 = val),
-                    onPointBChanged: (val) => setState(() => _comparisonIdx2 = val),
-                  )
-                else
-                  Container(
-                    height: 100.h,
-                    width: double.infinity,
-                    alignment: Alignment.center,
-                    child: Text(
-                      "NO POINTS TO COMPARE YET",
-                      style: AppTextStyles.labelSmall.copyWith(
-                        color: AppColors.textSecondary.withValues(alpha: 0.2),
-                        letterSpacing: 1.0,
+                    VerticalDivider(color: AppColors.white.withValues(alpha : 0.05), width: 1),
+                    // --- RIGHT COLUMN: COMPARISON & ENTRY ---
+                    Expanded(
+                      child: SingleChildScrollView(
+                        padding: EdgeInsets.all(isCompact ? 24.r : 20.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _buildSectionHeader("DATA COMPARISON", isCompact),
+                            SizedBox(height: isCompact ? 16.h : 12.0),
+                            if (hasData)
+                              BodyCompComparisonWidget(
+                                idx1: _comparisonIdx1,
+                                idx2: _comparisonIdx2,
+                                dates: sortedMoments,
+                                data: aggregatedData,
+                                isCompact: isCompact,
+                                onPointAChanged: (val) => setState(() => _comparisonIdx1 = val),
+                                onPointBChanged: (val) => setState(() => _comparisonIdx2 = val),
+                              )
+                            else
+                              _buildEmptyComparisonState(isCompact),
+                            SizedBox(height: isCompact ? 40.h : 32.0),
+                            _buildSectionHeader('LOG NEW DATA', isCompact),
+                            SizedBox(height: isCompact ? 16.h : 12.0),
+                            _buildEntryCard(provider, isCompact),
+                            SizedBox(height: 40.h),
+                          ],
+                        ),
                       ),
                     ),
-                  ),
-                  
-                SizedBox(height: 40.h),
-                _buildSectionHeader('LOG NEW DATA'),
-                SizedBox(height: 16.h),
-                _buildEntryCard(provider),
-                SizedBox(height: 40.h),
-              ],
-            ),
+                  ],
+                );
+              }
+
+              // --- MOBILE: SINGLE COLUMN ---
+              return SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: EdgeInsets.symmetric(horizontal: isCompact ? 24.r : 20.0, vertical: isCompact ? 12.h : 10.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildSectionHeader("PROGRESS TREND", isCompact),
+                    SizedBox(height: isCompact ? 24.h : 20.0),
+                    if (hasData)
+                      BodyCompGraph(
+                        dates: sortedMoments,
+                        data: aggregatedData,
+                        visibleMetrics: _visibleMetrics,
+                        onPointSelected: (idx) {},
+                        isCompact: isCompact,
+                      )
+                    else
+                      _buildEmptyTrendState(isCompact),
+                    SizedBox(height: isCompact ? 32.h : 24.0),
+                    _buildSectionHeader("METRIC OVERLAY", isCompact),
+                    SizedBox(height: isCompact ? 16.h : 12.0),
+                    Wrap(
+                      spacing: isCompact ? 10.w : 10.0,
+                      runSpacing: isCompact ? 10.h : 10.0,
+                      children: [
+                        _buildMetricToggle("WEIGHT", "weight", Colors.tealAccent, isCompact, enabled: hasData),
+                        _buildMetricToggle("FAT", "fat", Colors.redAccent, isCompact, enabled: hasData),
+                        _buildMetricToggle("MUSCLE", "muscle", Colors.lightGreenAccent, isCompact, enabled: hasData),
+                      ],
+                    ),
+                    SizedBox(height: isCompact ? 40.h : 32.0),
+                    _buildSectionHeader("DATA COMPARISON", isCompact),
+                    SizedBox(height: isCompact ? 16.h : 12.0),
+                    if (hasData)
+                      BodyCompComparisonWidget(
+                        idx1: _comparisonIdx1,
+                        idx2: _comparisonIdx2,
+                        dates: sortedMoments,
+                        data: aggregatedData,
+                        isCompact: isCompact,
+                        onPointAChanged: (val) => setState(() => _comparisonIdx1 = val),
+                        onPointBChanged: (val) => setState(() => _comparisonIdx2 = val),
+                      )
+                    else
+                      _buildEmptyComparisonState(isCompact),
+                    SizedBox(height: isCompact ? 40.h : 32.0),
+                    _buildSectionHeader('LOG NEW DATA', isCompact),
+                    SizedBox(height: isCompact ? 16.h : 12.0),
+                    _buildEntryCard(provider, isCompact),
+                    SizedBox(height: 40.h),
+                  ],
+                ),
+              );
+            },
           ),
         );
       },
     );
   }
 
-  Widget _buildMetricToggle(String label, String key, Color color, {bool enabled = true}) {
+  Widget _buildEmptyTrendState(bool isCompact) {
+    return SizedBox(
+      height: isCompact ? 240.h : 200.0,
+      width: double.infinity,
+      child: Center(
+        child: Text(
+          "LOG DATA TO SEE TRENDS",
+          style: AppTextStyles.labelSmall.copyWith(
+            color: AppColors.textSecondary.withValues(alpha: 0.3),
+            letterSpacing: 1.5,
+            fontSize: isCompact ? 10.sp : 12.0,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEmptyComparisonState(bool isCompact) {
+    return Container(
+      height: isCompact ? 100.h : 80.0,
+      width: double.infinity,
+      alignment: Alignment.center,
+      child: Text(
+        "NO POINTS TO COMPARE YET",
+        style: AppTextStyles.labelSmall.copyWith(
+          color: AppColors.textSecondary.withValues(alpha: 0.2),
+          letterSpacing: 1.0,
+          fontSize: isCompact ? 10.sp : 12.0,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMetricToggle(String label, String key, Color color, bool isCompact, {bool enabled = true}) {
     final bool isActive = _visibleMetrics.contains(key);
     return GestureDetector(
       onTap: !enabled ? null : () {
@@ -313,12 +425,12 @@ class _BodyCompositionScreenState extends State<BodyCompositionScreen> with Sing
       },
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 10.h),
+        padding: EdgeInsets.symmetric(horizontal: isCompact ? 16.w : 12.0, vertical: isCompact ? 10.h : 8.0),
         decoration: BoxDecoration(
-          color: isActive && enabled ? color.withOpacity(0.1) : AppColors.surface,
-          borderRadius: BorderRadius.circular(12.r),
+          color: isActive && enabled ? color.withValues(alpha : 0.1) : AppColors.surface,
+          borderRadius: BorderRadius.circular(isCompact ? 12.r : 10.0),
           border: Border.all(
-            color: isActive && enabled ? color : AppColors.white.withOpacity(0.05),
+            color: isActive && enabled ? color : AppColors.white.withValues(alpha : 0.05),
             width: 1.5,
           ),
         ),
@@ -326,20 +438,21 @@ class _BodyCompositionScreenState extends State<BodyCompositionScreen> with Sing
           mainAxisSize: MainAxisSize.min,
           children: [
             Container(
-              width: 8.r,
-              height: 8.r,
+              width: isCompact ? 8.r : 6.0,
+              height: isCompact ? 8.r : 6.0,
               decoration: BoxDecoration(
-                color: isActive && enabled ? color : AppColors.textSecondary.withOpacity(0.3),
+                color: isActive && enabled ? color : AppColors.textSecondary.withValues(alpha : 0.3),
                 shape: BoxShape.circle,
               ),
             ),
-            SizedBox(width: 10.w),
+            SizedBox(width: isCompact ? 10.w : 8.0),
             Text(
               label,
               style: AppTextStyles.labelSmall.copyWith(
-                color: enabled ? (isActive ? AppColors.white : AppColors.textSecondary) : AppColors.textSecondary.withOpacity(0.2),
-                fontWeight: isActive && enabled ? FontWeight.w900 : FontWeight.w500,
+                color: enabled ? (isActive ? AppColors.white : AppColors.textSecondary) : AppColors.textSecondary.withValues(alpha : 0.2),
+                fontWeight: FontWeight.w500,
                 letterSpacing: 1,
+                fontSize: isCompact ? 10.sp : 12.0,
               ),
             ),
           ],
@@ -348,36 +461,36 @@ class _BodyCompositionScreenState extends State<BodyCompositionScreen> with Sing
     );
   }
 
-  Widget _buildSectionHeader(String title) {
+  Widget _buildSectionHeader(String title, bool isCompact) {
     return Row(
       children: [
         Container(
-          width: 2.5.w,
-          height: 12.h,
+          width: 2.5,
+          height: isCompact ? 12.h : 10.0,
           decoration: BoxDecoration(
             color: AppColors.crimson,
             borderRadius: BorderRadius.circular(2.r),
           ),
         ),
-        SizedBox(width: 8.w),
+        SizedBox(width: isCompact ? 8.w : 6.0),
         Text(
           title,
           style: AppTextStyles.labelSmall.copyWith(
             color: AppColors.textSecondary.withValues(alpha: 0.8),
-            fontSize: 12.sp,
+            fontSize: isCompact ? 11.sp : 12.0,
           ),
         ),
       ],
     );
   }
 
-  Widget _buildEntryCard(BodyCompProvider provider) {
+  Widget _buildEntryCard(BodyCompProvider provider, bool isCompact) {
     String formattedTime = DateFormat('MMM dd, hh:mm a').format(_selectedLogDate);
     return Container(
-      padding: EdgeInsets.all(18.r),
+      padding: EdgeInsets.all(isCompact ? 18.r : 16.0),
       decoration: BoxDecoration(
         color: AppColors.surfaceLight.withValues(alpha: 0.35),
-        borderRadius: BorderRadius.circular(20.r),
+        borderRadius: BorderRadius.circular(isCompact ? 20.r : 16.0),
         border: Border.all(color: AppColors.white.withValues(alpha: 0.05)),
       ),
       child: Column(
@@ -387,65 +500,85 @@ class _BodyCompositionScreenState extends State<BodyCompositionScreen> with Sing
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text('Date & Time', style: AppTextStyles.labelMedium.copyWith(fontSize: 12.sp)),
+                Text('Date & Time', style: AppTextStyles.labelMedium.copyWith(fontSize: isCompact ? 12.sp : 10.0)),
                 Container(
-                  padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 5.h),
+                  padding: EdgeInsets.symmetric(horizontal: isCompact ? 10.w : 8.0, vertical: isCompact ? 5.h : 4.0),
                   decoration: BoxDecoration(
                     color: AppColors.white.withValues(alpha: 0.03),
                     borderRadius: BorderRadius.circular(6.r),
                   ),
                   child: Row(
                     children: [
-                      Text(formattedTime, style: AppTextStyles.labelSmall.copyWith(color: AppColors.crimson, fontSize: 10.sp)),
+                      Text(formattedTime, style: AppTextStyles.labelSmall.copyWith(color: AppColors.crimson, fontSize: isCompact ? 10.sp : 8.0)),
                       SizedBox(width: 6.w),
-                      Icon(Icons.calendar_month_rounded, size: 12.r, color: AppColors.crimson),
+                      Icon(Icons.calendar_month_rounded, size: isCompact ? 12.r : 10.0, color: AppColors.crimson),
                     ],
                   ),
                 ),
               ],
             ),
           ),
-          Divider(color: AppColors.white.withValues(alpha: 0.03), height: 24.h),
+          Divider(color: AppColors.white.withValues(alpha: 0.03), height: isCompact ? 24.h : 20.0),
           
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              _buildEntryMetricToggle("WEIGHT", "weight"),
-              _buildEntryMetricToggle("BODY FAT", "fat"),
-              _buildEntryMetricToggle("MUSCLE", "muscle"),
+              _buildEntryMetricToggle("WEIGHT", "weight", isCompact),
+              _buildEntryMetricToggle("BODY FAT", "fat", isCompact),
+              _buildEntryMetricToggle("MUSCLE", "muscle", isCompact),
             ],
           ),
           
           if (_entryMetrics.isNotEmpty) ...[
-            SizedBox(height: 12.h),
-            Divider(color: AppColors.white.withValues(alpha: 0.03), height: 24.h),
-            if (_entryMetrics.contains("weight")) _buildInputRow('Weight', provider.settings.weightUnit == WeightUnit.kgs ? 'kg' : 'lbs', _weightController),
+            SizedBox(height: isCompact ? 12.h : 10.0),
+            Divider(color: AppColors.white.withValues(alpha: 0.03), height: isCompact ? 24.h : 20.0),
+            if (_entryMetrics.contains("weight")) _buildInputRow('Weight', provider.settings.weightUnit == WeightUnit.kgs ? 'kg' : 'lbs', _weightController, isCompact),
             if (_entryMetrics.contains("weight") && (_entryMetrics.contains("fat") || _entryMetrics.contains("muscle")))
-              Divider(color: AppColors.white.withValues(alpha: 0.03), height: 24.h),
-            if (_entryMetrics.contains("fat")) _buildInputRow('Body Fat', _fatUnit == BodyMetricUnit.percentage ? '%' : (provider.settings.weightUnit == WeightUnit.kgs ? 'kg' : 'lbs'), _fatController, onUnitToggle: () {
-              setState(() => _fatUnit = _fatUnit == BodyMetricUnit.kg ? BodyMetricUnit.percentage : BodyMetricUnit.kg);
-            }),
+              Divider(color: AppColors.white.withValues(alpha: 0.03), height: isCompact ? 24.h : 20.0),
+            
+            if (_entryMetrics.contains("fat")) 
+              _buildInputRow(
+                'Body Fat', 
+                _fatUnit == BodyMetricUnit.percentage ? '%' : (provider.settings.weightUnit == WeightUnit.kgs ? 'kg' : 'lbs'), 
+                _fatController, 
+                isCompact,
+                enabled: _weightController.text.trim().isNotEmpty,
+                onUnitToggle: () {
+                  setState(() => _fatUnit = _fatUnit == BodyMetricUnit.kg ? BodyMetricUnit.percentage : BodyMetricUnit.kg);
+                }
+              ),
+              
             if (_entryMetrics.contains("fat") && _entryMetrics.contains("muscle"))
-              Divider(color: AppColors.white.withValues(alpha: 0.03), height: 24.h),
-            if (_entryMetrics.contains("muscle")) _buildInputRow('Muscle Mass', _muscleUnit == BodyMetricUnit.percentage ? '%' : (provider.settings.weightUnit == WeightUnit.kgs ? 'kg' : 'lbs'), _muscleController, onUnitToggle: () {
-              setState(() => _muscleUnit = _muscleUnit == BodyMetricUnit.kg ? BodyMetricUnit.percentage : BodyMetricUnit.kg);
-            }),
+              Divider(color: AppColors.white.withValues(alpha: 0.03), height: isCompact ? 24.h : 20.0),
+              
+            if (_entryMetrics.contains("muscle")) 
+              _buildInputRow(
+                'Muscle Mass', 
+                _muscleUnit == BodyMetricUnit.percentage ? '%' : (provider.settings.weightUnit == WeightUnit.kgs ? 'kg' : 'lbs'), 
+                _muscleController, 
+                isCompact,
+                enabled: _weightController.text.trim().isNotEmpty,
+                onUnitToggle: () {
+                  setState(() => _muscleUnit = _muscleUnit == BodyMetricUnit.kg ? BodyMetricUnit.percentage : BodyMetricUnit.kg);
+                }
+              ),
           ] else ...[
              Padding(
-               padding: EdgeInsets.symmetric(vertical: 24.h),
+               padding: EdgeInsets.symmetric(vertical: isCompact ? 24.h : 20.0),
                child: Text(
                  "SELECT METRICS TO RECORD",
                  style: AppTextStyles.labelSmall.copyWith(
-                   color: AppColors.textSecondary.withOpacity(0.3),
+                   color: AppColors.textSecondary.withValues(alpha : 0.3),
                    letterSpacing: 1,
+                   fontSize: isCompact ? 10.sp : 9.0,
                  ),
                ),
              ),
           ],
 
-          SizedBox(height: 20.h),
+          SizedBox(height: isCompact ? 20.h : 16.0),
           GestureDetector(
-            onTap: _entryMetrics.isEmpty ? null : () async {
+            onTap: (_entryMetrics.isEmpty || _weightController.text.trim().isEmpty) ? null : () async {
               final w = _entryMetrics.contains("weight") ? (double.tryParse(_weightController.text) ?? 0.0) : 0.0;
               final f = _entryMetrics.contains("fat") ? (double.tryParse(_fatController.text) ?? 0.0) : 0.0;
               final m = _entryMetrics.contains("muscle") ? (double.tryParse(_muscleController.text) ?? 0.0) : 0.0;
@@ -494,19 +627,25 @@ class _BodyCompositionScreenState extends State<BodyCompositionScreen> with Sing
             },
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 200),
-              height: 48.h,
+              height: isCompact ? 48.h : 44.0,
               width: double.infinity,
               decoration: BoxDecoration(
-                color: _entryMetrics.isEmpty ? AppColors.white.withOpacity(0.05) : AppColors.crimson, 
-                borderRadius: BorderRadius.circular(12.r),
+                color: (_entryMetrics.isEmpty || _weightController.text.trim().isEmpty) 
+                    ? AppColors.white.withValues(alpha : 0.05) 
+                    : AppColors.crimson, 
+                borderRadius: BorderRadius.circular(isCompact ? 12.r : 10.0),
               ),
               alignment: Alignment.center,
               child: Text(
-                _entryMetrics.isEmpty ? 'SELECT A METRIC' : 'SAVE ENTRY', 
+                _weightController.text.trim().isEmpty 
+                    ? 'ADD WEIGHT TO SAVE ENTRY'
+                    : (_entryMetrics.isEmpty ? 'SELECT A METRIC' : 'SAVE ENTRY'), 
                 style: AppTextStyles.buttonPrimary.copyWith(
-                  fontSize: 12.sp,
-                  color: _entryMetrics.isEmpty ? AppColors.textSecondary.withOpacity(0.3) : Colors.white,
-                  fontWeight: _entryMetrics.isEmpty ? FontWeight.normal : FontWeight.bold,
+                  fontSize: isCompact ? 12.sp : 11.0,
+                  color: (_entryMetrics.isEmpty || _weightController.text.trim().isEmpty) 
+                      ? AppColors.textSecondary.withValues(alpha : 0.3) 
+                      : Colors.white,
+                  fontWeight: FontWeight.w500,
                 ),
               ),
             ),
@@ -516,7 +655,7 @@ class _BodyCompositionScreenState extends State<BodyCompositionScreen> with Sing
     );
   }
 
-  Widget _buildEntryMetricToggle(String label, String key) {
+  Widget _buildEntryMetricToggle(String label, String key, bool isCompact) {
     final bool isSelected = _entryMetrics.contains(key);
     return GestureDetector(
       onTap: () {
@@ -530,75 +669,84 @@ class _BodyCompositionScreenState extends State<BodyCompositionScreen> with Sing
       },
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
+        padding: EdgeInsets.symmetric(horizontal: isCompact ? 12.w : 10.0, vertical: isCompact ? 8.h : 6.0),
         decoration: BoxDecoration(
-          color: isSelected ? AppColors.crimson.withOpacity(0.1) : Colors.transparent,
-          borderRadius: BorderRadius.circular(8.r),
+          color: isSelected ? AppColors.crimson.withValues(alpha : 0.1) : Colors.transparent,
+          borderRadius: BorderRadius.circular(isCompact ? 8.r : 6.0),
           border: Border.all(
-            color: isSelected ? AppColors.crimson : AppColors.white.withOpacity(0.05),
+            color: isSelected ? AppColors.crimson : AppColors.white.withValues(alpha : 0.05),
             width: 1.5,
           ),
         ),
         child: Text(
           label,
           style: AppTextStyles.labelSmall.copyWith(
-            color: isSelected ? AppColors.white : AppColors.textSecondary.withOpacity(0.4),
-            fontSize: 9.sp,
-            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+            color: isSelected ? AppColors.white : AppColors.textSecondary.withValues(alpha : 0.4),
+            fontSize: isCompact ? 9.sp : 8.0,
+            fontWeight: FontWeight.w500,
           ),
         ),
       ),
     );
   }
 
-  Widget _buildInputRow(String label, String currentUnit, TextEditingController controller, {VoidCallback? onUnitToggle}) {
-    return Padding(
-      padding: EdgeInsets.symmetric(vertical: 4.h),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(label, style: AppTextStyles.labelMedium.copyWith(fontSize: 13.sp, color: AppColors.white.withOpacity(0.9))),
-          Row(
-            children: [
-              SizedBox(
-                width: 70.w,
-                child: TextField(
-                  controller: controller,
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                  inputFormatters: [
-                    FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,3}')),
-                  ],
-                  textAlign: TextAlign.end,
-                  style: AppTextStyles.h3.copyWith(fontSize: 18.sp, color: AppColors.white),
-                  decoration: InputDecoration(
-                    hintText: ' ',
-                    isDense: true,
-                    contentPadding: EdgeInsets.symmetric(vertical: 4.h),
-                    enabledBorder: const UnderlineInputBorder(borderSide: BorderSide(color: Colors.white24)),
-                    focusedBorder: const UnderlineInputBorder(borderSide: BorderSide(color: AppColors.crimson)),
+  Widget _buildInputRow(String label, String currentUnit, TextEditingController controller, bool isCompact, {VoidCallback? onUnitToggle, bool enabled = true}) {
+    return AnimatedOpacity(
+      duration: const Duration(milliseconds: 200),
+      opacity: enabled ? 1.0 : 0.3,
+      child: Padding(
+        padding: EdgeInsets.symmetric(vertical: isCompact ? 4.h : 4.0),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(label, style: AppTextStyles.labelMedium.copyWith(fontSize: isCompact ? 13.sp : 11.0, color: AppColors.white.withValues(alpha : 0.9))),
+            Row(
+              children: [
+                SizedBox(
+                  width: isCompact ? 70.w : 50.0,
+                  child: TextField(
+                    controller: controller,
+                    enabled: enabled,
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    inputFormatters: [
+                      FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,3}')),
+                    ],
+                    textAlign: TextAlign.end,
+                    style: AppTextStyles.h3.copyWith(fontSize: isCompact ? 18.sp : 14.0, color: AppColors.white),
+                    decoration: InputDecoration(
+                      hintText: enabled ? ' ' : '---',
+                      isDense: true,
+                      contentPadding: EdgeInsets.symmetric(vertical: isCompact ? 4.h : 4.0),
+                      enabledBorder: const UnderlineInputBorder(borderSide: BorderSide(color: Colors.white24)),
+                      disabledBorder: const UnderlineInputBorder(borderSide: BorderSide(color: Colors.white10)),
+                      focusedBorder: const UnderlineInputBorder(borderSide: BorderSide(color: AppColors.crimson)),
+                    ),
                   ),
                 ),
-              ),
-              SizedBox(width: 16.w),
-              if (onUnitToggle != null)
-                _buildUnitToggle(currentUnit, onUnitToggle)
-              else
-                Container(
-                  width: 40.w,
-                  alignment: Alignment.center,
-                  child: Text(
-                    currentUnit,
-                    style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary, fontWeight: FontWeight.bold),
+                SizedBox(width: isCompact ? 16.w : 12.0),
+                if (onUnitToggle != null)
+                  IgnorePointer(
+                    ignoring: !enabled,
+                    child: _buildUnitToggle(currentUnit, onUnitToggle, isCompact),
+                  )
+                else
+                  Container(
+                    width: isCompact ? 40.w : 36.0,
+                    alignment: Alignment.center,
+                    child: Text(
+                      currentUnit,
+                      style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary, fontWeight: FontWeight.w500, fontSize: isCompact ? 10.sp : 8.0),
+                    ),
                   ),
-                ),
-            ],
-          ),
-        ],
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildUnitToggle(String currentUnit, VoidCallback onToggle) {
+  Widget _buildUnitToggle(String currentUnit, VoidCallback onToggle, bool isCompact) {
     final bool isPercentage = currentUnit == "%";
     final provider = context.read<BodyCompProvider>();
     final String massUnit = provider.settings.weightUnit == WeightUnit.kgs ? "kg" : "lbs";
@@ -610,23 +758,23 @@ class _BodyCompositionScreenState extends State<BodyCompositionScreen> with Sing
         decoration: BoxDecoration(
           color: AppColors.surface,
           borderRadius: BorderRadius.circular(8.r),
-          border: Border.all(color: AppColors.white.withOpacity(0.05)),
+          border: Border.all(color: AppColors.white.withValues(alpha : 0.05)),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            _buildUnitChip(massUnit, !isPercentage),
-            _buildUnitChip("%", isPercentage),
+            _buildUnitChip(massUnit, !isPercentage, isCompact),
+            _buildUnitChip("%", isPercentage, isCompact),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildUnitChip(String label, bool isSelected) {
+  Widget _buildUnitChip(String label, bool isSelected, bool isCompact) {
     return AnimatedContainer(
       duration: const Duration(milliseconds: 200),
-      padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
+      padding: EdgeInsets.symmetric(horizontal: isCompact ? 8.w : 6.0, vertical: isCompact ? 4.h : 4.0),
       decoration: BoxDecoration(
         color: isSelected ? AppColors.crimson : Colors.transparent,
         borderRadius: BorderRadius.circular(6.r),
@@ -635,14 +783,14 @@ class _BodyCompositionScreenState extends State<BodyCompositionScreen> with Sing
         label,
         style: AppTextStyles.labelSmall.copyWith(
           color: isSelected ? Colors.white : AppColors.textSecondary,
-          fontSize: 10.sp,
-          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+          fontSize: isCompact ? 10.sp : 8.0,
+          fontWeight: FontWeight.w500,
         ),
       ),
     );
   }
 
-  Widget _buildRecordsTab() {
+  Widget _buildRecordsTab(bool isCompact) {
     return Consumer<BodyCompProvider>(
       builder: (context, provider, _) {
         final Set<DateTime> dateSet = provider.logs.map((l) => 
@@ -660,113 +808,182 @@ class _BodyCompositionScreenState extends State<BodyCompositionScreen> with Sing
 
         historyLogs.sort((a, b) => b.timestamp.compareTo(a.timestamp));
 
-        if (_isCalendarExpanded) {
-          return Container(
-            color: AppColors.background,
-            child: Column(
-              children: [
-                Expanded(
-                  child: SingleChildScrollView(
-                    physics: const BouncingScrollPhysics(),
-                    child: _buildCustomExpandedCalendar(dateSet),
+        return LayoutBuilder(
+          builder: (context, constraints) {
+            final bool isWide = constraints.maxWidth > 700;
+
+            if (isWide) {
+              return Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // --- LEFT COLUMN: CALENDAR (TAKES WHOLE SPACE) ---
+                  Expanded(
+                    flex: 5,
+                    child: Container(
+                      color: AppColors.background,
+                      child: Column(
+                        children: [
+                          Expanded(
+                            child: SingleChildScrollView(
+                              physics: const BouncingScrollPhysics(),
+                              padding: const EdgeInsets.symmetric(vertical: 20.0),
+                              child: _buildCustomExpandedCalendar(dateSet, isCompact),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
+                  VerticalDivider(color: AppColors.white.withValues(alpha : 0.05), width: 1),
+                  // --- RIGHT COLUMN: SLIDER + LOGS ---
+                  Expanded(
+                    flex: 5,
+                    child: Column(
+                      children: [
+                        _buildHorizontalCalendar(dateSet, isCompact),
+                        const Divider(color: Colors.white10, height: 1),
+                        Expanded(
+                          child: ListView(
+                            padding: const EdgeInsets.all(20.0),
+                            physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+                            children: [
+                              if (historyLogs.isNotEmpty) ...[
+                                _buildSectionHeader("LOGGED METRICS", isCompact),
+                                SizedBox(height: 20.0),
+                                Column(
+                                  children: historyLogs.map((log) => _buildRecordCard(log, provider, isCompact)).toList(),
+                                ),
+                              ] else
+                                SizedBox(
+                                  height: 400,
+                                  child: Center(
+                                    child: Text(
+                                      "No logs for this date.",
+                                      style: AppTextStyles.labelSmall.copyWith(
+                                        color: AppColors.textSecondary,
+                                        fontSize: isCompact ? 13.sp : 11.0,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              );
+            }
+
+            // --- MOBILE: SINGLE COLUMN ---
+            if (_isCalendarExpanded) {
+              return Container(
+                color: AppColors.background,
+                child: Column(
+                  children: [
+                    Expanded(
+                      child: SingleChildScrollView(
+                        physics: const BouncingScrollPhysics(),
+                        child: _buildCustomExpandedCalendar(dateSet, isCompact),
+                      ),
+                    ),
+                    GestureDetector(
+                      onTap: () {
+                        setState(() => _isCalendarExpanded = false);
+                        WidgetsBinding.instance.addPostFrameCallback((_) {
+                          final now = DateTime.now();
+                          final today = DateTime(now.year, now.month, now.day);
+                          final target = DateTime(_selectedHistoryDate.year, _selectedHistoryDate.month, _selectedHistoryDate.day);
+                          final int dayDiff = today.difference(target).inDays;
+                          if (dayDiff >= 0 && dayDiff < 365) {
+                            if (_pageController.hasClients) {
+                              _pageController.animateToPage(
+                                dayDiff, 
+                                duration: const Duration(milliseconds: 300), 
+                                curve: Curves.easeInOut
+                              );
+                            }
+                          }
+                        });
+                      },
+                      child: Container(
+                        width: double.infinity,
+                        padding: EdgeInsets.symmetric(vertical: 16.h),
+                        color: Colors.transparent,
+                        child: Icon(
+                          Icons.keyboard_arrow_up_rounded,
+                          color: AppColors.textSecondary.withValues(alpha: 0.4),
+                          size: 24.r,
+                        ),
+                      ),
+                    ),
+                    SizedBox(height: 20.h),
+                  ],
                 ),
+              );
+            }
+
+            return Column(
+              children: [
+                _buildHorizontalCalendar(dateSet, isCompact),
                 GestureDetector(
                   onTap: () {
-                    setState(() => _isCalendarExpanded = false);
-                    WidgetsBinding.instance.addPostFrameCallback((_) {
-                      final now = DateTime.now();
-                      final today = DateTime(now.year, now.month, now.day);
-                      final target = DateTime(_selectedHistoryDate.year, _selectedHistoryDate.month, _selectedHistoryDate.day);
-                      final int dayDiff = today.difference(target).inDays;
-                      if (dayDiff >= 0 && dayDiff < 365) {
-                        if (_pageController.hasClients) {
-                          _pageController.animateToPage(
-                            dayDiff, 
-                            duration: const Duration(milliseconds: 300), 
-                            curve: Curves.easeInOut
-                          );
-                        }
-                      }
+                    setState(() {
+                      _isCalendarExpanded = true;
+                      _displayedMonth = DateTime(_selectedHistoryDate.year, _selectedHistoryDate.month);
                     });
                   },
                   child: Container(
                     width: double.infinity,
-                    padding: EdgeInsets.symmetric(vertical: 16.h),
+                    padding: EdgeInsets.symmetric(vertical: 4.h),
                     color: Colors.transparent,
                     child: Icon(
-                      Icons.keyboard_arrow_up_rounded,
+                      Icons.keyboard_arrow_down_rounded,
                       color: AppColors.textSecondary.withValues(alpha: 0.4),
                       size: 24.r,
                     ),
                   ),
                 ),
-                SizedBox(height: 20.h),
-              ],
-            ),
-          );
-        }
-
-        return Column(
-          children: [
-            _buildHorizontalCalendar(dateSet),
-            GestureDetector(
-              onTap: () {
-                setState(() {
-                  _isCalendarExpanded = true;
-                  _displayedMonth = DateTime(_selectedHistoryDate.year, _selectedHistoryDate.month);
-                });
-              },
-              child: Container(
-                width: double.infinity,
-                padding: EdgeInsets.symmetric(vertical: 4.h),
-                color: Colors.transparent,
-                child: Icon(
-                  Icons.keyboard_arrow_down_rounded,
-                  color: AppColors.textSecondary.withValues(alpha: 0.4),
-                  size: 24.r,
-                ),
-              ),
-            ),
-            const Divider(color: Colors.white10, height: 1),
-            Expanded(
-              child: LayoutBuilder(
-                  builder: (context, constraints) => ListView(
+                const Divider(color: Colors.white10, height: 1),
+                Expanded(
+                  child: ListView(
                     padding: EdgeInsets.zero,
                     physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
                     children: [
                       if (historyLogs.isNotEmpty) ...[
                         Padding(
                           padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 20.h),
-                          child: _buildSectionHeader("LOGGED METRICS"),
+                          child: _buildSectionHeader("LOGGED METRICS", isCompact),
                         ),
                         Padding(
                           padding: EdgeInsets.symmetric(horizontal: 20.w),
                           child: Column(
-                            children: historyLogs.map((log) => _buildRecordCard(log, provider)).toList(),
+                            children: historyLogs.map((log) => _buildRecordCard(log, provider, isCompact)).toList(),
                           ),
                         ),
                       ] else
-                        Container(
-                          constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                        SizedBox(
+                          height: 300.h,
                           child: Center(
                             child: Text(
                               "No logs for this date.",
-                              style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary),
+                              style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary, fontSize: 12.sp),
                             ),
                           ),
                         ),
                     ],
                   ),
                 ),
-            ),
-          ],
+              ],
+            );
+          },
         );
       },
     );
   }
 
-  Widget _buildRecordCard(BodyCompLog log, BodyCompProvider provider) {
+  Widget _buildRecordCard(BodyCompLog log, BodyCompProvider provider, bool isCompact) {
     Color metricColor;
     IconData metricIcon;
     String label;
@@ -802,21 +1019,21 @@ class _BodyCompositionScreenState extends State<BodyCompositionScreen> with Sing
       },
       background: Container(
         alignment: Alignment.centerRight,
-        padding: EdgeInsets.only(right: 24.w),
-        margin: EdgeInsets.only(bottom: 12.h),
+        padding: EdgeInsets.only(right: isCompact ? 24.w : 20.0),
+        margin: EdgeInsets.only(bottom: isCompact ? 12.h : 10.0),
         decoration: BoxDecoration(
           color: AppColors.error.withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(16.r),
+          borderRadius: BorderRadius.circular(isCompact ? 16.r : 12.0),
         ),
-        child: const Icon(Icons.delete_outline_rounded, color: AppColors.error, size: 28),
+        child: Icon(Icons.delete_outline_rounded, color: AppColors.error, size: isCompact ? 28.r : 24.0),
       ),
       onDismissed: (_) => provider.deleteLog(log.id, log.type),
       child: Container(
-        margin: EdgeInsets.only(bottom: 12.h),
-        padding: EdgeInsets.all(16.r),
+        margin: EdgeInsets.only(bottom: isCompact ? 12.h : 10.0),
+        padding: EdgeInsets.all(isCompact ? 16.r : 14.0),
         decoration: BoxDecoration(
           color: AppColors.surfaceLight.withValues(alpha: 0.3),
-          borderRadius: BorderRadius.circular(16.r),
+          borderRadius: BorderRadius.circular(isCompact ? 16.r : 12.0),
           border: Border.all(color: AppColors.white.withValues(alpha: 0.03)),
         ),
         child: Row(
@@ -825,14 +1042,14 @@ class _BodyCompositionScreenState extends State<BodyCompositionScreen> with Sing
             Row(
               children: [
                 Container(
-                  padding: EdgeInsets.all(10.r),
+                  padding: EdgeInsets.all(isCompact ? 10.r : 8.0),
                   decoration: BoxDecoration(
                     color: metricColor.withValues(alpha: 0.1),
                     shape: BoxShape.circle,
                   ),
-                  child: Icon(metricIcon, color: metricColor, size: 20.r),
+                  child: Icon(metricIcon, color: metricColor, size: isCompact ? 20.r : 18.0),
                 ),
-                SizedBox(width: 16.w),
+                SizedBox(width: isCompact ? 16.w : 12.0),
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -840,15 +1057,16 @@ class _BodyCompositionScreenState extends State<BodyCompositionScreen> with Sing
                       label,
                       style: AppTextStyles.labelSmall.copyWith(
                         color: AppColors.textSecondary,
-                        fontWeight: FontWeight.bold,
+                        fontWeight: FontWeight.w500,
                         letterSpacing: 1,
+                        fontSize: isCompact ? 11.sp : 9.0,
                       ),
                     ),
                     Text(
                       DateFormat('hh:mm a').format(log.timestamp),
                       style: AppTextStyles.labelSmall.copyWith(
                         color: AppColors.textSecondary.withValues(alpha: 0.5),
-                        fontSize: 9.sp,
+                        fontSize: isCompact ? 10.sp : 8.0,
                       ),
                     ),
                   ],
@@ -861,12 +1079,12 @@ class _BodyCompositionScreenState extends State<BodyCompositionScreen> with Sing
               children: [
                 Text(
                   double.parse(provider.getDisplayValue(log).toStringAsFixed(3)).toString(),
-                  style: AppTextStyles.h3.copyWith(fontSize: 18.sp, color: Colors.white),
+                  style: AppTextStyles.h3.copyWith(fontSize: isCompact ? 20.sp : 15.0, color: Colors.white),
                 ),
                 SizedBox(width: 4.w),
                 Text(
                   unit,
-                  style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary, fontSize: 10.sp),
+                  style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary, fontSize: isCompact ? 11.sp : 8.0),
                 ),
               ],
             ),
@@ -876,13 +1094,13 @@ class _BodyCompositionScreenState extends State<BodyCompositionScreen> with Sing
     );
   }
 
-  Widget _buildCustomExpandedCalendar(Set<DateTime> dateSet) {
+  Widget _buildCustomExpandedCalendar(Set<DateTime> dateSet, bool isCompact) {
     final daysInMonth = DateTime(_displayedMonth.year, _displayedMonth.month + 1, 0).day;
     final firstDayOfMonth = DateTime(_displayedMonth.year, _displayedMonth.month, 1).weekday;
     final isCurrentMonth = _displayedMonth.year == DateTime.now().year && _displayedMonth.month == DateTime.now().month;
     
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 10.h),
+      padding: EdgeInsets.symmetric(horizontal: isCompact ? 16.w : 16.0, vertical: isCompact ? 10.h : 8.0),
       child: Column(
         children: [
           Row(
@@ -924,7 +1142,7 @@ class _BodyCompositionScreenState extends State<BodyCompositionScreen> with Sing
                 },
                 child: Text(
                   DateFormat('MMMM yyyy').format(_displayedMonth).toUpperCase(),
-                  style: AppTextStyles.labelMedium.copyWith(color: Colors.white, letterSpacing: 1.5),
+                  style: AppTextStyles.labelMedium.copyWith(color: Colors.white, letterSpacing: 1.5, fontSize: isCompact ? 14.sp : 12.0),
                 ),
               ),
               IconButton(
@@ -935,15 +1153,14 @@ class _BodyCompositionScreenState extends State<BodyCompositionScreen> with Sing
               ),
             ],
           ),
-          SizedBox(height: 10.h),
+          SizedBox(height: isCompact ? 10.h : 8.0),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: ["M", "T", "W", "T", "F", "S", "S"].map((d) => SizedBox(
-              width: 40.w,
-              child: Text(d, textAlign: TextAlign.center, style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary.withValues(alpha: 0.5), fontSize: 10.sp)),
+            children: ["M", "T", "W", "T", "F", "S", "S"].map((d) => Expanded(
+              child: Text(d, textAlign: TextAlign.center, style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary.withValues(alpha: 0.5), fontSize: isCompact ? 11.sp : 10.0)),
             )).toList(),
           ),
-          SizedBox(height: 10.h),
+          SizedBox(height: isCompact ? 10.h : 8.0),
           GridView.builder(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
@@ -992,15 +1209,16 @@ class _BodyCompositionScreenState extends State<BodyCompositionScreen> with Sing
                           color: isSelected 
                               ? Colors.white 
                               : (isFuture ? Colors.white.withValues(alpha: 0.05) : (hasData ? Colors.white : Colors.white.withValues(alpha: 0.2))),
-                          fontWeight: (isSelected || hasData) ? FontWeight.bold : FontWeight.normal,
+                          fontWeight: FontWeight.w500,
+                          fontSize: isCompact ? 12.sp : 12.0,
                         ),
                       ),
                       if (hasData && !isSelected)
                         Positioned(
-                          bottom: 4.h,
+                          bottom: isCompact ? 4.h : 4.0,
                           child: Container(
-                            width: 3.r,
-                            height: 3.r,
+                            width: isCompact ? 3.r : 3.0,
+                            height: isCompact ? 3.r : 3.0,
                             decoration: const BoxDecoration(color: AppColors.crimson, shape: BoxShape.circle),
                           ),
                         ),
@@ -1015,13 +1233,13 @@ class _BodyCompositionScreenState extends State<BodyCompositionScreen> with Sing
     );
   }
 
-  Widget _buildHorizontalCalendar(Set<DateTime> dateSet) {
+  Widget _buildHorizontalCalendar(Set<DateTime> dateSet, bool isCompact) {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
 
     return Container(
-      height: 90.h,
-      padding: EdgeInsets.symmetric(vertical: 10.h),
+      height: isCompact ? 90.h : 80.0,
+      padding: EdgeInsets.symmetric(vertical: isCompact ? 10.h : 8.0),
       child: PageView.builder(
         controller: _pageController,
         padEnds: false,
@@ -1046,10 +1264,10 @@ class _BodyCompositionScreenState extends State<BodyCompositionScreen> with Sing
             },
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 200),
-              margin: EdgeInsets.symmetric(horizontal: 6.w),
+              margin: EdgeInsets.symmetric(horizontal: isCompact ? 6.w : 6.0),
               decoration: BoxDecoration(
                 color: isSelected ? AppColors.crimson : Colors.transparent,
-                borderRadius: BorderRadius.circular(12.r),
+                borderRadius: BorderRadius.circular(isCompact ? 12.r : 10.0),
                 border: isToday && !isSelected 
                     ? Border.all(color: AppColors.crimson.withValues(alpha: 0.5))
                     : null,
@@ -1060,18 +1278,18 @@ class _BodyCompositionScreenState extends State<BodyCompositionScreen> with Sing
                   Text(
                     DateFormat('EEE').format(dateOnly).toUpperCase(),
                     style: AppTextStyles.labelSmall.copyWith(
-                      fontSize: 10.sp,
+                      fontSize: isCompact ? 10.sp : 10.0,
                       color: isSelected 
                           ? Colors.white 
                           : (hasData ? AppColors.textSecondary : AppColors.textSecondary.withValues(alpha: 0.2)),
-                      fontWeight: (isSelected || hasData) ? FontWeight.bold : FontWeight.normal,
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
-                  SizedBox(height: 4.h),
+                  SizedBox(height: isCompact ? 4.h : 4.0),
                   Text(
                     dateOnly.day.toString(),
                     style: AppTextStyles.h3.copyWith(
-                      fontSize: 16.sp,
+                      fontSize: isCompact ? 18.sp : 16.0,
                       color: isSelected 
                           ? Colors.white 
                           : (hasData ? AppColors.white : AppColors.white.withValues(alpha: 0.15)),
@@ -1079,9 +1297,9 @@ class _BodyCompositionScreenState extends State<BodyCompositionScreen> with Sing
                   ),
                   if (hasData && !isSelected)
                     Container(
-                      margin: EdgeInsets.only(top: 4.h),
-                      width: 4.r,
-                      height: 4.r,
+                      margin: EdgeInsets.only(top: isCompact ? 4.h : 4.0),
+                      width: isCompact ? 4.r : 4.0,
+                      height: isCompact ? 4.r : 4.0,
                       decoration: const BoxDecoration(
                         color: AppColors.crimson,
                         shape: BoxShape.circle,

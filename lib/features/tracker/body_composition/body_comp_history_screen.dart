@@ -41,7 +41,7 @@ class _BodyCompHistoryScreenState extends State<BodyCompHistoryScreen> {
                       textAlign: TextAlign.center,
                       style: AppTextStyles.h2.copyWith(
                         color: AppColors.white,
-                        fontWeight: FontWeight.w400,
+                        fontWeight: FontWeight.w500,
                       ),
                     ),
                   ),

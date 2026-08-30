@@ -66,7 +66,6 @@ class _CreateAccPersoScreenState extends State<CreateAccPersoScreen> {
       
       final double? weight = double.tryParse(_weightController.text.trim());
 
-      // 1. Update Core Profile
       await authProv.updateUserProfile(
         name: name,
         height: height,
@@ -77,7 +76,6 @@ class _CreateAccPersoScreenState extends State<CreateAccPersoScreen> {
         },
       );
 
-      // 2. Log Weight entry if provided
       if (weight != null && weight > 0) {
         final dualValues = bodyProv.calculateDualValues(weight, BodyMetricUnit.kg);
         
@@ -120,105 +118,97 @@ class _CreateAccPersoScreenState extends State<CreateAccPersoScreen> {
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) {
+            final bool isCompact = constraints.maxWidth < 600;
             return SingleChildScrollView(
               physics: const ClampingScrollPhysics(),
-              child: ConstrainedBox(
-                constraints: BoxConstraints(minHeight: constraints.maxHeight),
-                child: IntrinsicHeight(
-                  child: Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 24.w),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        SizedBox(height: 40.h),
-
-                        // Branding Header
-                        Text(
-                          'FINAL\nSTEPS',
-                          style: AppTextStyles.h1.copyWith(
-                            fontSize: 48.sp,
-                            height: 0.9,
-                            color: AppColors.white,
-                            letterSpacing: -2,
-                          ),
+              child: IntrinsicHeight(
+                child: Padding(
+                  padding: EdgeInsets.symmetric(horizontal: isCompact ? 24.w : 24.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      SizedBox(height: isCompact ? 40.h : 40.0),
+                      Text(
+                        'FINAL\nSTEPS',
+                        style: AppTextStyles.h1.copyWith(
+                          fontSize: isCompact ? 48.sp : 42.0,
+                          height: 0.9,
+                          color: AppColors.white,
+                          letterSpacing: -2,
                         ),
-                        SizedBox(height: 12.h),
-                        Text(
-                          'CUSTOMIZE YOUR HIGH INTENSITY PROFILE',
-                          style: AppTextStyles.labelSmall.copyWith(
-                            color: AppColors.textSecondary,
-                            letterSpacing: 2,
-                            fontWeight: FontWeight.w500,
-                          ),
+                      ),
+                      SizedBox(height: isCompact ? 12.h : 12.0),
+                      Text(
+                        'CUSTOMIZE YOUR HIGH INTENSITY PROFILE',
+                        style: AppTextStyles.labelSmall.copyWith(
+                          color: AppColors.textSecondary,
+                          letterSpacing: 2,
+                          fontWeight: FontWeight.w500,
+                          fontSize: isCompact ? null : 11.0,
                         ),
-
-                        SizedBox(height: 32.h),
-
-                        _InputField(
-                          controller: _nameController,
-                          hint: 'YOUR NAME',
-                          icon: Icons.person_outline,
-                          enabled: !isLoading,
-                        ),
-                        SizedBox(height: 16.h),
-
-                        // Birthday Picker
-                        _SelectorField(
-                          hint: _selectedBirthday == null 
-                              ? 'PICK BIRTHDAY (OPTIONAL)' 
-                              : DateFormat('MMM dd, yyyy').format(_selectedBirthday!).toUpperCase(),
-                          icon: Icons.cake_outlined,
-                          onTap: isLoading ? null : () => _selectBirthday(context),
-                        ),
-                        SizedBox(height: 16.h),
-
-                        // Gender Selector
-                        _GenderSelector(
-                          selectedGender: _selectedGender,
-                          onChanged: isLoading ? null : (gender) => setState(() => _selectedGender = gender),
-                        ),
-                        SizedBox(height: 16.h),
-
-                        _InputField(
-                          controller: _heightController,
-                          hint: 'HEIGHT IN CM (OPTIONAL)',
-                          icon: Icons.height_outlined,
-                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                          inputFormatters: [
-                            TextInputFormatter.withFunction((oldValue, newValue) {
-                              final regEx = RegExp(r'^\d*\.?\d*$');
-                              return regEx.hasMatch(newValue.text) ? newValue : oldValue;
-                            }),
-                          ],
-                          enabled: !isLoading,
-                        ),
-                        SizedBox(height: 16.h),
-
-                        _InputField(
-                          controller: _weightController,
-                          hint: 'BODY WEIGHT IN KG (OPTIONAL)',
-                          icon: Icons.monitor_weight_outlined,
-                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                          inputFormatters: [
-                            TextInputFormatter.withFunction((oldValue, newValue) {
-                              final regEx = RegExp(r'^\d*\.?\d*$');
-                              return regEx.hasMatch(newValue.text) ? newValue : oldValue;
-                            }),
-                          ],
-                          enabled: !isLoading,
-                        ),
-
-                        const Spacer(),
-
-                        _PrimaryButton(
-                          label: "LET'S GET WITH IT",
-                          isLoading: isLoading,
-                          onTap: isLoading ? () {} : _handleCompleteProfile,
-                        ),
-
-                        SizedBox(height: 40.h),
-                      ],
-                    ),
+                      ),
+                      SizedBox(height: isCompact ? 32.h : 32.0),
+                      _InputField(
+                        controller: _nameController,
+                        hint: 'YOUR NAME',
+                        icon: Icons.person_outline,
+                        enabled: !isLoading,
+                        isCompact: isCompact,
+                      ),
+                      SizedBox(height: isCompact ? 16.h : 16.0),
+                      _SelectorField(
+                        hint: _selectedBirthday == null 
+                            ? 'PICK BIRTHDAY (OPTIONAL)' 
+                            : DateFormat('MMM dd, yyyy').format(_selectedBirthday!).toUpperCase(),
+                        icon: Icons.cake_outlined,
+                        onTap: isLoading ? null : () => _selectBirthday(context),
+                        isCompact: isCompact,
+                      ),
+                      SizedBox(height: isCompact ? 16.h : 16.0),
+                      _GenderSelector(
+                        selectedGender: _selectedGender,
+                        onChanged: isLoading ? null : (gender) => setState(() => _selectedGender = gender),
+                        isCompact: isCompact,
+                      ),
+                      SizedBox(height: isCompact ? 16.h : 16.0),
+                      _InputField(
+                        controller: _heightController,
+                        hint: 'HEIGHT IN CM (OPTIONAL)',
+                        icon: Icons.height_outlined,
+                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        inputFormatters: [
+                          TextInputFormatter.withFunction((oldValue, newValue) {
+                            final regEx = RegExp(r'^\d*\.?\d*$');
+                            return regEx.hasMatch(newValue.text) ? newValue : oldValue;
+                          }),
+                        ],
+                        enabled: !isLoading,
+                        isCompact: isCompact,
+                      ),
+                      SizedBox(height: isCompact ? 16.h : 16.0),
+                      _InputField(
+                        controller: _weightController,
+                        hint: 'BODY WEIGHT IN KG (OPTIONAL)',
+                        icon: Icons.monitor_weight_outlined,
+                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        inputFormatters: [
+                          TextInputFormatter.withFunction((oldValue, newValue) {
+                            final regEx = RegExp(r'^\d*\.?\d*$');
+                            return regEx.hasMatch(newValue.text) ? newValue : oldValue;
+                          }),
+                        ],
+                        enabled: !isLoading,
+                        isCompact: isCompact,
+                      ),
+                      const Spacer(),
+                      _PrimaryButton(
+                        label: "LET'S GET WITH IT",
+                        isLoading: isLoading,
+                        onTap: isLoading ? () {} : _handleCompleteProfile,
+                        isCompact: isCompact,
+                      ),
+                      SizedBox(height: isCompact ? 40.h : 40.0),
+                    ],
                   ),
                 ),
               ),
@@ -230,17 +220,17 @@ class _CreateAccPersoScreenState extends State<CreateAccPersoScreen> {
   }
 }
 
-// ─── Heavy Duty Reusable Components ────────
-
 class _SelectorField extends StatelessWidget {
   final String hint;
   final IconData icon;
   final VoidCallback? onTap;
+  final bool isCompact;
 
   const _SelectorField({
     required this.hint,
     required this.icon,
     this.onTap,
+    this.isCompact = true,
   });
 
   @override
@@ -248,20 +238,23 @@ class _SelectorField extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 18.h),
+        padding: EdgeInsets.symmetric(
+          horizontal: isCompact ? 20.w : 20.0, 
+          vertical: isCompact ? 18.h : 18.0
+        ),
         decoration: BoxDecoration(
           color: AppColors.surfaceLight.withValues(alpha: 0.3),
-          borderRadius: BorderRadius.circular(12.r),
+          borderRadius: BorderRadius.circular(isCompact ? 12.r : 10.0),
         ),
         child: Row(
           children: [
-            Icon(icon, color: AppColors.crimson, size: 20.r),
-            SizedBox(width: 12.w),
+            Icon(icon, color: AppColors.crimson, size: isCompact ? 20.r : 20.0),
+            SizedBox(width: isCompact ? 12.w : 12.0),
             Text(
               hint,
               style: AppTextStyles.labelSmall.copyWith(
                 color: hint.contains('PICK') ? AppColors.textSecondary : AppColors.white,
-                fontSize: 10.sp,
+                fontSize: isCompact ? 10.sp : 11.0,
               ),
             ),
           ],
@@ -274,15 +267,16 @@ class _SelectorField extends StatelessWidget {
 class _GenderSelector extends StatelessWidget {
   final String? selectedGender;
   final Function(String)? onChanged;
+  final bool isCompact;
 
-  const _GenderSelector({this.selectedGender, this.onChanged});
+  const _GenderSelector({this.selectedGender, this.onChanged, this.isCompact = true});
 
   @override
   Widget build(BuildContext context) {
     return Row(
       children: [
         Expanded(child: _buildGenderButton('MALE', Icons.male_rounded)),
-        SizedBox(width: 12.w),
+        SizedBox(width: isCompact ? 12.w : 12.0),
         Expanded(child: _buildGenderButton('FEMALE', Icons.female_rounded)),
       ],
     );
@@ -294,10 +288,10 @@ class _GenderSelector extends StatelessWidget {
       onTap: onChanged != null ? () => onChanged!(gender) : null,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        height: 56.h,
+        height: isCompact ? 56.h : 54.0,
         decoration: BoxDecoration(
           color: isSelected ? AppColors.crimson.withValues(alpha: 0.1) : AppColors.surfaceLight.withValues(alpha: 0.3),
-          borderRadius: BorderRadius.circular(12.r),
+          borderRadius: BorderRadius.circular(isCompact ? 12.r : 10.0),
           border: Border.all(
             color: isSelected ? AppColors.crimson : Colors.transparent,
             width: 1.5,
@@ -309,15 +303,16 @@ class _GenderSelector extends StatelessWidget {
             Icon(
               icon,
               color: isSelected ? AppColors.crimson : AppColors.textSecondary,
-              size: 20.r,
+              size: isCompact ? 20.r : 20.0,
             ),
-            SizedBox(width: 8.w),
+            SizedBox(width: isCompact ? 8.w : 8.0),
             Text(
               gender,
               style: AppTextStyles.labelSmall.copyWith(
                 color: isSelected ? AppColors.white : AppColors.textSecondary,
-                fontWeight: isSelected ? FontWeight.w900 : FontWeight.w500,
+                fontWeight: isSelected ? FontWeight.w500 : FontWeight.w500,
                 letterSpacing: 1,
+                fontSize: isCompact ? null : 11.0,
               ),
             ),
           ],
@@ -336,6 +331,7 @@ class _InputField extends StatelessWidget {
   final TextInputType keyboardType;
   final List<TextInputFormatter>? inputFormatters;
   final bool enabled;
+  final bool isCompact;
 
   const _InputField({
     required this.controller,
@@ -346,6 +342,7 @@ class _InputField extends StatelessWidget {
     this.keyboardType = TextInputType.text,
     this.inputFormatters,
     this.enabled = true,
+    this.isCompact = true,
   });
 
   @override
@@ -356,22 +353,28 @@ class _InputField extends StatelessWidget {
       keyboardType: keyboardType,
       inputFormatters: inputFormatters,
       enabled: enabled,
-      style: AppTextStyles.inputText.copyWith(color: AppColors.white),
+      style: AppTextStyles.inputText.copyWith(
+        color: AppColors.white,
+        fontSize: isCompact ? null : 14.0,
+      ),
       decoration: InputDecoration(
         hintText: hint,
         hintStyle: AppTextStyles.labelSmall.copyWith(
           color: AppColors.textSecondary,
-          fontSize: 10.sp,
+          fontSize: isCompact ? 10.sp : 11.0,
         ),
         filled: true,
         fillColor: AppColors.surfaceLight.withValues(alpha: 0.3),
-        contentPadding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 18.h),
+        contentPadding: EdgeInsets.symmetric(
+          horizontal: isCompact ? 20.w : 20.0, 
+          vertical: isCompact ? 18.h : 18.0
+        ),
         prefixIcon: icon != null
-            ? Icon(icon, color: AppColors.crimson, size: 20.r)
+            ? Icon(icon, color: AppColors.crimson, size: isCompact ? 20.r : 20.0)
             : null,
         suffixIcon: suffixIcon,
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12.r),
+          borderRadius: BorderRadius.circular(isCompact ? 12.r : 10.0),
           borderSide: BorderSide.none,
         ),
       ),
@@ -383,11 +386,13 @@ class _PrimaryButton extends StatelessWidget {
   final String label;
   final VoidCallback onTap;
   final bool isLoading;
+  final bool isCompact;
 
   const _PrimaryButton({
     required this.label,
     required this.onTap,
     this.isLoading = false,
+    this.isCompact = true,
   });
 
   @override
@@ -396,10 +401,10 @@ class _PrimaryButton extends StatelessWidget {
       onTap: onTap,
       child: Container(
         width: double.infinity,
-        height: 56.h,
+        height: isCompact ? 56.h : 54.0,
         decoration: BoxDecoration(
           color: AppColors.crimson,
-          borderRadius: BorderRadius.circular(12.r),
+          borderRadius: BorderRadius.circular(isCompact ? 12.r : 10.0),
           boxShadow: [
             BoxShadow(
               color: AppColors.crimson.withValues(alpha: 0.3),
@@ -411,8 +416,8 @@ class _PrimaryButton extends StatelessWidget {
         alignment: Alignment.center,
         child: isLoading
             ? SizedBox(
-                height: 24.r,
-                width: 24.r,
+                height: isCompact ? 24.r : 24.0,
+                width: isCompact ? 24.r : 24.0,
                 child: const CircularProgressIndicator(
                   color: Colors.white,
                   strokeWidth: 2.5,
@@ -423,6 +428,7 @@ class _PrimaryButton extends StatelessWidget {
                 style: AppTextStyles.labelMedium.copyWith(
                   color: Colors.white,
                   fontWeight: FontWeight.w500,
+                  fontSize: isCompact ? null : 14.0,
                 ),
               ),
       ),

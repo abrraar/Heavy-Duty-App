@@ -9,17 +9,35 @@ class ConnectivityService {
   ConnectivityService._internal();
 
   final List<VoidCallback> _onReconnectListeners = [];
+  bool _wasOffline = false;
+  bool _isFirstCheck = true;
 
   void init() {
     Connectivity().onConnectivityChanged.listen((results) {
-      debugPrint("Connectivity Changed: $results");
-      if (results.any((r) => r != ConnectivityResult.none)) {
-        debugPrint("ConnectivityService: Internet restored. Notifying listeners...");
-        // Use a local copy to avoid ConcurrentModificationError if a listener removes itself
-        final listenersCopy = List<VoidCallback>.from(_onReconnectListeners);
-        for (var listener in listenersCopy) {
-          listener();
+      debugPrint("ConnectivityService: Connection state changed: $results");
+      
+      final bool isCurrentlyOnline = results.any((r) => r != ConnectivityResult.none);
+
+      if (_isFirstCheck) {
+        _isFirstCheck = false;
+        _wasOffline = !isCurrentlyOnline;
+        debugPrint("ConnectivityService: Initial state is ${_wasOffline ? 'OFFLINE' : 'ONLINE'}. Staying silent.");
+        return;
+      }
+
+      if (isCurrentlyOnline) {
+        if (_wasOffline) {
+          debugPrint("ConnectivityService: Internet RESTORED. Notifying listeners...");
+          // Use a local copy to avoid ConcurrentModificationError
+          final listenersCopy = List<VoidCallback>.from(_onReconnectListeners);
+          for (var listener in listenersCopy) {
+            listener();
+          }
         }
+        _wasOffline = false;
+      } else {
+        debugPrint("ConnectivityService: Device went OFFLINE.");
+        _wasOffline = true;
       }
     });
   }

@@ -20,23 +20,31 @@ class SyncStatusOverlay extends StatelessWidget {
           duration: const Duration(milliseconds: 600),
           curve: Curves.elasticOut,
           bottom: isVisible ? 110.h : -120.h,
-          left: 20.w,
-          right: 20.w,
-          child: AnimatedSwitcher(
-            duration: const Duration(milliseconds: 400),
-            transitionBuilder: (child, animation) {
-              return FadeTransition(
-                opacity: animation,
-                child: SlideTransition(
-                  position: Tween<Offset>(
-                    begin: const Offset(0, 0.5),
-                    end: Offset.zero,
-                  ).animate(animation),
-                  child: child,
+          left: 0,
+          right: 0,
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 400), // Standard snackbar width
+              child: Padding(
+                padding: EdgeInsets.symmetric(horizontal: 20.w),
+                child: AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 400),
+                  transitionBuilder: (child, animation) {
+                    return FadeTransition(
+                      opacity: animation,
+                      child: SlideTransition(
+                        position: Tween<Offset>(
+                          begin: const Offset(0, 0.5),
+                          end: Offset.zero,
+                        ).animate(animation),
+                        child: child,
+                      ),
+                    );
+                  },
+                  child: _buildContent(syncProv),
                 ),
-              );
-            },
-            child: _buildContent(syncProv),
+              ),
+            ),
           ),
         );
       },
@@ -132,7 +140,7 @@ class _StatusCard extends StatelessWidget {
                     message,
                     style: AppTextStyles.labelSmall.copyWith(
                       color: Colors.white,
-                      fontWeight: FontWeight.w900,
+                      fontWeight: FontWeight.w500,
                       letterSpacing: 1.0,
                     ),
                   ),
@@ -191,7 +199,7 @@ class _StatusCard extends StatelessWidget {
                   style: AppTextStyles.h3.copyWith(
                     fontSize: 12.sp,
                     color: AppColors.crimson,
-                    fontWeight: FontWeight.w900,
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
               ),

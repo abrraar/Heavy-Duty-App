@@ -13,6 +13,7 @@ import 'provider/hydration_provider.dart';
 import 'package:heavy_duty/core/widgets/elite_confirm_dialog.dart';
 import 'package:heavy_duty/core/widgets/elite_snackbar.dart';
 import 'package:heavy_duty/features/main_wrapper.dart';
+import 'package:heavy_duty/core/constants/dimensions.dart';
 import 'widgets/water_glass_widget.dart';
 
 class _HydrationFilter {
@@ -156,7 +157,7 @@ class _HydrationScreenState extends State<HydrationScreen>
                 if (states.contains(WidgetState.selected)) {
                   return Colors.blueAccent;
                 }
-                return Colors.white.withOpacity(0.05);
+                return Colors.white.withValues(alpha: 0.05);
               }),
             ),
             textButtonTheme: TextButtonThemeData(
@@ -183,126 +184,165 @@ class _HydrationScreenState extends State<HydrationScreen>
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<HydrationProvider>(
-      builder: (context, provider, _) {
-        final settings = provider.settings;
-        final isPinned = settings.isPinnedToHome;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final double width = constraints.maxWidth;
+        final bool isCompact = width < kMobileBreakpoint;
+        final double hPad = !isCompact
+            ? (width - kMaxContentWidth).clamp(24.0, double.infinity) / 2
+            : 8.w;
 
-        return Scaffold(
-          backgroundColor: AppColors.background,
-          body: Column(
-            children: [
-              Padding(
-                padding: EdgeInsets.only(left: 8.w, right: 8.w),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Padding(
-                      padding: EdgeInsets.symmetric(vertical: 24.h),
-                      child: IntrinsicHeight(
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          children: [
-                            SizedBox(
-                              width: 80.w,
-                              child: Align(
-                                alignment: Alignment.centerLeft,
-                                child: IconButton(
-                                  icon: const Icon(
+        return Consumer<HydrationProvider>(
+          builder: (context, provider, _) {
+            return Scaffold(
+              backgroundColor: AppColors.background,
+              body: Column(
+                children: [
+                  Padding(
+                    padding: EdgeInsets.symmetric(horizontal: hPad),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Padding(
+                          padding: EdgeInsets.symmetric(vertical: isCompact ? 24.h : 20.0),
+                          child: IntrinsicHeight(
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: [
+                                IconButton(
+                                  icon: Icon(
                                     Icons.arrow_back_ios_new_rounded,
                                     color: AppColors.white,
+                                    size: isCompact ? 24.r : 20.0,
                                   ),
                                   onPressed: () => Navigator.pop(context),
                                 ),
-                              ),
-                            ),
-                            Expanded(
-                              child: Text(
-                                'HYDRATION',
-                                textAlign: TextAlign.center,
-                                style: AppTextStyles.h2.copyWith(
-                                  color: AppColors.white,
-                                  fontWeight: FontWeight.w400,
+                                Expanded(
+                                  child: Text(
+                                    'HYDRATION',
+                                    textAlign: TextAlign.center,
+                                    style: AppTextStyles.h2.copyWith(
+                                      color: AppColors.white,
+                                      fontWeight: FontWeight.w500,
+                                      fontSize: isCompact ? 20.sp : 18.0,
+                                    ),
+                                  ),
                                 ),
-                              ),
-                            ),
-                            SizedBox(
-                              width: 80.w,
-                              child: const Opacity(
-                                opacity: 0,
-                                child: IconButton(
-                                  icon: Icon(Icons.arrow_back_ios_new_rounded),
+                                IconButton(
+                                  icon: Icon(
+                                    Icons.arrow_back_ios_new_rounded,
+                                    color: Colors.transparent,
+                                    size: isCompact ? 24.r : 20.0,
+                                  ),
                                   onPressed: null,
                                 ),
-                              ),
+                              ],
                             ),
+                          ),
+                        ),
+                        TabBar(
+                          controller: _tabController,
+                          indicatorColor: Colors.blueAccent,
+                          indicatorSize: TabBarIndicatorSize.tab,
+                          labelStyle: AppTextStyles.labelSmall.copyWith(
+                            fontWeight: FontWeight.w500,
+                            fontSize: isCompact ? 11.sp : 11.0,
+                          ),
+                          unselectedLabelColor: AppColors.textSecondary.withValues(alpha: 0.5),
+                          labelColor: Colors.blueAccent,
+                          dividerColor: Colors.transparent,
+                          tabs: const [
+                            Tab(text: "TRACKER"),
+                            Tab(text: "TRENDS"),
+                            Tab(text: "LOGS"),
                           ],
                         ),
-                      ),
-                    ),
-                    TabBar(
-                      controller: _tabController,
-                      indicatorColor: Colors.blueAccent,
-                      indicatorSize: TabBarIndicatorSize.tab,
-                      labelStyle: AppTextStyles.labelSmall.copyWith(fontWeight: FontWeight.bold),
-                      unselectedLabelColor: AppColors.textSecondary.withOpacity(0.5),
-                      labelColor: Colors.blueAccent,
-                      dividerColor: Colors.transparent,
-                      tabs: const [
-                        Tab(text: "TRACKER"),
-                        Tab(text: "TRENDS"),
-                        Tab(text: "LOGS"),
                       ],
                     ),
-                  ],
-                ),
+                  ),
+                  Expanded(
+                    child: TabBarView(
+                      controller: _tabController,
+                      children: [
+                        _buildTrackerTab(provider, isCompact),
+                        _buildTrendsTab(provider, isCompact),
+                        _buildRecordsTab(provider, isCompact),
+                      ],
+                    ),
+                  ),
+                ],
               ),
-              Expanded(
-                child: TabBarView(
-                  controller: _tabController,
-                  children: [
-                    _buildTrackerTab(provider),
-                    _buildTrendsTab(provider),
-                    _buildRecordsTab(provider),
-                  ],
-                ),
-              ),
-            ],
-          ),
+            );
+          },
         );
       },
     );
   }
 
-  Widget _buildTrackerTab(HydrationProvider provider) {
+  Widget _buildTrackerTab(HydrationProvider provider, bool isCompact) {
     return RefreshIndicator(
       onRefresh: () => provider.forceRefresh(),
       color: Colors.blueAccent,
       backgroundColor: AppColors.surface,
-      child: SingleChildScrollView(
-        physics: const AlwaysScrollableScrollPhysics(),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            SizedBox(height: 10.h),
-            _buildCurrentIntakeCard(provider),
-            SizedBox(height: 24.h),
-            _buildManualEntryCard(provider),
-            SizedBox(height: 40.h),
-          ],
-        ),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final bool isWide = constraints.maxWidth > 700;
+
+          if (isWide) {
+            return Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // --- LEFT COLUMN: DAILY INTAKE ---
+                Expanded(
+                  child: ListView(
+                    padding: EdgeInsets.all(isCompact ? 24.r : 20.0),
+                    children: [
+                      _buildCurrentIntakeCard(provider, isCompact),
+                    ],
+                  ),
+                ),
+                VerticalDivider(color: AppColors.white.withValues(alpha : 0.05), width: 1),
+                // --- RIGHT COLUMN: MANUAL ENTRY ---
+                Expanded(
+                  child: ListView(
+                    padding: EdgeInsets.all(isCompact ? 24.r : 20.0),
+                    children: [
+                      _buildManualEntryCard(provider, isCompact),
+                    ],
+                  ),
+                ),
+              ],
+            );
+          }
+
+          // --- MOBILE: SINGLE COLUMN ---
+          return SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SizedBox(height: isCompact ? 10.h : 8.0),
+                _buildCurrentIntakeCard(provider, isCompact),
+                SizedBox(height: isCompact ? 24.h : 20.0),
+                _buildManualEntryCard(provider, isCompact),
+                SizedBox(height: 40.h),
+              ],
+            ),
+          );
+        },
       ),
     );
   }
 
-  Widget _buildTrendsTab(HydrationProvider provider) {
+  Widget _buildTrendsTab(HydrationProvider provider, bool isCompact) {
     if (provider.logs.isEmpty) {
       return Center(
         child: Text(
           "LOG INTAKE TO VIEW TRENDS",
           style: AppTextStyles.labelSmall.copyWith(
-            color: AppColors.textSecondary.withOpacity(0.3),
+            color: AppColors.textSecondary.withValues(alpha: 0.3),
             letterSpacing: 1,
+            fontSize: isCompact ? 11.sp : 10.0, // Responsive sizing
           ),
         ),
       );
@@ -328,44 +368,103 @@ class _HydrationScreenState extends State<HydrationScreen>
       onRefresh: () => provider.forceRefresh(),
       color: Colors.blueAccent,
       backgroundColor: AppColors.surface,
-      child: SingleChildScrollView(
-        physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
-        padding: EdgeInsets.all(24.r),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildSectionHeader("INTAKE TRENDS (ML)"),
-            SizedBox(height: 24.h),
-            HydrationAnalyticalGraph(
-              dates: sortedDates,
-              data: aggregatedData,
-              visibleMetrics: _visibleTrendsMetrics,
-              onPointSelected: (idx) {},
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final bool isWide = constraints.maxWidth > 700;
+
+          if (isWide) {
+            return Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // --- LEFT COLUMN: TRENDS ---
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: EdgeInsets.all(isCompact ? 24.r : 20.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildSectionHeader("INTAKE TRENDS (ML)", isCompact),
+                        SizedBox(height: isCompact ? 24.h : 20.0),
+                        HydrationAnalyticalGraph(
+                          dates: sortedDates,
+                          data: aggregatedData,
+                          visibleMetrics: _visibleTrendsMetrics,
+                          onPointSelected: (idx) {},
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                VerticalDivider(color: AppColors.white.withValues(alpha : 0.05), width: 1),
+                // --- RIGHT COLUMN: COMPARISON ---
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: EdgeInsets.all(isCompact ? 24.r : 20.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildSectionHeader("DATA COMPARISON", isCompact),
+                        SizedBox(height: isCompact ? 16.h : 12.0),
+                        HydrationComparisonWidget(
+                          idx1: _comparisonIdx1,
+                          idx2: _comparisonIdx2,
+                          dates: sortedDates,
+                          data: aggregatedData,
+                          isCompact: isCompact,
+                          onPointAChanged: (val) => setState(() => _comparisonIdx1 = val),
+                          onPointBChanged: (val) => setState(() => _comparisonIdx2 = val),
+                        ),
+                        SizedBox(height: 40.h),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            );
+          }
+
+          // --- MOBILE: SINGLE COLUMN ---
+          return SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+            padding: EdgeInsets.all(isCompact ? 24.r : 20.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildSectionHeader("INTAKE TRENDS (ML)", isCompact),
+                SizedBox(height: isCompact ? 24.h : 20.0),
+                HydrationAnalyticalGraph(
+                  dates: sortedDates,
+                  data: aggregatedData,
+                  visibleMetrics: _visibleTrendsMetrics,
+                  onPointSelected: (idx) {},
+                ),
+                SizedBox(height: isCompact ? 40.h : 32.0),
+                _buildSectionHeader("DATA COMPARISON", isCompact),
+                SizedBox(height: isCompact ? 16.h : 12.0),
+                HydrationComparisonWidget(
+                  idx1: _comparisonIdx1,
+                  idx2: _comparisonIdx2,
+                  dates: sortedDates,
+                  data: aggregatedData,
+                  isCompact: isCompact,
+                  onPointAChanged: (val) => setState(() => _comparisonIdx1 = val),
+                  onPointBChanged: (val) => setState(() => _comparisonIdx2 = val),
+                ),
+                SizedBox(height: 40.h),
+              ],
             ),
-            SizedBox(height: 40.h),
-            _buildSectionHeader("DATA COMPARISON"),
-            SizedBox(height: 16.h),
-            HydrationComparisonWidget(
-              idx1: _comparisonIdx1,
-              idx2: _comparisonIdx2,
-              dates: sortedDates,
-              data: aggregatedData,
-              onPointAChanged: (val) => setState(() => _comparisonIdx1 = val),
-              onPointBChanged: (val) => setState(() => _comparisonIdx2 = val),
-            ),
-            SizedBox(height: 40.h),
-          ],
-        ),
+          );
+        },
       ),
     );
   }
 
-  Widget _buildSectionHeader(String title) {
+  Widget _buildSectionHeader(String title, bool isCompact) {
     return Row(
       children: [
         Container(
-          width: 2.5.w,
-          height: 12.h,
+          width: 2.5,
+          height: isCompact ? 12.h : 10.0,
           decoration: BoxDecoration(
             color: Colors.blueAccent,
             borderRadius: BorderRadius.circular(2.r),
@@ -375,15 +474,15 @@ class _HydrationScreenState extends State<HydrationScreen>
         Text(
           title,
           style: AppTextStyles.labelSmall.copyWith(
-            color: AppColors.textSecondary.withOpacity(0.8),
-            fontSize: 12.sp,
+            color: AppColors.textSecondary.withValues(alpha: 0.8),
+            fontSize: isCompact ? 11.sp : 9.0,
           ),
         ),
       ],
     );
   }
 
-  Widget _buildRecordsTab(HydrationProvider provider) {
+  Widget _buildRecordsTab(HydrationProvider provider, bool isCompact) {
     final Set<DateTime> dateSet = provider.logs.map((l) => 
       DateTime(l.timestamp.year, l.timestamp.month, l.timestamp.day)
     ).toSet();
@@ -416,160 +515,232 @@ class _HydrationScreenState extends State<HydrationScreen>
           : a.timestamp.compareTo(b.timestamp);
     });
     
-    if (_isCalendarExpanded) {
-      return Container(
-        color: AppColors.background,
-        child: Column(
-          children: [
-            Expanded(
-              child: SingleChildScrollView(
-                physics: const BouncingScrollPhysics(),
-                child: _buildCustomExpandedCalendar(dateSet),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final bool isWide = constraints.maxWidth > 700;
+
+        if (isWide) {
+          return Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // --- LEFT COLUMN: CALENDAR ---
+              Expanded(
+                flex: 5,
+                child: Container(
+                  color: AppColors.background,
+                  child: Column(
+                    children: [
+                      Expanded(
+                        child: SingleChildScrollView(
+                          physics: const BouncingScrollPhysics(),
+                          padding: const EdgeInsets.symmetric(vertical: 20.0),
+                          child: _buildCustomExpandedCalendar(dateSet, isCompact),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ),
+              VerticalDivider(color: AppColors.white.withValues(alpha : 0.05), width: 1),
+              // --- RIGHT COLUMN: SLIDER + LOGS ---
+              Expanded(
+                flex: 5,
+                child: Column(
+                  children: [
+                    _buildHorizontalCalendar(dateSet, isCompact),
+                    const Divider(color: Colors.white10, height: 1),
+                    Expanded(
+                      child: RefreshIndicator(
+                        onRefresh: () => provider.forceRefresh(),
+                        color: Colors.blueAccent,
+                        backgroundColor: AppColors.surface,
+                        child: filteredLogs.isEmpty
+                            ? Center(
+                                child: Text(
+                                  _recordsFilter.isInitial ? "NO LOGS FOR THIS DATE" : "NO MATCHING LOGS",
+                                  style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary.withValues(alpha: 0.5), fontSize: isCompact ? 13.sp : 12.0),
+                                ),
+                              )
+                            : ListView.separated(
+                                physics: const AlwaysScrollableScrollPhysics(),
+                                padding: const EdgeInsets.all(20.0),
+                                itemCount: filteredLogs.length,
+                                separatorBuilder: (context, index) => const SizedBox(height: 12.0),
+                                itemBuilder: (context, index) {
+                                  final log = filteredLogs[index];
+                                  return _buildRecordItem(log, provider, isCompact);
+                                },
+                              ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          );
+        }
+
+        // --- MOBILE: SINGLE COLUMN ---
+        if (_isCalendarExpanded) {
+          return Container(
+            color: AppColors.background,
+            child: Column(
+              children: [
+                Expanded(
+                  child: SingleChildScrollView(
+                    physics: const BouncingScrollPhysics(),
+                    child: _buildCustomExpandedCalendar(dateSet, isCompact),
+                  ),
+                ),
+                GestureDetector(
+                  onTap: () {
+                    setState(() => _isCalendarExpanded = false);
+                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                      final now = DateTime.now();
+                      final today = DateTime(now.year, now.month, now.day);
+                      final target = DateTime(_selectedHistoryDate.year, _selectedHistoryDate.month, _selectedHistoryDate.day);
+                      final int dayDiff = today.difference(target).inDays;
+                      if (dayDiff >= 0 && dayDiff < 365) {
+                        if (_pageController.hasClients) {
+                          _pageController.animateToPage(
+                            dayDiff, 
+                            duration: const Duration(milliseconds: 300), 
+                            curve: Curves.easeInOut
+                          );
+                        }
+                      }
+                    });
+                  },
+                  child: Container(
+                    width: double.infinity,
+                    padding: EdgeInsets.symmetric(vertical: 16.h),
+                    color: Colors.transparent,
+                    child: Icon(
+                      Icons.keyboard_arrow_up_rounded,
+                      color: AppColors.textSecondary.withValues(alpha: 0.4),
+                      size: 24.r,
+                    ),
+                  ),
+                ),
+                SizedBox(height: 20.h),
+              ],
             ),
+          );
+        }
+
+        return Column(
+          children: [
+            _buildHorizontalCalendar(dateSet, isCompact),
             GestureDetector(
               onTap: () {
-                setState(() => _isCalendarExpanded = false);
-                WidgetsBinding.instance.addPostFrameCallback((_) {
-                  final now = DateTime.now();
-                  final today = DateTime(now.year, now.month, now.day);
-                  final target = DateTime(_selectedHistoryDate.year, _selectedHistoryDate.month, _selectedHistoryDate.day);
-                  final int dayDiff = today.difference(target).inDays;
-                  if (dayDiff >= 0 && dayDiff < 365) {
-                    if (_pageController.hasClients) {
-                      _pageController.animateToPage(
-                        dayDiff, 
-                        duration: const Duration(milliseconds: 300), 
-                        curve: Curves.easeInOut
-                      );
-                    }
-                  }
+                setState(() {
+                  _isCalendarExpanded = true;
+                  _displayedMonth = DateTime(_selectedHistoryDate.year, _selectedHistoryDate.month);
                 });
               },
               child: Container(
                 width: double.infinity,
-                padding: EdgeInsets.symmetric(vertical: 16.h),
+                padding: EdgeInsets.symmetric(vertical: 4.h),
                 color: Colors.transparent,
                 child: Icon(
-                  Icons.keyboard_arrow_up_rounded,
+                  Icons.keyboard_arrow_down_rounded,
                   color: AppColors.textSecondary.withValues(alpha: 0.4),
                   size: 24.r,
                 ),
               ),
             ),
-            SizedBox(height: 20.h),
-          ],
-        ),
-      );
-    }
-
-    return Column(
-      children: [
-        _buildHorizontalCalendar(dateSet),
-        GestureDetector(
-          onTap: () {
-            setState(() {
-              _isCalendarExpanded = true;
-              _displayedMonth = DateTime(_selectedHistoryDate.year, _selectedHistoryDate.month);
-            });
-          },
-          child: Container(
-            width: double.infinity,
-            padding: EdgeInsets.symmetric(vertical: 4.h),
-            color: Colors.transparent,
-            child: Icon(
-              Icons.keyboard_arrow_down_rounded,
-              color: AppColors.textSecondary.withValues(alpha: 0.4),
-              size: 24.r,
-            ),
-          ),
-        ),
-        const Divider(color: Colors.white10, height: 1),
-        Expanded(
-          child: RefreshIndicator(
-            onRefresh: () => provider.forceRefresh(),
-            color: Colors.blueAccent,
-            backgroundColor: AppColors.surface,
-            child: filteredLogs.isEmpty
-                ? LayoutBuilder(
-                    builder: (context, constraints) => ListView(
-                      physics: const AlwaysScrollableScrollPhysics(),
-                      children: [
-                        Container(
-                          constraints: BoxConstraints(minHeight: constraints.maxHeight),
-                          child: Center(
-                            child: Text(
-                              _recordsFilter.isInitial ? "NO LOGS FOR THIS DATE" : "NO MATCHING LOGS",
-                              style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary.withOpacity(0.5)),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  )
-                : ListView.separated(
-                    physics: const AlwaysScrollableScrollPhysics(),
-                    padding: EdgeInsets.all(20.r),
-                    itemCount: filteredLogs.length,
-                    separatorBuilder: (context, index) => SizedBox(height: 12.h),
-                    itemBuilder: (context, index) {
-                      final log = filteredLogs[index];
-                      return Dismissible(
-                        key: Key(log.id),
-                        direction: DismissDirection.endToStart,
-                        background: Container(
-                          alignment: Alignment.centerRight,
-                          padding: EdgeInsets.only(right: 24.w),
-                          decoration: BoxDecoration(
-                            color: AppColors.error.withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(16.r),
-                          ),
-                          child: const Icon(Icons.delete_outline_rounded, color: AppColors.error, size: 28),
-                        ),
-                        confirmDismiss: (direction) async {
-                          return await _showDeleteLogConfirmation(provider.formatAmount(log.amountMl));
-                        },
-                        onDismissed: (direction) {
-                          provider.deleteLog(log.id);
-                        },
-                        child: Container(
-                          padding: EdgeInsets.all(16.r),
-                          decoration: BoxDecoration(
-                            color: AppColors.surfaceLight.withOpacity(0.3),
-                            borderRadius: BorderRadius.circular(16.r),
-                            border: Border.all(color: AppColors.white.withOpacity(0.05)),
-                          ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    provider.formatAmount(log.amountMl),
-                                    style: AppTextStyles.h3.copyWith(fontSize: 18.sp, color: Colors.blueAccent),
-                                  ),
-                                  SizedBox(height: 4.h),
-                                  Text(
-                                    DateFormat('MMM dd, yyyy - hh:mm a').format(log.timestamp),
-                                    style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary, fontSize: 10.sp),
-                                  ),
-                                ],
+            const Divider(color: Colors.white10, height: 1),
+            Expanded(
+              child: RefreshIndicator(
+                onRefresh: () => provider.forceRefresh(),
+                color: Colors.blueAccent,
+                backgroundColor: AppColors.surface,
+                child: filteredLogs.isEmpty
+                    ? LayoutBuilder(
+                        builder: (context, constraints) => ListView(
+                          physics: const AlwaysScrollableScrollPhysics(),
+                          children: [
+                            Container(
+                              constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                              child: Center(
+                                child: Text(
+                                  _recordsFilter.isInitial ? "NO LOGS FOR THIS DATE" : "NO MATCHING LOGS",
+                                  style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary.withValues(alpha: 0.5)),
+                                ),
                               ),
-                              Icon(Icons.water_drop_outlined, color: Colors.blueAccent.withOpacity(0.5), size: 20.r),
-                            ],
-                          ),
+                            ),
+                          ],
                         ),
-                      );
-                    },
-                  ),
-          ),
-        ),
-      ],
+                      )
+                    : ListView.separated(
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        padding: EdgeInsets.all(20.r),
+                        itemCount: filteredLogs.length,
+                        separatorBuilder: (context, index) => SizedBox(height: 12.h),
+                        itemBuilder: (context, index) {
+                          final log = filteredLogs[index];
+                          return _buildRecordItem(log, provider, isCompact);
+                        },
+                      ),
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 
-  Widget _buildCurrentIntakeCard(HydrationProvider provider) {
+  Widget _buildRecordItem(HydrationLog log, HydrationProvider provider, bool isCompact) {
+    return Dismissible(
+      key: Key(log.id),
+      direction: DismissDirection.endToStart,
+      background: Container(
+        alignment: Alignment.centerRight,
+        padding: EdgeInsets.only(right: isCompact ? 24.w : 20.0),
+        decoration: BoxDecoration(
+          color: AppColors.error.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(isCompact ? 16.r : 12.0),
+        ),
+        child: Icon(Icons.delete_outline_rounded, color: AppColors.error, size: isCompact ? 28.r : 24.0),
+      ),
+      confirmDismiss: (direction) async {
+        return await _showDeleteLogConfirmation(provider.formatAmount(log.amountMl));
+      },
+      onDismissed: (direction) {
+        provider.deleteLog(log.id);
+      },
+      child: Container(
+        padding: EdgeInsets.all(isCompact ? 16.r : 14.0),
+        decoration: BoxDecoration(
+          color: AppColors.surfaceLight.withValues(alpha : 0.3),
+          borderRadius: BorderRadius.circular(isCompact ? 16.r : 12.0),
+          border: Border.all(color: AppColors.white.withValues(alpha : 0.05)),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  provider.formatAmount(log.amountMl),
+                  style: AppTextStyles.h3.copyWith(fontSize: isCompact ? 18.sp : 15.0, color: Colors.blueAccent),
+                ),
+                SizedBox(height: isCompact ? 4.h : 2.0),
+                Text(
+                  DateFormat('MMM dd, yyyy - hh:mm a').format(log.timestamp),
+                  style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary, fontSize: isCompact ? 10.sp : 9.0),
+                ),
+              ],
+            ),
+            Icon(Icons.water_drop_outlined, color: Colors.blueAccent.withValues(alpha: 0.5), size: isCompact ? 20.r : 18.0),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCurrentIntakeCard(HydrationProvider provider, bool isCompact) {
     int currentIntakeMl = provider.todayIntake;
     int goalIntakeMl = provider.settings.dailyGoal;
     int remainingMl = goalIntakeMl - currentIntakeMl;
@@ -588,15 +759,12 @@ class _HydrationScreenState extends State<HydrationScreen>
     String displayQuickAdd = useMetric ? "$quickAddMl$unit" : "${provider.mlToOz(quickAddMl).toStringAsFixed(1)}$unit";
     String displayQuickRemove = useMetric ? "$quickRemoveMl$unit" : "${provider.mlToOz(quickRemoveMl).toStringAsFixed(1)}$unit";
 
-    final settings = provider.settings;
-    final isPinned = settings.isPinnedToHome;
-
     return Container(
-      margin: EdgeInsets.symmetric(horizontal: 20.w),
-      padding: EdgeInsets.all(24.r),
+      margin: EdgeInsets.symmetric(horizontal: isCompact ? 20.w : 0),
+      padding: EdgeInsets.all(isCompact ? 24.r : 20.0),
       decoration: BoxDecoration(
         color: AppColors.surfaceLight.withValues(alpha: 0.3),
-        borderRadius: BorderRadius.circular(24.r),
+        borderRadius: BorderRadius.circular(isCompact ? 24.r : 20.0),
         border: Border.all(color: AppColors.white.withValues(alpha: 0.05)),
       ),
       child: Column(
@@ -609,12 +777,13 @@ class _HydrationScreenState extends State<HydrationScreen>
                 style: AppTextStyles.labelSmall.copyWith(
                   color: AppColors.textSecondary,
                   letterSpacing: 1,
-                  fontWeight: FontWeight.bold,
+                  fontWeight: FontWeight.w500,
+                  fontSize: isCompact ? 10.sp : 10.0,
                 ),
               ),
             ],
           ),
-          SizedBox(height: 24.h),
+          SizedBox(height: isCompact ? 24.h : 20.0),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -624,7 +793,7 @@ class _HydrationScreenState extends State<HydrationScreen>
                   Text(
                     displayIntake,
                     style: AppTextStyles.h1.copyWith(
-                      fontSize: 32.sp,
+                      fontSize: isCompact ? 32.sp : 24.0,
                       color: AppColors.white,
                     ),
                   ),
@@ -632,37 +801,38 @@ class _HydrationScreenState extends State<HydrationScreen>
                     "/ $displayGoal $unit",
                     style: AppTextStyles.labelSmall.copyWith(
                       color: AppColors.white.withValues(alpha: 0.5),
-                      fontWeight: FontWeight.bold,
+                      fontWeight: FontWeight.w500,
+                      fontSize: isCompact ? 10.sp : 9.0,
                     ),
                   ),
-                  SizedBox(height: 12.h),
+                  SizedBox(height: isCompact ? 12.h : 10.0),
                   Text(
                     remainingMl <= 0 ? "GOAL REACHED" : "REMAINING: $displayRemaining $unit",
                     style: AppTextStyles.labelSmall.copyWith(
                       color: remainingMl <= 0 ? Colors.greenAccent : Colors.blueAccent,
-                      fontSize: 10.sp,
-                      fontWeight: FontWeight.bold,
+                      fontSize: isCompact ? 10.sp : 9.0,
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
                 ],
               ),
               SizedBox(
-                height: 100.r,
-                width: 90.r,
+                height: isCompact ? 100.r : 90.0,
+                width: isCompact ? 90.r : 80.0,
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     WaterGlassWidget(
                       progress: progress,
-                      size: 60,
+                      size: isCompact ? 60.r : 45.0,
                     ),
-                    SizedBox(height: 8.h),
+                    SizedBox(height: isCompact ? 8.h : 6.0),
                     Text(
                       "${(progress * 100).toInt()}%",
                       style: AppTextStyles.labelSmall.copyWith(
                         color: Colors.blueAccent,
-                        fontWeight: FontWeight.w900,
-                        fontSize: 12.sp,
+                        fontWeight: FontWeight.w500,
+                        fontSize: isCompact ? 12.sp : 12.0,
                       ),
                     ),
                   ],
@@ -670,12 +840,12 @@ class _HydrationScreenState extends State<HydrationScreen>
               ),
             ],
           ),
-          SizedBox(height: 24.h),
+          SizedBox(height: isCompact ? 24.h : 20.0),
           Row(
             children: [
-              Expanded(child: _buildAdjustmentButton('- $displayQuickRemove', -quickRemoveMl, provider, isSubtract: true)),
-              SizedBox(width: 12.w),
-              Expanded(child: _buildAdjustmentButton('+ $displayQuickAdd', quickAddMl, provider)),
+              Expanded(child: _buildAdjustmentButton('- $displayQuickRemove', -quickRemoveMl, provider, isCompact, isSubtract: true)),
+              SizedBox(width: isCompact ? 12.w : 10.0),
+              Expanded(child: _buildAdjustmentButton('+ $displayQuickAdd', quickAddMl, provider, isCompact)),
             ],
           )
         ],
@@ -683,47 +853,47 @@ class _HydrationScreenState extends State<HydrationScreen>
     );
   }
 
-  Widget _buildAdjustmentButton(String label, int amountMl, HydrationProvider provider, {bool isSubtract = false}) {
+  Widget _buildAdjustmentButton(String label, int amountMl, HydrationProvider provider, bool isCompact, {bool isSubtract = false}) {
     final color = isSubtract ? AppColors.error : Colors.blueAccent;
     return GestureDetector(
       onTap: () {
         provider.addWater(amountMl);
       },
       child: Container(
-        padding: EdgeInsets.symmetric(vertical: 14.h),
+        padding: EdgeInsets.symmetric(vertical: isCompact ? 14.h : 12.0),
         alignment: Alignment.center,
         decoration: BoxDecoration(
           color: color.withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(16.r),
+          borderRadius: BorderRadius.circular(isCompact ? 16.r : 14.0),
           border: Border.all(color: color.withValues(alpha: 0.3), width: 1.5),
         ),
         child: Text(label, style: AppTextStyles.labelSmall.copyWith(
           color: color,
-          fontSize: 11.sp,
-          fontWeight: FontWeight.w900,
+          fontSize: isCompact ? 11.sp : 10.0,
+          fontWeight: FontWeight.w500,
           letterSpacing: 1,
         )),
       ),
     );
   }
 
-  Widget _buildManualEntryCard(HydrationProvider provider) {
+  Widget _buildManualEntryCard(HydrationProvider provider, bool isCompact) {
     bool useMetric = provider.settings.useMetric;
     String unit = useMetric ? "ml" : "oz";
 
     return Container(
-      margin: EdgeInsets.symmetric(horizontal: 20.w),
-      padding: EdgeInsets.all(20.r),
+      margin: EdgeInsets.symmetric(horizontal: isCompact ? 20.w : 0),
+      padding: EdgeInsets.all(isCompact ? 20.r : 16.0),
       decoration: BoxDecoration(
         color: AppColors.surfaceLight.withValues(alpha: 0.2),
-        borderRadius: BorderRadius.circular(20.r),
+        borderRadius: BorderRadius.circular(isCompact ? 20.r : 16.0),
         border: Border.all(color: AppColors.white.withValues(alpha: 0.05)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('MANUAL LOG', style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary, letterSpacing: 1.2)),
-          SizedBox(height: 16.h),
+          Text('MANUAL LOG', style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary, letterSpacing: 1.2, fontSize: isCompact ? 10.sp : 9.0)),
+          SizedBox(height: isCompact ? 16.h : 12.0),
           Row(
             children: [
               Expanded(
@@ -731,40 +901,42 @@ class _HydrationScreenState extends State<HydrationScreen>
                   icon: Icons.calendar_today_rounded,
                   label: DateFormat('MMM dd, yyyy').format(_manualDate),
                   onTap: _pickManualDate,
+                  isCompact: isCompact,
                 ),
               ),
-              SizedBox(width: 12.w),
+              SizedBox(width: isCompact ? 12.w : 10.0),
               Expanded(
                 child: _buildManualEntryField(
                   icon: Icons.access_time_rounded,
                   label: _manualTime.format(context),
                   onTap: _pickManualTime,
+                  isCompact: isCompact,
                 ),
               ),
             ],
           ),
-          SizedBox(height: 12.h),
+          SizedBox(height: isCompact ? 12.h : 10.0),
           Container(
-            padding: EdgeInsets.symmetric(horizontal: 16.w),
+            padding: EdgeInsets.symmetric(horizontal: isCompact ? 16.w : 14.0),
             decoration: BoxDecoration(
               color: AppColors.background,
-              borderRadius: BorderRadius.circular(12.r),
+              borderRadius: BorderRadius.circular(isCompact ? 12.r : 10.0),
             ),
             child: TextField(
               controller: _amountController,
               keyboardType: TextInputType.number,
               inputFormatters: [FilteringTextInputFormatter.digitsOnly, LengthLimitingTextInputFormatter(4)],
-              style: AppTextStyles.labelMedium,
+              style: AppTextStyles.labelMedium.copyWith(fontSize: isCompact ? 14.sp : 13.0),
               decoration: InputDecoration(
                 hintText: 'Enter amount ($unit)',
-                hintStyle: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary),
+                hintStyle: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary, fontSize: isCompact ? 12.sp : 11.0),
                 border: InputBorder.none,
                 suffixText: unit,
-                suffixStyle: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary),
+                suffixStyle: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary, fontSize: isCompact ? 12.sp : 11.0),
               ),
             ),
           ),
-          SizedBox(height: 16.h),
+          SizedBox(height: isCompact ? 16.h : 12.0),
           GestureDetector(
             onTap: () async {
               double? amount = double.tryParse(_amountController.text);
@@ -791,14 +963,14 @@ class _HydrationScreenState extends State<HydrationScreen>
               }
             },
             child: Container(
-              height: 48.h,
+              height: isCompact ? 48.h : 44.0,
               width: double.infinity,
               decoration: BoxDecoration(
                 color: Colors.blueAccent,
-                borderRadius: BorderRadius.circular(12.r),
+                borderRadius: BorderRadius.circular(isCompact ? 12.r : 10.0),
               ),
               alignment: Alignment.center,
-              child: Text('LOG INTAKE', style: AppTextStyles.buttonPrimary.copyWith(color: Colors.white)),
+              child: Text('LOG INTAKE', style: AppTextStyles.buttonPrimary.copyWith(color: Colors.white, fontSize: isCompact ? 12.sp : 12.0)),
             ),
           ),
         ],
@@ -806,33 +978,33 @@ class _HydrationScreenState extends State<HydrationScreen>
     );
   }
 
-  Widget _buildManualEntryField({required IconData icon, required String label, required VoidCallback onTap}) {
+  Widget _buildManualEntryField({required IconData icon, required String label, required VoidCallback onTap, required bool isCompact}) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: EdgeInsets.all(12.r),
+        padding: EdgeInsets.all(isCompact ? 12.r : 10.0),
         decoration: BoxDecoration(
           color: AppColors.background,
-          borderRadius: BorderRadius.circular(12.r),
+          borderRadius: BorderRadius.circular(isCompact ? 12.r : 10.0),
         ),
         child: Row(
           children: [
-            Icon(icon, size: 16.r, color: Colors.blueAccent),
+            Icon(icon, size: isCompact ? 16.r : 14.0, color: Colors.blueAccent),
             SizedBox(width: 8.w),
-            Text(label, style: AppTextStyles.labelSmall.copyWith(fontSize: 10.sp)),
+            Text(label, style: AppTextStyles.labelSmall.copyWith(fontSize: isCompact ? 11.sp : 9.0)),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildCustomExpandedCalendar(Set<DateTime> dateSet) {
+  Widget _buildCustomExpandedCalendar(Set<DateTime> dateSet, bool isCompact) {
     final daysInMonth = DateTime(_displayedMonth.year, _displayedMonth.month + 1, 0).day;
     final firstDayOfMonth = DateTime(_displayedMonth.year, _displayedMonth.month, 1).weekday;
     final isCurrentMonth = _displayedMonth.year == DateTime.now().year && _displayedMonth.month == DateTime.now().month;
     
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 10.h),
+      padding: EdgeInsets.symmetric(horizontal: isCompact ? 16.w : 16.0, vertical: isCompact ? 10.h : 8.0),
       child: Column(
         children: [
           Row(
@@ -877,7 +1049,7 @@ class _HydrationScreenState extends State<HydrationScreen>
                 },
                 child: Text(
                   DateFormat('MMMM yyyy').format(_displayedMonth).toUpperCase(),
-                  style: AppTextStyles.labelMedium.copyWith(color: Colors.white, letterSpacing: 1.5),
+                  style: AppTextStyles.labelMedium.copyWith(color: Colors.white, letterSpacing: 1.5, fontSize: isCompact ? 14.sp : 14.0),
                 ),
               ),
               IconButton(
@@ -888,15 +1060,14 @@ class _HydrationScreenState extends State<HydrationScreen>
               ),
             ],
           ),
-          SizedBox(height: 10.h),
+          SizedBox(height: isCompact ? 10.h : 8.0),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: ["M", "T", "W", "T", "F", "S", "S"].map((d) => SizedBox(
-              width: 40.w,
-              child: Text(d, textAlign: TextAlign.center, style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary.withOpacity(0.5), fontSize: 10.sp)),
+            children: ["M", "T", "W", "T", "F", "S", "S"].map((d) => Expanded(
+              child: Text(d, textAlign: TextAlign.center, style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary.withValues(alpha : 0.5), fontSize: isCompact ? 11.sp : 10.0)),
             )).toList(),
           ),
-          SizedBox(height: 10.h),
+          SizedBox(height: isCompact ? 10.h : 8.0),
           GridView.builder(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
@@ -932,7 +1103,7 @@ class _HydrationScreenState extends State<HydrationScreen>
                     color: isSelected ? Colors.blueAccent : Colors.transparent,
                     shape: BoxShape.circle,
                     border: isToday && !isSelected 
-                        ? Border.all(color: Colors.blueAccent.withOpacity(0.5))
+                        ? Border.all(color: Colors.blueAccent.withValues(alpha: 0.5))
                         : null,
                   ),
                   alignment: Alignment.center,
@@ -944,16 +1115,17 @@ class _HydrationScreenState extends State<HydrationScreen>
                         style: AppTextStyles.labelSmall.copyWith(
                           color: isSelected 
                               ? Colors.white 
-                              : (isFuture ? Colors.white.withOpacity(0.05) : (hasData ? Colors.white : Colors.white.withOpacity(0.2))),
-                          fontWeight: (isSelected || hasData) ? FontWeight.bold : FontWeight.normal,
+                              : (isFuture ? Colors.white.withValues(alpha: 0.05) : (hasData ? Colors.white : Colors.white.withValues(alpha: 0.2))),
+                          fontWeight: FontWeight.w500,
+                          fontSize: isCompact ? 12.sp : 12.0,
                         ),
                       ),
                       if (hasData && !isSelected)
                         Positioned(
-                          bottom: 4.h,
+                          bottom: isCompact ? 4.h : 4.0,
                           child: Container(
-                            width: 3.r,
-                            height: 3.r,
+                            width: isCompact ? 3.r : 3.0,
+                            height: isCompact ? 3.r : 3.0,
                             decoration: const BoxDecoration(color: Colors.blueAccent, shape: BoxShape.circle),
                           ),
                         ),
@@ -968,13 +1140,13 @@ class _HydrationScreenState extends State<HydrationScreen>
     );
   }
 
-  Widget _buildHorizontalCalendar(Set<DateTime> dateSet) {
+  Widget _buildHorizontalCalendar(Set<DateTime> dateSet, bool isCompact) {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
 
     return Container(
-      height: 90.h,
-      padding: EdgeInsets.symmetric(vertical: 10.h),
+      height: isCompact ? 90.h : 80.0,
+      padding: EdgeInsets.symmetric(vertical: isCompact ? 10.h : 8.0),
       child: PageView.builder(
         controller: _pageController,
         padEnds: false,
@@ -999,12 +1171,12 @@ class _HydrationScreenState extends State<HydrationScreen>
             },
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 200),
-              margin: EdgeInsets.symmetric(horizontal: 6.w),
+              margin: EdgeInsets.symmetric(horizontal: isCompact ? 6.w : 6.0),
               decoration: BoxDecoration(
                 color: isSelected ? Colors.blueAccent : Colors.transparent,
-                borderRadius: BorderRadius.circular(12.r),
+                borderRadius: BorderRadius.circular(isCompact ? 12.r : 10.0),
                 border: isToday && !isSelected 
-                    ? Border.all(color: Colors.blueAccent.withOpacity(0.5))
+                    ? Border.all(color: Colors.blueAccent.withValues(alpha: 0.5))
                     : null,
               ),
               child: Column(
@@ -1013,28 +1185,28 @@ class _HydrationScreenState extends State<HydrationScreen>
                   Text(
                     DateFormat('EEE').format(dateOnly).toUpperCase(),
                     style: AppTextStyles.labelSmall.copyWith(
-                      fontSize: 10.sp,
+                      fontSize: isCompact ? 10.sp : 10.0,
                       color: isSelected 
                           ? Colors.white 
-                          : (hasData ? AppColors.textSecondary : AppColors.textSecondary.withOpacity(0.2)),
-                      fontWeight: (isSelected || hasData) ? FontWeight.bold : FontWeight.normal,
+                          : (hasData ? AppColors.textSecondary : AppColors.textSecondary.withValues(alpha: 0.2)),
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
-                  SizedBox(height: 4.h),
+                  SizedBox(height: isCompact ? 4.h : 4.0),
                   Text(
                     dateOnly.day.toString(),
                     style: AppTextStyles.h3.copyWith(
-                      fontSize: 16.sp,
+                      fontSize: isCompact ? 16.sp : 16.0,
                       color: isSelected 
                           ? Colors.white 
-                          : (hasData ? AppColors.white : AppColors.white.withOpacity(0.15)),
+                          : (hasData ? AppColors.white : AppColors.white.withValues(alpha: 0.15)),
                     ),
                   ),
                   if (hasData && !isSelected)
                     Container(
-                      margin: EdgeInsets.only(top: 4.h),
-                      width: 4.r,
-                      height: 4.r,
+                      margin: EdgeInsets.only(top: isCompact ? 4.h : 4.0),
+                      width: isCompact ? 4.r : 4.0,
+                      height: isCompact ? 4.r : 4.0,
                       decoration: const BoxDecoration(
                         color: Colors.blueAccent,
                         shape: BoxShape.circle,
@@ -1056,7 +1228,7 @@ class _HydrationScreenState extends State<HydrationScreen>
         width: 40.w,
         height: 4.h,
         decoration: BoxDecoration(
-          color: AppColors.textSecondary.withOpacity(0.2),
+          color: AppColors.textSecondary.withValues(alpha: 0.2),
           borderRadius: BorderRadius.circular(2.r),
         ),
       ),

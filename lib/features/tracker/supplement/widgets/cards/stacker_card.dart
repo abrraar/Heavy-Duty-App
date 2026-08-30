@@ -8,7 +8,8 @@ import 'package:heavy_duty/features/tracker/supplement/model/supplement.dart';
 import 'package:heavy_duty/features/tracker/supplement/model/supplement_stack.dart';
 import 'package:heavy_duty/features/tracker/supplement/provider/supplement_provider.dart';
 import 'package:heavy_duty/features/tracker/supplement/widgets/sheets/stack_form_sheet.dart';
-import 'package:heavy_duty/features/tracker/supplement/widgets/sheets/stack_notification_sheet.dart'; // Import the new sheet
+import 'package:heavy_duty/features/tracker/supplement/widgets/sheets/stack_notification_sheet.dart';
+import 'package:heavy_duty/core/utils/adaptive_utils.dart'; // Import the new sheet
 import 'package:heavy_duty/core/widgets/elite_snackbar.dart';
 import 'package:provider/provider.dart';
 import 'package:collection/collection.dart';
@@ -21,8 +22,13 @@ import '../../../../../core/widgets/elite_confirm_dialog.dart';
 
 class StackerCard extends StatefulWidget {
   final SupplementStack stack;
+  final bool isCompact;
 
-  const StackerCard({super.key, required this.stack});
+  const StackerCard({
+    super.key, 
+    required this.stack,
+    this.isCompact = true,
+  });
 
   @override
   State<StackerCard> createState() => _StackerCardState();
@@ -161,41 +167,43 @@ class _StackerCardState extends State<StackerCard> {
     // OR if there is a stock issue for an intake item
     final bool isStackDisabled = hasInvalidItems || activeCount < 2 || hasStockIssue;
 
+    final bool isCompact = widget.isCompact;
+
     return Opacity(
       opacity: isStackDisabled ? 0.6 : 1.0,
       child: Container(
-        margin: EdgeInsets.only(bottom: 16.h),
+        margin: EdgeInsets.only(bottom: isCompact ? 16.h : 12.0),
         decoration: BoxDecoration(
           color: AppColors.surface,
-          borderRadius: BorderRadius.circular(24.r),
+          borderRadius: BorderRadius.circular(isCompact ? 24.r : 20.0),
           border: Border.all(
             color: isStackDisabled
-                ? AppColors.crimson.withOpacity(0.3)
-                : AppColors.white.withOpacity(0.05),
+                ? AppColors.crimson.withValues(alpha: 0.3)
+                : AppColors.white.withValues(alpha: 0.05),
           ),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildHeader(provider, isStackDisabled),
-            if (_isManagementExpanded) _buildManagementDrawer(context),
+            _buildHeader(provider, isStackDisabled, isCompact),
+            if (_isManagementExpanded) _buildManagementDrawer(context, isCompact),
             if (isStackDisabled)
-              _buildLockedCompositionView(itemsWithStatus, activeCount)
+              _buildLockedCompositionView(itemsWithStatus, activeCount, isCompact)
             else
-              _buildActiveFunctionalView(itemsWithStatus),
-            if (!isStackDisabled) SizedBox(height: 16.h),
+              _buildActiveFunctionalView(itemsWithStatus, isCompact),
+            if (!isStackDisabled) SizedBox(height: isCompact ? 16.h : 12.0),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildHeader(SupplementProvider provider, bool isDeactivated) {
+  Widget _buildHeader(SupplementProvider provider, bool isDeactivated, bool isCompact) {
     final bool isPinnedToHome = widget.stack.isPinnedToHome;
     final bool valid = _allValuesValid;
 
     return Padding(
-      padding: EdgeInsets.fromLTRB(24.w, 24.h, 16.w, 12.h),
+      padding: EdgeInsets.fromLTRB(isCompact ? 24.w : 20.0, isCompact ? 24.h : 20.0, isCompact ? 16.w : 14.0, isCompact ? 12.h : 10.0),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
@@ -206,12 +214,12 @@ class _StackerCardState extends State<StackerCard> {
                 Text(
                   widget.stack.name.toUpperCase(),
                   style: AppTextStyles.h3.copyWith(
-                    fontSize: 18.sp,
+                    fontSize: isCompact ? (15.sp).clamp(13, 17) : 15.0,
                     color: isDeactivated
                         ? AppColors.textSecondary
                         : AppColors.white,
                     letterSpacing: 1.2,
-                    fontWeight: FontWeight.w900,
+                    fontWeight: FontWeight.w500,
                   ),
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -221,20 +229,20 @@ class _StackerCardState extends State<StackerCard> {
                     padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
                     decoration: BoxDecoration(
                       color: Colors.blueAccent.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(6.r),
+                      borderRadius: BorderRadius.circular(isCompact ? 6.r : 4.0),
                       border: Border.all(color: Colors.blueAccent.withValues(alpha: 0.2)),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(Icons.share_rounded, color: Colors.blueAccent, size: 10.r),
+                        Icon(Icons.share_rounded, color: Colors.blueAccent, size: isCompact ? 10.r : 10.0),
                         SizedBox(width: 4.w),
                         Text(
                           "SHARED BY ${widget.stack.sharedBy!.toUpperCase()}",
                           style: AppTextStyles.labelSmall.copyWith(
                             color: Colors.blueAccent,
-                            fontSize: 8.sp,
-                            fontWeight: FontWeight.w900,
+                            fontSize: isCompact ? 7.sp : 7.0,
+                            fontWeight: FontWeight.w500,
                           ),
                         ),
                       ],
@@ -251,6 +259,7 @@ class _StackerCardState extends State<StackerCard> {
               icon: isPinnedToHome ? Icons.push_pin_rounded : Icons.push_pin_outlined,
               isActive: isPinnedToHome,
               opacity: valid ? 1.0 : 0.3,
+              isCompact: isCompact,
               onTap: valid
                   ? () {
                       if (isPinnedToHome) {
@@ -282,6 +291,7 @@ class _StackerCardState extends State<StackerCard> {
                   : Icons.notifications_none_rounded,
               isActive: widget.stack.notificationsEnabled,
               opacity: valid ? 1.0 : 0.3,
+              isCompact: isCompact,
               onTap: valid
                   ? () => _openNotificationSheet(context)
                   : () {},
@@ -290,6 +300,7 @@ class _StackerCardState extends State<StackerCard> {
             _buildQuickActionButton(
               icon: Icons.ios_share_rounded,
               isActive: false,
+              isCompact: isCompact,
               onTap: () async {
                 final authProvider = context.read<AuthProvider>();
                 final userName = authProvider.displayName;
@@ -314,6 +325,7 @@ class _StackerCardState extends State<StackerCard> {
                 ? Icons.close_rounded
                 : Icons.more_vert_rounded,
             isActive: _isManagementExpanded,
+            isCompact: isCompact,
             onTap: () =>
                 setState(() => _isManagementExpanded = !_isManagementExpanded),
           ),
@@ -326,6 +338,7 @@ class _StackerCardState extends State<StackerCard> {
     required IconData icon,
     required bool isActive,
     required VoidCallback onTap,
+    required bool isCompact,
     double opacity = 1.0,
   }) {
     return GestureDetector(
@@ -333,10 +346,10 @@ class _StackerCardState extends State<StackerCard> {
       child: Opacity(
         opacity: opacity,
         child: Container(
-          padding: EdgeInsets.all(8.r),
+          padding: EdgeInsets.all(isCompact ? 8.r : 6.0),
           decoration: BoxDecoration(
             color: isActive ? AppColors.crimson.withValues(alpha: 0.1) : AppColors.white.withValues(alpha: 0.03),
-            borderRadius: BorderRadius.circular(10.r),
+            borderRadius: BorderRadius.circular(isCompact ? 10.r : 8.0),
             border: Border.all(
               color: isActive ? AppColors.crimson.withValues(alpha: 0.3) : AppColors.white.withValues(alpha: 0.05),
             ),
@@ -344,7 +357,7 @@ class _StackerCardState extends State<StackerCard> {
           child: Icon(
             icon,
             color: isActive ? AppColors.crimson : AppColors.textSecondary,
-            size: 18.r,
+            size: isCompact ? 18.r : 16.0,
           ),
         ),
       ),
@@ -358,9 +371,10 @@ class _StackerCardState extends State<StackerCard> {
   Widget _buildLockedCompositionView(
     List<Map<String, dynamic>> itemsWithStatus,
     int activeCount,
+    bool isCompact,
   ) {
     return Padding(
-      padding: EdgeInsets.fromLTRB(16.w, 8.h, 16.w, 20.h),
+      padding: EdgeInsets.fromLTRB(isCompact ? 16.w : 14.0, isCompact ? 8.h : 6.0, isCompact ? 16.w : 14.0, isCompact ? 20.h : 16.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -371,35 +385,35 @@ class _StackerCardState extends State<StackerCard> {
                 "STACK COMPONENTS",
                 style: AppTextStyles.labelSmall.copyWith(
                   color: AppColors.textSecondary,
-                  fontSize: 10.sp,
+                  fontSize: isCompact ? 9.sp : 9.0,
                   letterSpacing: 1.5,
-                  fontWeight: FontWeight.bold,
+                  fontWeight: FontWeight.w500,
                 ),
               ),
               Text(
                 activeCount < 2 ? "INVALID STACK" : "REACTIVATION REQUIRED",
                 style: AppTextStyles.labelSmall.copyWith(
                   color: AppColors.crimson,
-                  fontSize: 9.sp,
-                  fontWeight: FontWeight.w900,
+                  fontSize: isCompact ? 8.sp : 8.0,
+                  fontWeight: FontWeight.w500,
                 ),
               ),
             ],
           ),
-          SizedBox(height: 12.h),
+          SizedBox(height: isCompact ? 12.h : 10.0),
           ...itemsWithStatus.map((data) {
             final Supplement item = data['item'];
             final bool isActive = data['isActive'];
             return Container(
-              margin: EdgeInsets.only(bottom: 6.h),
-              padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
+              margin: EdgeInsets.only(bottom: isCompact ? 6.h : 4.0),
+              padding: EdgeInsets.symmetric(horizontal: isCompact ? 12.w : 10.0, vertical: isCompact ? 10.h : 8.0),
               decoration: BoxDecoration(
-                color: AppColors.background.withOpacity(0.3),
-                borderRadius: BorderRadius.circular(12.r),
+                color: AppColors.background.withValues(alpha: 0.3),
+                borderRadius: BorderRadius.circular(isCompact ? 12.r : 10.0),
                 border: Border.all(
                   color: isActive
                       ? Colors.transparent
-                      : AppColors.crimson.withOpacity(0.2),
+                      : AppColors.crimson.withValues(alpha: 0.2),
                 ),
               ),
               child: Row(
@@ -409,7 +423,7 @@ class _StackerCardState extends State<StackerCard> {
                         ? Icons.check_circle_outline_rounded
                         : Icons.error_outline_rounded,
                     color: isActive ? Colors.white24 : AppColors.crimson,
-                    size: 16.r,
+                    size: isCompact ? 14.r : 14.0,
                   ),
                   SizedBox(width: 12.w),
                   Expanded(
@@ -417,12 +431,10 @@ class _StackerCardState extends State<StackerCard> {
                       item.name.toUpperCase(),
                       style: AppTextStyles.labelSmall.copyWith(
                         color: isActive
-                            ? AppColors.white.withOpacity(0.6)
+                            ? AppColors.white.withValues(alpha: 0.6)
                             : AppColors.white,
-                        fontWeight: isActive
-                            ? FontWeight.normal
-                            : FontWeight.w900,
-                        fontSize: 11.sp,
+                        fontWeight: FontWeight.w500,
+                        fontSize: isCompact ? 10.sp : 9.0,
                       ),
                     ),
                   ),
@@ -431,8 +443,8 @@ class _StackerCardState extends State<StackerCard> {
                       item.name == "Deleted Item" ? "DELETED" : "INACTIVE",
                       style: AppTextStyles.labelSmall.copyWith(
                         color: AppColors.crimson,
-                        fontSize: 8.sp,
-                        fontWeight: FontWeight.w900,
+                        fontSize: isCompact ? 8.sp : 8.0,
+                        fontWeight: FontWeight.w500,
                       ),
                     ),
                 ],
@@ -441,12 +453,12 @@ class _StackerCardState extends State<StackerCard> {
           }),
           if (activeCount < 2)
             Padding(
-              padding: EdgeInsets.only(top: 12.h),
+              padding: EdgeInsets.only(top: isCompact ? 12.h : 10.0),
               child: Text(
                 "A stack must have at least 2 active supplements. Please modify this stack to continue.",
                 style: AppTextStyles.labelSmall.copyWith(
                   color: AppColors.textSecondary,
-                  fontSize: 9.sp,
+                  fontSize: isCompact ? 9.sp : 8.0,
                   fontStyle: FontStyle.italic,
                 ),
                 textAlign: TextAlign.center,
@@ -457,67 +469,67 @@ class _StackerCardState extends State<StackerCard> {
     );
   }
 
-  Widget _buildActiveFunctionalView(List<Map<String, dynamic>> itemsWithStatus) {
+  Widget _buildActiveFunctionalView(List<Map<String, dynamic>> itemsWithStatus, bool isCompact) {
     return Column(
       children: [
         ListView.builder(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
-          padding: EdgeInsets.symmetric(horizontal: 16.w),
+          padding: EdgeInsets.symmetric(horizontal: isCompact ? 16.w : 14.0),
           itemCount: itemsWithStatus.length,
           itemBuilder: (context, index) =>
-              _buildSupplementRow(itemsWithStatus[index]['item']),
+              _buildSupplementRow(itemsWithStatus[index]['item'], isCompact),
         ),
-        _buildDateTimeSelector(),
-        SizedBox(height: 8.h),
-        _buildExecuteButton(),
+        _buildDateTimeSelector(isCompact),
+        SizedBox(height: isCompact ? 8.h : 6.0),
+        _buildExecuteButton(isCompact),
       ],
     );
   }
 
-  Widget _buildDateTimeSelector() {
+  Widget _buildDateTimeSelector(bool isCompact) {
     String formatted =
         "${_selectedDateTime.day}/${_selectedDateTime.month} @ ${_selectedDateTime.hour.toString().padLeft(2, '0')}:${_selectedDateTime.minute.toString().padLeft(2, '0')}";
     return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 16.w),
+      padding: EdgeInsets.symmetric(horizontal: isCompact ? 16.w : 14.0),
       child: GestureDetector(
         onTap: _pickDateTime,
         child: Container(
-          padding: EdgeInsets.symmetric(vertical: 12.h, horizontal: 16.w),
+          padding: EdgeInsets.symmetric(vertical: isCompact ? 12.h : 10.0, horizontal: isCompact ? 16.w : 14.0),
           decoration: BoxDecoration(
-            color: AppColors.background.withOpacity(0.4),
-            borderRadius: BorderRadius.circular(16.r),
-            border: Border.all(color: AppColors.white.withOpacity(0.05)),
+            color: AppColors.background.withValues(alpha: 0.4),
+            borderRadius: BorderRadius.circular(isCompact ? 16.r : 12.0),
+            border: Border.all(color: AppColors.white.withValues(alpha: 0.05)),
           ),
           child: Row(
             children: [
               Icon(
                 Icons.calendar_month_rounded,
                 color: AppColors.crimson,
-                size: 16.r,
+                size: isCompact ? 16.r : 14.0,
               ),
               SizedBox(width: 12.w),
               Text(
                 "LOG DATE & TIME",
                 style: AppTextStyles.labelSmall.copyWith(
-                  fontSize: 10.sp,
+                  fontSize: isCompact ? 10.sp : 9.0,
                   color: AppColors.textSecondary,
-                  fontWeight: FontWeight.bold,
+                  fontWeight: FontWeight.w500,
                 ),
               ),
               const Spacer(),
               Text(
                 formatted,
                 style: AppTextStyles.labelSmall.copyWith(
-                  fontSize: 11.sp,
+                  fontSize: isCompact ? 11.sp : 10.0,
                   color: Colors.white,
                 ),
               ),
               SizedBox(width: 8.w),
               Icon(
                 Icons.edit_calendar_rounded,
-                color: AppColors.white.withOpacity(0.2),
-                size: 14.r,
+                color: AppColors.white.withValues(alpha: 0.2),
+                size: isCompact ? 14.r : 12.0,
               ),
             ],
           ),
@@ -526,9 +538,9 @@ class _StackerCardState extends State<StackerCard> {
     );
   }
 
-  Widget _buildManagementDrawer(BuildContext context) {
+  Widget _buildManagementDrawer(BuildContext context, bool isCompact) {
     return Padding(
-      padding: EdgeInsets.fromLTRB(16.w, 8.h, 16.w, 12.h),
+      padding: EdgeInsets.fromLTRB(isCompact ? 16.w : 14.0, isCompact ? 8.h : 6.0, isCompact ? 16.w : 14.0, isCompact ? 12.h : 10.0),
       child: Row(
         children: [
           Expanded(
@@ -537,6 +549,7 @@ class _StackerCardState extends State<StackerCard> {
               "MODIFY",
               AppColors.textSecondary,
               () => _openEdit(context),
+              isCompact,
             ),
           ),
           SizedBox(width: 8.w),
@@ -546,6 +559,7 @@ class _StackerCardState extends State<StackerCard> {
               "DELETE",
               AppColors.crimson,
               () => _confirmDelete(context),
+              isCompact,
             ),
           ),
         ],
@@ -575,119 +589,129 @@ class _StackerCardState extends State<StackerCard> {
   void _showUpdatePinConfirmation(SupplementProvider provider) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: AppColors.surface,
-        surfaceTintColor: Colors.transparent,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(28.r),
-        ),
-        title: Column(
-          children: [
-            Container(
-              padding: EdgeInsets.all(12.r),
-              decoration: BoxDecoration(
-                color: Colors.orange.withOpacity(0.1),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(
-                Icons.update_rounded,
-                color: Colors.orange,
-                size: 28.r,
-              ),
+      builder: (context) => LayoutBuilder(
+        builder: (context, constraints) {
+          final bool isCompact = constraints.maxWidth < 600;
+          return AlertDialog(
+            backgroundColor: AppColors.surface,
+            surfaceTintColor: Colors.transparent,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(isCompact ? 28.r : 20.0),
             ),
-            SizedBox(height: 16.h),
-            Text(
-              "UPDATE PRESET",
-              style: AppTextStyles.h3.copyWith(
-                fontSize: 18.sp,
-                letterSpacing: 1.2,
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              "Your current configuration differs from the pinned home screen shortcut. Would you like to update the preset or remove it?",
-              textAlign: TextAlign.center,
-              style: AppTextStyles.labelSmall.copyWith(
-                color: AppColors.textSecondary,
-                height: 1.4,
-                fontSize: 11.sp,
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          Padding(
-            padding: EdgeInsets.fromLTRB(12.w, 0, 12.w, 8.h),
-            child: Column(
+            title: Column(
               children: [
-                GestureDetector(
-                  onTap: () {
-                    provider.toggleStackHomePin(
-                      stackId: widget.stack.id,
-                      recordModes: Map.from(_isRecordMode),
-                      useServings: Map.from(_useServings),
-                      amounts: _controllers.map(
-                        (id, c) => MapEntry(id, double.tryParse(c.text) ?? 0.0),
-                      ),
-                    );
-                    Navigator.pop(context);
-                  },
-                  child: Container(
-                    height: 48.h,
-                    width: double.infinity,
-                    decoration: BoxDecoration(
-                      color: AppColors.crimson,
-                      borderRadius: BorderRadius.circular(12.r),
-                    ),
-                    alignment: Alignment.center,
-                    child: Text(
-                      "UPDATE PRESET",
-                      style: AppTextStyles.labelSmall.copyWith(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
+                Container(
+                  padding: EdgeInsets.all(isCompact ? 12.r : 12.0),
+                  decoration: BoxDecoration(
+                    color: Colors.orange.withValues(alpha: 0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.update_rounded,
+                    color: Colors.orange,
+                    size: isCompact ? 28.r : 24.0,
                   ),
                 ),
-                SizedBox(height: 8.h),
-                Row(
-                  children: [
-                    Expanded(
-                      child: _dialogBtn(
-                        "CANCEL",
-                        Colors.transparent,
-                        AppColors.textSecondary,
-                        () => Navigator.pop(context),
-                      ),
-                    ),
-                    SizedBox(width: 8.w),
-                    Expanded(
-                      child: _dialogBtn(
-                        "REMOVE PIN",
-                        Colors.transparent,
-                        AppColors.crimson,
-                        () {
-                          provider.toggleStackHomePin(
-                            stackId: widget.stack.id,
-                            recordModes: {},
-                            useServings: {},
-                            amounts: {},
-                          );
-                          Navigator.pop(context);
-                        },
-                      ),
-                    ),
-                  ],
+                SizedBox(height: isCompact ? 16.h : 16.0),
+                Text(
+                  "UPDATE PRESET",
+                  style: AppTextStyles.h3.copyWith(
+                    fontSize: isCompact ? 20.sp : 18.0,
+                    letterSpacing: 1.2,
+                    fontWeight: FontWeight.w500,
+                  ),
+                  textAlign: TextAlign.center,
                 ),
               ],
             ),
-          ),
-        ],
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  "Your current configuration differs from the pinned home screen shortcut. Would you like to update the preset or remove it?",
+                  textAlign: TextAlign.center,
+                  style: AppTextStyles.labelSmall.copyWith(
+                    color: AppColors.textSecondary,
+                    height: 1.4,
+                    fontSize: isCompact ? 13.sp : 11.0,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+            actions: [
+              Padding(
+                padding: EdgeInsets.fromLTRB(isCompact ? 12.w : 12.0, 0, isCompact ? 12.w : 12.0, isCompact ? 8.h : 8.0),
+                child: Column(
+                  children: [
+                    GestureDetector(
+                      onTap: () {
+                        provider.toggleStackHomePin(
+                          stackId: widget.stack.id,
+                          recordModes: Map.from(_isRecordMode),
+                          useServings: Map.from(_useServings),
+                          amounts: _controllers.map(
+                            (id, c) => MapEntry(id, double.tryParse(c.text) ?? 0.0),
+                          ),
+                        );
+                        Navigator.pop(context);
+                      },
+                      child: Container(
+                        height: isCompact ? 48.h : 44.0,
+                        width: double.infinity,
+                        decoration: BoxDecoration(
+                          color: AppColors.crimson,
+                          borderRadius: BorderRadius.circular(isCompact ? 12.r : 10.0),
+                        ),
+                        alignment: Alignment.center,
+                        child: Text(
+                          "UPDATE PRESET",
+                          style: AppTextStyles.labelSmall.copyWith(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w500,
+                            fontSize: isCompact ? 14.sp : 11.0,
+                          ),
+                        ),
+                      ),
+                    ),
+                    SizedBox(height: isCompact ? 8.h : 8.0),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _dialogBtn(
+                            "CANCEL",
+                            Colors.transparent,
+                            AppColors.textSecondary,
+                            () => Navigator.pop(context),
+                            isCompact: isCompact,
+                          ),
+                        ),
+                        SizedBox(width: isCompact ? 8.w : 6.0),
+                        Expanded(
+                          child: _dialogBtn(
+                            "REMOVE PIN",
+                            Colors.transparent,
+                            AppColors.crimson,
+                            () {
+                              provider.toggleStackHomePin(
+                                stackId: widget.stack.id,
+                                recordModes: {},
+                                useServings: {},
+                                amounts: {},
+                              );
+                              Navigator.pop(context);
+                            },
+                            isCompact: isCompact,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
@@ -695,131 +719,141 @@ class _StackerCardState extends State<StackerCard> {
   void _showPinConfirmation(SupplementProvider provider) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: AppColors.surface,
-        surfaceTintColor: Colors.transparent,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(28.r),
-        ),
-        title: Column(
-          children: [
-            Container(
-              padding: EdgeInsets.all(12.r),
-              decoration: BoxDecoration(
-                color: AppColors.crimson.withOpacity(0.1),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(
-                Icons.push_pin_rounded,
-                color: AppColors.crimson,
-                size: 28.r,
-              ),
+      builder: (context) => LayoutBuilder(
+        builder: (context, constraints) {
+          final bool isCompact = constraints.maxWidth < 600;
+          return AlertDialog(
+            backgroundColor: AppColors.surface,
+            surfaceTintColor: Colors.transparent,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(isCompact ? 28.r : 20.0),
             ),
-            SizedBox(height: 16.h),
-            Text(
-              "PIN TO HOME",
-              style: AppTextStyles.h3.copyWith(
-                fontSize: 18.sp,
-                letterSpacing: 1.2,
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              "Confirming current configuration as a home screen preset.",
-              textAlign: TextAlign.center,
-              style: AppTextStyles.labelSmall.copyWith(
-                color: AppColors.textSecondary,
-                height: 1.4,
-                fontSize: 11.sp,
-              ),
-            ),
-            SizedBox(height: 20.h),
-            Container(
-              width: double.infinity,
-              padding: EdgeInsets.all(16.r),
-              decoration: BoxDecoration(
-                color: AppColors.background.withOpacity(0.6),
-                borderRadius: BorderRadius.circular(20.r),
-                border: Border.all(color: AppColors.white.withOpacity(0.08)),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: widget.stack.items.map((item) {
-                  final isRecord = _isRecordMode[item.id] ?? true;
-                  final servings = _useServings[item.id] ?? true;
-                  final amount = _controllers[item.id]?.text ?? "0";
-                  final unit = servings ? item.servingUnit : item.weightUnit;
-                  return Padding(
-                    padding: EdgeInsets.symmetric(vertical: 6.h),
-                    child: Row(
-                      children: [
-                        Icon(
-                          isRecord
-                              ? Icons.remove_circle_outline
-                              : Icons.add_circle_outline,
-                          size: 14.r,
-                          color: isRecord ? AppColors.crimson : Colors.green,
-                        ),
-                        SizedBox(width: 12.w),
-                        Expanded(
-                          child: Text(
-                            "${isRecord ? 'RECORD' : 'RESTOCK'} $amount $unit OF ${item.name}"
-                                .toUpperCase(),
-                            style: AppTextStyles.labelSmall.copyWith(
-                              fontSize: 10.sp,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                }).toList(),
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          Padding(
-            padding: EdgeInsets.fromLTRB(12.w, 0, 12.w, 16.h),
-            child: Row(
+            title: Column(
               children: [
-                Expanded(
-                  child: _dialogBtn(
-                    "CANCEL",
-                    Colors.transparent,
-                    AppColors.textSecondary,
-                    () => Navigator.pop(context),
+                Container(
+                  padding: EdgeInsets.all(isCompact ? 12.r : 12.0),
+                  decoration: BoxDecoration(
+                    color: AppColors.crimson.withValues(alpha: 0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.push_pin_rounded,
+                    color: AppColors.crimson,
+                    size: isCompact ? 28.r : 24.0,
                   ),
                 ),
-                SizedBox(width: 12.w),
-                Expanded(
-                  child: _dialogBtn(
-                    "CONFIRM",
-                    AppColors.crimson,
-                    Colors.white,
-                    () {
-                      provider.toggleStackHomePin(
-                        stackId: widget.stack.id,
-                        recordModes: Map.from(_isRecordMode),
-                        useServings: Map.from(_useServings),
-                        amounts: _controllers.map(
-                          (id, c) =>
-                              MapEntry(id, double.tryParse(c.text) ?? 0.0),
+                SizedBox(height: isCompact ? 16.h : 16.0),
+                Text(
+                  "PIN TO HOME",
+                  style: AppTextStyles.h3.copyWith(
+                    fontSize: isCompact ? 20.sp : 18.0,
+                    letterSpacing: 1.2,
+                    fontWeight: FontWeight.w500,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  "Confirming current configuration as a home screen preset.",
+                  textAlign: TextAlign.center,
+                  style: AppTextStyles.labelSmall.copyWith(
+                    color: AppColors.textSecondary,
+                    height: 1.4,
+                    fontSize: isCompact ? 13.sp : 11.0,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                SizedBox(height: isCompact ? 16.h : 16.0),
+                Container(
+                  width: double.infinity,
+                  padding: EdgeInsets.all(isCompact ? 16.r : 16.0),
+                  decoration: BoxDecoration(
+                    color: AppColors.background.withValues(alpha: 0.6),
+                    borderRadius: BorderRadius.circular(isCompact ? 20.r : 16.0),
+                    border: Border.all(color: AppColors.white.withValues(alpha: 0.08)),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: widget.stack.items.map((item) {
+                      final isRecord = _isRecordMode[item.id] ?? true;
+                      final servings = _useServings[item.id] ?? true;
+                      final amount = _controllers[item.id]?.text ?? "0";
+                      final unit = servings ? item.servingUnit : item.weightUnit;
+                      return Padding(
+                        padding: EdgeInsets.symmetric(vertical: isCompact ? 6.h : 6.0),
+                        child: Row(
+                          children: [
+                            Icon(
+                              isRecord
+                                  ? Icons.remove_circle_outline
+                                  : Icons.add_circle_outline,
+                              size: isCompact ? 14.r : 14.0,
+                              color: isRecord ? AppColors.crimson : Colors.green,
+                            ),
+                            SizedBox(width: isCompact ? 12.w : 12.0),
+                            Expanded(
+                              child: Text(
+                                "${isRecord ? 'RECORD' : 'RESTOCK'} $amount $unit OF ${item.name}"
+                                    .toUpperCase(),
+                                style: AppTextStyles.labelSmall.copyWith(
+                                  fontSize: isCompact ? 11.sp : 10.0,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       );
-                      Navigator.pop(context);
-                    },
+                    }).toList(),
                   ),
                 ),
               ],
             ),
-          ),
-        ],
+            actions: [
+              Padding(
+                padding: EdgeInsets.fromLTRB(isCompact ? 12.w : 12.0, 0, isCompact ? 12.w : 12.0, isCompact ? 16.h : 16.0),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: _dialogBtn(
+                        "CANCEL",
+                        Colors.transparent,
+                        AppColors.textSecondary,
+                        () => Navigator.pop(context),
+                        isCompact: isCompact,
+                      ),
+                    ),
+                    SizedBox(width: isCompact ? 12.w : 12.0),
+                    Expanded(
+                      child: _dialogBtn(
+                        "CONFIRM",
+                        AppColors.crimson,
+                        Colors.white,
+                        () {
+                          provider.toggleStackHomePin(
+                            stackId: widget.stack.id,
+                            recordModes: Map.from(_isRecordMode),
+                            useServings: Map.from(_useServings),
+                            amounts: _controllers.map(
+                              (id, c) =>
+                                  MapEntry(id, double.tryParse(c.text) ?? 0.0),
+                            ),
+                          );
+                          Navigator.pop(context);
+                        },
+                        isCompact: isCompact,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
@@ -828,111 +862,120 @@ class _StackerCardState extends State<StackerCard> {
   void _showExecuteConfirmation() {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: AppColors.surface,
-        surfaceTintColor: Colors.transparent,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(28.r),
-        ),
-        title: Column(
-          children: [
-            Container(
-              padding: EdgeInsets.all(12.r),
-              decoration: BoxDecoration(
-                color: AppColors.crimson.withOpacity(0.1),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(
-                Icons.checklist_rtl_rounded,
-                color: AppColors.crimson,
-                size: 28.r,
-              ),
+      builder: (context) => LayoutBuilder(
+        builder: (context, constraints) {
+          final bool isCompact = constraints.maxWidth < 600;
+          return AlertDialog(
+            backgroundColor: AppColors.surface,
+            surfaceTintColor: Colors.transparent,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(isCompact ? 28.r : 20.0),
             ),
-            SizedBox(height: 16.h),
-            Text(
-              "CONFIRM EXECUTION",
-              style: AppTextStyles.h3.copyWith(
-                fontSize: 18.sp,
-                letterSpacing: 1.2,
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              "Record all items in '${widget.stack.name.toUpperCase()}' for the selected date/time?",
-              textAlign: TextAlign.center,
-              style: AppTextStyles.labelSmall.copyWith(
-                color: AppColors.textSecondary,
-                height: 1.4,
-                fontSize: 11.sp,
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          Padding(
-            padding: EdgeInsets.fromLTRB(12.w, 0, 12.w, 16.h),
-            child: Row(
+            title: Column(
               children: [
-                Expanded(
-                  child: _dialogBtn(
-                    "CANCEL",
-                    Colors.transparent,
-                    AppColors.textSecondary,
-                    () => Navigator.pop(context),
+                Container(
+                  padding: EdgeInsets.all(isCompact ? 12.r : 12.0),
+                  decoration: BoxDecoration(
+                    color: AppColors.crimson.withValues(alpha: 0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.checklist_rtl_rounded,
+                    color: AppColors.crimson,
+                    size: isCompact ? 28.r : 24.0,
                   ),
                 ),
-                SizedBox(width: 12.w),
-                Expanded(
-                  child: _dialogBtn(
-                    "EXECUTE",
-                    AppColors.crimson,
-                    Colors.white,
-                    () {
-                      final provider = context.read<SupplementProvider>();
-                      if (provider.isStackProcessing) return;
-
-                      provider.executeStackLog(
-                        stack: widget.stack,
-                        recordModes: _isRecordMode,
-                        useServings: _useServings,
-                        amounts: _controllers.map(
-                          (id, c) =>
-                              MapEntry(id, double.tryParse(c.text) ?? 0.0),
-                        ),
-                        selectedDateTime: _selectedDateTime,
-                      );
-
-                      Navigator.pop(context);
-                      EliteSnackbar.show(
-                        context,
-                        "STACK LOGGED: ${widget.stack.name.toUpperCase()}",
-                        onUndo: () => provider.deleteLastEntry(),
-                      );
-                    },
+                SizedBox(height: isCompact ? 16.h : 16.0),
+                Text(
+                  "CONFIRM EXECUTION",
+                  style: AppTextStyles.h3.copyWith(
+                    fontSize: isCompact ? 20.sp : 18.0,
+                    letterSpacing: 1.2,
+                    fontWeight: FontWeight.w500,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  "Record all items in '${widget.stack.name.toUpperCase()}' for the selected date/time?",
+                  textAlign: TextAlign.center,
+                  style: AppTextStyles.labelSmall.copyWith(
+                    color: AppColors.textSecondary,
+                    height: 1.4,
+                    fontSize: isCompact ? 13.sp : 11.0,
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
               ],
             ),
-          ),
-        ],
+            actions: [
+              Padding(
+                padding: EdgeInsets.fromLTRB(isCompact ? 12.w : 12.0, 0, isCompact ? 12.w : 12.0, isCompact ? 16.h : 16.0),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: _dialogBtn(
+                        "CANCEL",
+                        Colors.transparent,
+                        AppColors.textSecondary,
+                        () => Navigator.pop(context),
+                        isCompact: isCompact,
+                      ),
+                    ),
+                    SizedBox(width: isCompact ? 12.w : 12.0),
+                    Expanded(
+                      child: _dialogBtn(
+                        "EXECUTE",
+                        AppColors.crimson,
+                        Colors.white,
+                        () {
+                          final provider = context.read<SupplementProvider>();
+                          if (provider.isStackProcessing) return;
+
+                          provider.executeStackLog(
+                            stack: widget.stack,
+                            recordModes: _isRecordMode,
+                            useServings: _useServings,
+                            amounts: _controllers.map(
+                              (id, c) =>
+                                  MapEntry(id, double.tryParse(c.text) ?? 0.0),
+                            ),
+                            selectedDateTime: _selectedDateTime,
+                          );
+
+                          Navigator.pop(context);
+                          EliteSnackbar.show(
+                            context,
+                            "STACK LOGGED: ${widget.stack.name.toUpperCase()}",
+                            onUndo: () => provider.deleteLastEntry(),
+                          );
+                        },
+                        isCompact: isCompact,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
 
-  Widget _buildSupplementRow(Supplement item) {
+  Widget _buildSupplementRow(Supplement item, bool isCompact) {
     bool isRecord = _isRecordMode[item.id] ?? true;
     return Container(
-      margin: EdgeInsets.only(bottom: 8.h),
-      padding: EdgeInsets.all(12.r),
+      margin: EdgeInsets.only(bottom: isCompact ? 8.h : 6.0),
+      padding: EdgeInsets.all(isCompact ? 12.r : 10.0),
       decoration: BoxDecoration(
-        color: AppColors.background.withOpacity(0.4),
-        borderRadius: BorderRadius.circular(16.r),
-        border: Border.all(color: AppColors.white.withOpacity(0.05)),
+        color: AppColors.background.withValues(alpha: 0.4),
+        borderRadius: BorderRadius.circular(isCompact ? 16.r : 12.0),
+        border: Border.all(color: AppColors.white.withValues(alpha: 0.05)),
       ),
       child: Column(
         children: [
@@ -942,30 +985,32 @@ class _StackerCardState extends State<StackerCard> {
                 child: Text(
                   item.name.toUpperCase(),
                   style: AppTextStyles.labelSmall.copyWith(
-                    fontSize: 11.sp,
-                    fontWeight: FontWeight.bold,
+                    fontSize: isCompact ? 11.sp : 10.0,
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
               ),
-              _unitToggle(item),
+              _unitToggle(item, isCompact),
             ],
           ),
-          SizedBox(height: 12.h),
+          SizedBox(height: isCompact ? 12.h : 10.0),
           Row(
             children: [
               _modeToggleChip(
                 "RECORD",
                 isRecord,
                 () => setState(() => _isRecordMode[item.id] = true),
+                isCompact,
               ),
               SizedBox(width: 8.w),
               _modeToggleChip(
                 "RESTOCK",
                 !isRecord,
                 () => setState(() => _isRecordMode[item.id] = false),
+                isCompact,
               ),
               const Spacer(),
-              _valueInput(item.id),
+              _valueInput(item.id, isCompact),
             ],
           ),
         ],
@@ -973,7 +1018,7 @@ class _StackerCardState extends State<StackerCard> {
     );
   }
 
-  Widget _buildExecuteButton() {
+  Widget _buildExecuteButton(bool isCompact) {
     final valid = _allValuesValid;
     final bool hasZeroValue = _controllers.values.any((c) {
       final val = double.tryParse(c.text) ?? 0;
@@ -1008,23 +1053,23 @@ class _StackerCardState extends State<StackerCard> {
     }
 
     return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 16.w),
+      padding: EdgeInsets.symmetric(horizontal: isCompact ? 16.w : 14.0),
       child: GestureDetector(
         onTap: canExecute ? _showExecuteConfirmation : null,
         child: Container(
-          height: 52.h,
+          height: isCompact ? 52.h : 44.0,
           width: double.infinity,
           decoration: BoxDecoration(
             color: canExecute
                 ? AppColors.crimson
-                : AppColors.background.withOpacity(0.5),
-            borderRadius: BorderRadius.circular(14.r),
+                : AppColors.background.withValues(alpha: 0.5),
+            borderRadius: BorderRadius.circular(isCompact ? 14.r : 12.0),
           ),
           alignment: Alignment.center,
           child: Text(
             label,
             style: AppTextStyles.buttonPrimary.copyWith(
-              fontSize: 13.sp,
+              fontSize: isCompact ? 13.sp : 12.0,
               color: canExecute ? Colors.white : Colors.white24,
             ),
           ),
@@ -1033,10 +1078,10 @@ class _StackerCardState extends State<StackerCard> {
     );
   }
 
-  Widget _unitToggle(Supplement item) {
+  Widget _unitToggle(Supplement item, bool isCompact) {
     bool servings = _useServings[item.id] ?? true;
     return Container(
-      height: 30.h,
+      height: isCompact ? 30.h : 26.0,
       padding: EdgeInsets.all(2.r),
       decoration: BoxDecoration(
         color: AppColors.surface,
@@ -1049,22 +1094,24 @@ class _StackerCardState extends State<StackerCard> {
             item.servingUnit,
             servings,
             () => setState(() => _useServings[item.id] = true),
+            isCompact,
           ),
           _unitBtn(
             item.weightUnit,
             !servings,
             () => setState(() => _useServings[item.id] = false),
+            isCompact,
           ),
         ],
       ),
     );
   }
 
-  Widget _unitBtn(String label, bool active, VoidCallback onTap) =>
+  Widget _unitBtn(String label, bool active, VoidCallback onTap, bool isCompact) =>
       GestureDetector(
         onTap: onTap,
         child: Container(
-          padding: EdgeInsets.symmetric(horizontal: 10.w),
+          padding: EdgeInsets.symmetric(horizontal: isCompact ? 10.w : 8.0),
           alignment: Alignment.center,
           decoration: BoxDecoration(
             color: active ? AppColors.crimson : Colors.transparent,
@@ -1073,55 +1120,55 @@ class _StackerCardState extends State<StackerCard> {
           child: Text(
             label.toUpperCase(),
             style: AppTextStyles.labelSmall.copyWith(
-              fontSize: 9.sp,
+              fontSize: isCompact ? 9.sp : 8.0,
               color: active ? Colors.white : AppColors.textSecondary,
             ),
           ),
         ),
       );
 
-  Widget _modeToggleChip(String label, bool isActive, VoidCallback onTap) =>
+  Widget _modeToggleChip(String label, bool isActive, VoidCallback onTap, bool isCompact) =>
       GestureDetector(
         onTap: onTap,
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 200),
-          padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
+          padding: EdgeInsets.symmetric(horizontal: isCompact ? 12.w : 10.0, vertical: isCompact ? 6.h : 4.0),
           decoration: BoxDecoration(
             color: isActive
-                ? AppColors.crimson.withOpacity(0.1)
+                ? AppColors.crimson.withValues(alpha: 0.1)
                 : Colors.transparent,
             borderRadius: BorderRadius.circular(8.r),
             border: Border.all(
               color: isActive
                   ? AppColors.crimson
-                  : AppColors.white.withOpacity(0.1),
+                  : AppColors.white.withValues(alpha: 0.1),
             ),
           ),
           child: Text(
             label,
             style: AppTextStyles.labelSmall.copyWith(
-              fontSize: 9.sp,
+              fontSize: isCompact ? 9.sp : 8.0,
               color: isActive ? AppColors.crimson : AppColors.textSecondary,
             ),
           ),
         ),
       );
 
-  Widget _valueInput(String id) => Container(
-    width: 65.w,
-    height: 34.h,
+  Widget _valueInput(String id, bool isCompact) => Container(
+    width: isCompact ? 65.w : 60.0,
+    height: isCompact ? 34.h : 30.0,
     decoration: BoxDecoration(
       color: AppColors.surface,
-      borderRadius: BorderRadius.circular(8.r),
-      border: Border.all(color: AppColors.white.withOpacity(0.05)),
+      borderRadius: BorderRadius.circular(isCompact ? 8.r : 8.0),
+      border: Border.all(color: AppColors.white.withValues(alpha: 0.05)),
     ),
     child: TextField(
       controller: _controllers[id],
       textAlign: TextAlign.center,
       keyboardType: const TextInputType.numberWithOptions(decimal: true),
       style: AppTextStyles.labelSmall.copyWith(
-        fontSize: 14.sp,
-        fontWeight: FontWeight.bold,
+        fontSize: isCompact ? 14.sp : 13.0,
+        fontWeight: FontWeight.w500,
       ),
       decoration: const InputDecoration(
         border: InputBorder.none,
@@ -1131,27 +1178,27 @@ class _StackerCardState extends State<StackerCard> {
     ),
   );
 
-  Widget _drawerBtn(IconData i, String l, Color c, VoidCallback o) =>
+  Widget _drawerBtn(IconData i, String l, Color c, VoidCallback o, bool isCompact) =>
       GestureDetector(
         onTap: o,
         child: Container(
-          padding: EdgeInsets.symmetric(vertical: 10.h),
+          padding: EdgeInsets.symmetric(vertical: isCompact ? 10.h : 8.0),
           decoration: BoxDecoration(
-            color: c.withOpacity(0.05),
+            color: c.withValues(alpha: 0.05),
             borderRadius: BorderRadius.circular(12.r),
-            border: Border.all(color: c.withOpacity(0.15)),
+            border: Border.all(color: c.withValues(alpha: 0.15)),
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(i, color: c, size: 16.r),
+              Icon(i, color: c, size: isCompact ? 16.r : 14.0),
               SizedBox(width: 8.w),
               Text(
                 l,
                 style: AppTextStyles.labelSmall.copyWith(
                   color: c,
-                  fontSize: 10.sp,
-                  fontWeight: FontWeight.bold,
+                  fontSize: isCompact ? 10.sp : 9.0,
+                  fontWeight: FontWeight.w500,
                 ),
               ),
             ],
@@ -1159,22 +1206,22 @@ class _StackerCardState extends State<StackerCard> {
         ),
       );
 
-  void _openNotificationSheet(BuildContext context) => showModalBottomSheet(
+  void _openNotificationSheet(BuildContext context) => AdaptiveUtils.showAdaptiveSheet(
     context: context,
-    isScrollControlled: true,
-    backgroundColor: Colors.transparent,
-    builder: (context) => StackNotificationSheet(
+    sheetBuilder: (sheetContext, isSideSheet) => StackNotificationSheet(
+      isSideSheet: isSideSheet,
       stack: widget.stack,
       initialReminders: widget.stack.reminders,
       initialEnabled: widget.stack.notificationsEnabled,
     ),
   );
 
-  void _openEdit(BuildContext context) => showModalBottomSheet(
+  void _openEdit(BuildContext context) => AdaptiveUtils.showAdaptiveSheet(
     context: context,
-    isScrollControlled: true,
-    backgroundColor: Colors.transparent,
-    builder: (context) => StackFormSheet(existingStack: widget.stack),
+    sheetBuilder: (sheetContext, isSideSheet) => StackFormSheet(
+      isSideSheet: isSideSheet,
+      existingStack: widget.stack
+    ),
   );
 
   // UPDATED: Standardized to match identical styling scheme of Pin Confirmation Dialog
@@ -1196,7 +1243,7 @@ class _StackerCardState extends State<StackerCard> {
     }
   }
 
-  Widget _dialogBtn(String label, Color bg, Color text, VoidCallback onTap) =>
+  Widget _dialogBtn(String label, Color bg, Color text, VoidCallback onTap, {required bool isCompact}) =>
       GestureDetector(
         onTap: onTap,
         child: Container(
@@ -1206,7 +1253,7 @@ class _StackerCardState extends State<StackerCard> {
             borderRadius: BorderRadius.circular(12.r),
             border: Border.all(
               color: bg == Colors.transparent
-                  ? AppColors.white.withOpacity(0.1)
+                  ? AppColors.white.withValues(alpha: 0.1)
                   : Colors.transparent,
             ),
           ),
@@ -1215,7 +1262,8 @@ class _StackerCardState extends State<StackerCard> {
             label,
             style: AppTextStyles.labelSmall.copyWith(
               color: text,
-              fontWeight: FontWeight.bold,
+              fontWeight: FontWeight.w500,
+              fontSize: isCompact ? 13.sp : 11.0,
             ),
           ),
         ),

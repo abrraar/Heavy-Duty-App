@@ -2,6 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:heavy_duty/core/constants/dimensions.dart';
 import 'package:heavy_duty/core/navigation/app_routes.dart';
 import 'package:heavy_duty/core/theme/app_colors.dart';
 import 'package:heavy_duty/core/theme/app_text_styles.dart';
@@ -115,99 +116,117 @@ class ProfileScreen extends StatelessWidget {
           onRefresh: () => authProv.forceRefreshProfile(),
           color: AppColors.crimson,
           backgroundColor: AppColors.surface,
-          child: SingleChildScrollView(
-            physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
-            padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 10.h),
-            child: Column(
-              children: [
-                // 1. Sleek Profile Info Card (Glassmorphism style)
-                _buildGlassCard(
-                  title: 'PROFILE INFORMATION',
-                  icon: Icons.person_rounded,
-                  action: GestureDetector(
-                    onTap: () => context.push(AppRoutes.editProfile),
-                    child: Container(
-                      padding: EdgeInsets.all(8.r),
-                      decoration: BoxDecoration(
-                        color: AppColors.crimson.withValues(alpha: 0.1),
-                        shape: BoxShape.circle,
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final double width = constraints.maxWidth;
+              final bool isCompact = width < kMobileBreakpoint;
+
+              final double hPad = !isCompact 
+                  ? (width - kMaxContentWidth).clamp(24.0, double.infinity) / 2 
+                  : 16.w;
+
+              return SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+                padding: EdgeInsets.symmetric(horizontal: hPad, vertical: 10.h),
+                child: Column(
+                  children: [
+                    // 1. Sleek Profile Info Card (Glassmorphism style)
+                    _buildGlassCard(
+                      title: 'PROFILE INFORMATION',
+                      icon: Icons.person_rounded,
+                      isCompact: isCompact,
+                      action: GestureDetector(
+                        onTap: () => context.push(AppRoutes.editProfile),
+                        child: Container(
+                          padding: EdgeInsets.all(isCompact ? 8.r : 8.0),
+                          decoration: BoxDecoration(
+                            color: AppColors.crimson.withValues(alpha: 0.1),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(Icons.edit_rounded, color: AppColors.crimson, size: isCompact ? 18.r : 16.0),
+                        ),
                       ),
-                      child: Icon(Icons.edit_rounded, color: AppColors.crimson, size: 18.r),
+                      child: Column(
+                        children: [
+                          _buildInfoTile('Name', authProv.displayName, isCompact),
+                          _buildInfoTile('Gender', authProv.gender?.toUpperCase() ?? "NOT SET", isCompact),
+                          _buildInfoTile(
+                            'Birthday', 
+                            authProv.birthday != null 
+                              ? DateFormat('MMM dd, yyyy').format(authProv.birthday!).toUpperCase() 
+                              : "NOT SET",
+                            isCompact,
+                          ),
+                          _buildInfoTile(
+                            'Height', 
+                            height != null ? "${height.toStringAsFixed(0)} cm" : "NOT SET",
+                            isCompact,
+                            isLast: true,
+                          ),
+                        ],
+                      ),
+                    ),
+                    SizedBox(height: isCompact ? 20.h : 16.0),
+
+                    // 2. Body Metrics Grid
+                  _buildGlassCard(
+                    title: 'METRICS & COMPOSITION', 
+                    icon: Icons.analytics_outlined,
+                    isCompact: isCompact,
+                    child: GridView.count(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      crossAxisCount: isCompact ? 2 : 4,
+                      mainAxisSpacing: 10,
+                      crossAxisSpacing: 10,
+                      childAspectRatio: isCompact ? 2.0 : 2.5,
+                      children: [
+                        _buildMetricBox('Height', height != null ? height.toStringAsFixed(0) : '--', 'cm', isCompact),
+                        _buildMetricBox('Weight', weight != null && weight > 0 ? weight.toStringAsFixed(1) : '--', 'kg', isCompact),
+                        _buildMetricBox('Body Fat', bodyFat != null && bodyFat > 0 ? bodyFat.toStringAsFixed(1) : '--', '%', isCompact),
+                        _buildMetricBox('Muscle', musclePercent != null && musclePercent > 0 ? musclePercent.toStringAsFixed(1) : '--', '%', isCompact),
+                        _buildMetricBox('BMI', bmi > 0 ? bmi.toStringAsFixed(1) : '--', 'pts', isCompact),
+                        _buildMetricBox('BMR', bmr != null ? bmr.toStringAsFixed(0) : '--', 'kcal', isCompact),
+                        _buildMetricBox('TDEE', tdee != null ? tdee.toStringAsFixed(0) : '--', 'kcal', isCompact),
+                      ],
                     ),
                   ),
-                  child: Column(
-                    children: [
-                      _buildInfoTile('Name', authProv.displayName),
-                      _buildInfoTile('Gender', authProv.gender?.toUpperCase() ?? "NOT SET"),
-                      _buildInfoTile(
-                        'Birthday', 
-                        authProv.birthday != null 
-                          ? DateFormat('MMM dd, yyyy').format(authProv.birthday!).toUpperCase() 
-                          : "NOT SET"
-                      ),
-                      _buildInfoTile(
-                        'Height', 
-                        height != null ? "${height.toStringAsFixed(0)} cm" : "NOT SET",
-                        isLast: true,
-                      ),
-                    ],
-                  ),
-                ),
-                SizedBox(height: 20.h),
+                    SizedBox(height: isCompact ? 20.h : 16.0),
 
-                // 2. Body Metrics Grid
-                _buildGlassCard(
-                  title: 'CURRENT BODY COMPOSITION AND STATUS',
-                  icon: Icons.analytics_outlined,
-                  child: GridView.count(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    crossAxisCount: 2,
-                    mainAxisSpacing: 12.h,
-                    crossAxisSpacing: 12.w,
-                    childAspectRatio: 2.2,
-                    children: [
-                      _buildMetricBox('Height', height != null ? height.toStringAsFixed(0) : '--', 'cm'),
-                      _buildMetricBox('Weight', weight != null && weight > 0 ? weight.toStringAsFixed(1) : '--', 'kg'),
-                      _buildMetricBox('Body Fat', bodyFat != null && bodyFat > 0 ? bodyFat.toStringAsFixed(1) : '--', '%'),
-                      _buildMetricBox('Muscle Mass', musclePercent != null && musclePercent > 0 ? musclePercent.toStringAsFixed(1) : '--', '%'),
-                      _buildMetricBox('BMI', bmi > 0 ? bmi.toStringAsFixed(1) : '--', 'pts'),
-                      _buildMetricBox('BMR', bmr != null ? bmr.toStringAsFixed(0) : '--', 'kcal'),
-                      _buildMetricBox('TDEE', tdee != null ? tdee.toStringAsFixed(0) : '--', 'kcal'),
-                    ],
-                  ),
-                ),
-                SizedBox(height: 20.h),
-
-                // 3. Strength Records (Elite Tier List)
-                _buildGlassCard(
-                  title: 'ELITE RECORDS',
-                  icon: Icons.emoji_events_rounded,
-                  child: Column(
-                    children: [
-                      _buildRecordTile(
-                        label: 'Heaviest Lift',
-                        exercise: heaviestExercise.toUpperCase(),
-                        value: heaviestWeightKg > 0 
-                            ? '${displayHeaviestWeight.toStringAsFixed(1)} $weightLabel'
-                            : 'NO RECORDS',
-                        isHot: heaviestWeightKg > 0,
+                    // 3. Strength Records (Elite Tier List)
+                    _buildGlassCard(
+                      title: 'ELITE RECORDS',
+                      icon: Icons.emoji_events_rounded,
+                      isCompact: isCompact,
+                      child: Column(
+                        children: [
+                          _buildRecordTile(
+                            label: 'Heaviest Lift',
+                            exercise: heaviestExercise.toUpperCase(),
+                            value: heaviestWeightKg > 0 
+                                ? '${displayHeaviestWeight.toStringAsFixed(1)} $weightLabel'
+                                : 'NO RECORDS',
+                            isHot: heaviestWeightKg > 0,
+                            isCompact: isCompact,
+                          ),
+                          _buildRecordTile(
+                            label: 'Best Strength Gain',
+                            exercise: bestGainExercise.toUpperCase(),
+                            value: bestGain > 0 
+                                ? '+${(bestGain * 100).toStringAsFixed(1)}%'
+                                : 'N/A',
+                            isHot: bestGain > 0,
+                            isCompact: isCompact,
+                          ),
+                        ],
                       ),
-                      _buildRecordTile(
-                        label: 'Best Strength Gain',
-                        exercise: bestGainExercise.toUpperCase(),
-                        value: bestGain > 0 
-                            ? '+${(bestGain * 100).toStringAsFixed(1)}%'
-                            : 'N/A',
-                        isHot: bestGain > 0,
-                      ),
-                    ],
-                  ),
+                    ),
+                    
+                    SizedBox(height: 50.h),
+                  ],
                 ),
-                
-                SizedBox(height: 50.h),
-              ],
-            ),
+              );
+            }
           ),
         );
       },
@@ -216,7 +235,7 @@ class ProfileScreen extends StatelessWidget {
 
   // --- UI Components ---
 
-  Widget _buildGlassCard({required String title, required IconData icon, required Widget child, Widget? action}) {
+  Widget _buildGlassCard({required String title, required IconData icon, required Widget child, Widget? action, required bool isCompact}) {
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
@@ -228,58 +247,81 @@ class ProfileScreen extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Padding(
-            padding: EdgeInsets.fromLTRB(20.w, 20.h, 20.w, 10.h),
+            padding: EdgeInsets.fromLTRB(isCompact ? 20.w : 20.0, isCompact ? 20.h : 16.0, isCompact ? 20.w : 20.0, isCompact ? 10.h : 8.0),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Row(
-                  children: [
-                    Icon(icon, color: AppColors.crimson, size: 20.r),
-                    SizedBox(width: 10.w),
-                    Text(title, style: AppTextStyles.labelSmall.copyWith(letterSpacing: 1.2)),
-                  ],
+                Expanded(
+                  child: Row(
+                    children: [
+                      Icon(icon, color: AppColors.crimson, size: isCompact ? 20.r : 18.0),
+                      SizedBox(width: 10.w),
+                      Flexible(
+                        child: Text(
+                          title, 
+                          style: AppTextStyles.labelSmall.copyWith(
+                            letterSpacing: 1.2,
+                            fontSize: isCompact ? 14.sp : 10.0,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-                action ?? const SizedBox.shrink(),
+                if (action != null) ...[
+                  SizedBox(width: 12.w),
+                  action,
+                ],
               ],
             ),
           ),
-          Padding(padding: EdgeInsets.all(16.r), child: child),
+          Padding(padding: EdgeInsets.all(isCompact ? 16.r : 12.0), child: child),
         ],
       ),
     );
   }
 
-  Widget _buildInfoTile(String label, String value, {bool isLast = false}) {
+  Widget _buildInfoTile(String label, String value, bool isCompact, {bool isLast = false}) {
     return Container(
-      padding: EdgeInsets.symmetric(vertical: 12.h),
+      padding: EdgeInsets.symmetric(vertical: isCompact ? 12.h : 10.0),
       decoration: BoxDecoration(
         border: isLast ? null : Border(bottom: BorderSide(color: Colors.white.withValues(alpha: 0.05))),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: AppTextStyles.labelSmall.copyWith(color: Colors.white38)),
-          Text(value, style: AppTextStyles.labelMedium.copyWith(color: Colors.white)),
+          Text(label, style: AppTextStyles.labelSmall.copyWith(color: Colors.white38, fontSize: isCompact ? 13.sp : 10.0)),
+          SizedBox(width: 16.w),
+          Flexible(
+            child: Text(
+              value, 
+              textAlign: TextAlign.end,
+              style: AppTextStyles.labelMedium.copyWith(color: Colors.white, fontSize: isCompact ? 15.sp : 12.0),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildMetricBox(String label, String value, String unit) {
+  Widget _buildMetricBox(String label, String value, String unit, bool isCompact) {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: 0.03),
-        borderRadius: BorderRadius.circular(16.r),
+        borderRadius: BorderRadius.circular(12.r),
       ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Text(label, style: AppTextStyles.labelSmall.copyWith(fontSize: 10.sp, color: Colors.white38)),
+          Text(label, style: AppTextStyles.labelSmall.copyWith(fontSize: isCompact ? 11.sp : 8.0, color: Colors.white38)),
+          const SizedBox(height: 2),
           RichText(
             text: TextSpan(
               children: [
-                TextSpan(text: value, style: AppTextStyles.h3.copyWith(fontSize: 18.sp)),
-                TextSpan(text: ' $unit', style: AppTextStyles.labelSmall.copyWith(color: AppColors.crimson)),
+                TextSpan(text: value, style: AppTextStyles.h3.copyWith(fontSize: isCompact ? 18.sp : 14.0)),
+                TextSpan(text: ' $unit', style: AppTextStyles.labelSmall.copyWith(color: AppColors.crimson, fontSize: isCompact ? 11.sp : 8.0)),
               ],
             ),
           ),
@@ -288,10 +330,10 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildRecordTile({required String label, required String exercise, required String value, bool isHot = false}) {
+  Widget _buildRecordTile({required String label, required String exercise, required String value, bool isHot = false, required bool isCompact}) {
     return Container(
-      margin: EdgeInsets.only(bottom: 12.h),
-      padding: EdgeInsets.all(16.r),
+      margin: EdgeInsets.only(bottom: isCompact ? 12.h : 10.0),
+      padding: EdgeInsets.all(isCompact ? 16.r : 12.0),
       decoration: BoxDecoration(
         gradient: isHot 
           ? LinearGradient(colors: [AppColors.crimson.withOpacity(0.2), Colors.transparent])
@@ -306,12 +348,12 @@ class ProfileScreen extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(label, style: AppTextStyles.labelSmall.copyWith(color: isHot ? AppColors.crimson : Colors.white38)),
-                Text(exercise, style: AppTextStyles.labelMedium),
+                Text(label, style: AppTextStyles.labelSmall.copyWith(color: isHot ? AppColors.crimson : Colors.white38, fontSize: isCompact ? 12.sp : 9.0)),
+                Text(exercise, style: AppTextStyles.labelMedium.copyWith(fontSize: isCompact ? 14.sp : 11.0)),
               ],
             ),
           ),
-          Text(value, style: AppTextStyles.h3.copyWith(color: isHot ? AppColors.crimson : Colors.white)),
+          Text(value, style: AppTextStyles.h3.copyWith(color: isHot ? AppColors.crimson : Colors.white, fontSize: isCompact ? 18.sp : 15.0)),
         ],
       ),
     );

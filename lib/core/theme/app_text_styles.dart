@@ -14,6 +14,7 @@ class AppTextStyles {
         fontSize: 48.sp,
         color: AppColors.textPrimary,
         letterSpacing: 1.5,
+        fontWeight: FontWeight.w500,
       );
 
   static TextStyle get displayMedium => TextStyle(
@@ -21,6 +22,7 @@ class AppTextStyles {
         fontSize: 36.sp,
         color: AppColors.textPrimary,
         letterSpacing: 1.2,
+        fontWeight: FontWeight.w500,
       );
 
   // ── Headings ──────────────────────────────────────────
@@ -38,6 +40,7 @@ class AppTextStyles {
         fontSize: 26.sp,
         color: AppColors.textPrimary,
         letterSpacing: 0.6,
+        fontWeight: FontWeight.w500,
       );
 
   static TextStyle get h3 => TextStyle(
@@ -45,6 +48,7 @@ class AppTextStyles {
         fontSize: 22.sp,
         color: AppColors.textPrimary,
         letterSpacing: 0.4,
+        fontWeight: FontWeight.w500,
       );
 
   // ── Section Labels ────────────────────────────────────
@@ -54,6 +58,7 @@ class AppTextStyles {
         fontSize: 16.sp,
         color: AppColors.textPrimary,
         letterSpacing: 0.3,
+        fontWeight: FontWeight.w500,
       );
 
   static TextStyle get labelMedium => TextStyle(
@@ -61,6 +66,7 @@ class AppTextStyles {
         fontSize: 14.sp,
         color: AppColors.textPrimary,
         letterSpacing: 0.2,
+        fontWeight: FontWeight.w500,
       );
 
   static TextStyle get labelSmall => TextStyle(
@@ -68,6 +74,7 @@ class AppTextStyles {
         fontSize: 12.sp,
         color: AppColors.textSecondary,
         letterSpacing: 0.2,
+        fontWeight: FontWeight.w500,
       );
 
   // ── Body ──────────────────────────────────────────────
@@ -79,6 +86,7 @@ class AppTextStyles {
         color: AppColors.textSecondary,
         letterSpacing: 0.1,
         height: 1.5,
+        fontWeight: FontWeight.w500,
       );
 
   static TextStyle get bodyMedium => TextStyle(
@@ -87,6 +95,7 @@ class AppTextStyles {
         color: AppColors.textSecondary,
         letterSpacing: 0.1,
         height: 1.5,
+        fontWeight: FontWeight.w500,
       );
 
   static TextStyle get bodySmall => TextStyle(
@@ -95,6 +104,7 @@ class AppTextStyles {
         color: AppColors.textMuted,
         letterSpacing: 0.1,
         height: 1.5,
+        fontWeight: FontWeight.w500,
       );
 
   // ── Buttons ───────────────────────────────────────────
@@ -104,6 +114,7 @@ class AppTextStyles {
         fontSize: 18.sp,
         color: AppColors.textPrimary,
         letterSpacing: 1.0,
+        fontWeight: FontWeight.w500,
       );
 
   static TextStyle get buttonSecondary => TextStyle(
@@ -111,6 +122,7 @@ class AppTextStyles {
         fontSize: 16.sp,
         color: AppColors.textPrimary,
         letterSpacing: 0.8,
+        fontWeight: FontWeight.w500,
       );
 
   static TextStyle get buttonDark => TextStyle(
@@ -118,6 +130,7 @@ class AppTextStyles {
         fontSize: 16.sp,
         color: Colors.black87,
         letterSpacing: 0.8,
+        fontWeight: FontWeight.w500,
       );
 
   // ── Input Fields ──────────────────────────────────────
@@ -126,6 +139,7 @@ class AppTextStyles {
         fontSize: 14.sp,
         color: Colors.black87,
         letterSpacing: 0.2,
+        fontWeight: FontWeight.w500,
       );
 
   static TextStyle get inputHint => TextStyle(
@@ -133,6 +147,7 @@ class AppTextStyles {
         fontSize: 14.sp,
         color: AppColors.inputHint,
         letterSpacing: 0.2,
+        fontWeight: FontWeight.w500,
       );
 
   // ── Captions & Links ──────────────────────────────────
@@ -142,6 +157,7 @@ class AppTextStyles {
         fontSize: 13.sp,
         color: AppColors.textSecondary,
         letterSpacing: 0.2,
+        fontWeight: FontWeight.w500,
       );
 
   static TextStyle get link => TextStyle(
@@ -151,6 +167,7 @@ class AppTextStyles {
         letterSpacing: 0.2,
         decoration: TextDecoration.underline,
         decorationColor: AppColors.textPrimary,
+        fontWeight: FontWeight.w500,
       );
 
   static TextStyle get dividerLabel => TextStyle(
@@ -158,6 +175,7 @@ class AppTextStyles {
         fontSize: 13.sp,
         color: AppColors.textSecondary,
         letterSpacing: 0.3,
+        fontWeight: FontWeight.w500,
       );
 
   // ── Workout / Stats specific ───────────────────────────
@@ -167,6 +185,7 @@ class AppTextStyles {
         fontSize: 42.sp,
         color: AppColors.crimson,
         letterSpacing: 2.0,
+        fontWeight: FontWeight.w500,
       );
 
   static TextStyle get statLabel => TextStyle(
@@ -174,6 +193,7 @@ class AppTextStyles {
         fontSize: 11.sp,
         color: AppColors.textMuted,
         letterSpacing: 1.5,
+        fontWeight: FontWeight.w500,
       );
 
   static TextStyle get timerDisplay => TextStyle(
@@ -181,5 +201,6 @@ class AppTextStyles {
         fontSize: 64.sp,
         color: AppColors.textPrimary,
         letterSpacing: 3.0,
+        fontWeight: FontWeight.w500,
       );
 }

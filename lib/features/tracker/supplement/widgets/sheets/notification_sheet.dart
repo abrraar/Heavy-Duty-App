@@ -13,12 +13,14 @@ class NotificationSheet extends StatefulWidget {
   final Supplement supplement;
   final List<SupplementReminder> initialReminders;
   final bool initialEnabled;
+  final bool isSideSheet;
 
   const NotificationSheet({
     super.key,
     required this.supplement,
     required this.initialReminders,
     required this.initialEnabled,
+    this.isSideSheet = false,
   });
 
   @override
@@ -49,7 +51,6 @@ class _NotificationSheetState extends State<NotificationSheet> {
         .where((r) => r.type == ReminderType.intake)
         .toList();
     
-    // Respect the master enabled flag from the parent card
     recordEnabled = widget.initialEnabled && intakeReminders.isNotEmpty;
 
     if (intakeReminders.isNotEmpty) {
@@ -66,7 +67,6 @@ class _NotificationSheetState extends State<NotificationSheet> {
       ),
     );
 
-    // Respect the master enabled flag from the parent card
     restockEnabled = widget.initialEnabled && widget.initialReminders.any(
       (r) => r.type == ReminderType.lowStock,
     );
@@ -112,17 +112,27 @@ class _NotificationSheetState extends State<NotificationSheet> {
     super.dispose();
   }
 
+  void _addNewIntakeSlot() {
+    setState(() {
+      intakeReminders.add(
+        SupplementReminder(
+          days: [], times: [], value: 1.0, type: ReminderType.intake,
+          reminderMode: _selectedMode, intervalValue: 30, intervalUnit: IntervalUnit.minute,
+        ),
+      );
+      intakeUseServings.add(true);
+      _intakeControllers.add(TextEditingController(text: "1.0"));
+      _intervalControllers.add(TextEditingController(text: "30"));
+    });
+  }
+
   void _handleSaveAndExit() {
     List<SupplementReminder> updatedIntake = [];
     
-    // Process intake UI state
     for (int i = 0; i < intakeReminders.length; i++) {
       var r = intakeReminders[i].copyWith(reminderMode: _selectedMode);
       if (_selectedMode == ReminderMode.schedule) {
-        // If no days picked, ignore this slot
         if (r.days.isEmpty) continue;
-
-        // Auto-pick time ONLY if days are picked but no time is set
         if (r.times.isEmpty) {
           r = r.copyWith(times: [TimeOfDay.now()]);
         }
@@ -130,12 +140,10 @@ class _NotificationSheetState extends State<NotificationSheet> {
       updatedIntake.add(r);
     }
 
-    // If no valid slots remain in schedule mode, turn off notifications for this section
     if (updatedIntake.isEmpty && _selectedMode == ReminderMode.schedule) {
       recordEnabled = false;
     }
 
-    // Master Switch Logic: Active if either section is toggled ON
     bool masterActive = recordEnabled || restockEnabled;
 
     context.read<SupplementProvider>().updateNotificationSettings(
@@ -159,118 +167,133 @@ class _NotificationSheetState extends State<NotificationSheet> {
       onPopInvokedWithResult: (didPop, result) {
         if (didPop) _handleSaveAndExit();
       },
-      child: Material(
-        color: Colors.transparent,
-        child: Container(
-          constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.9),
-          decoration: BoxDecoration(
-            color: AppColors.surface,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(32.r)),
-            border: Border.all(color: AppColors.white.withOpacity(0.05)),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              _buildHandle(),
-              Flexible(
-                child: SingleChildScrollView(
-                  padding: EdgeInsets.fromLTRB(24.w, 0, 24.w, 40.h),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final bool isCompact = constraints.maxWidth < 600 && !widget.isSideSheet;
+          final double sheetWidth = widget.isSideSheet ? constraints.maxWidth : (isCompact ? constraints.maxWidth : 500.0);
+
+          return Align(
+            alignment: widget.isSideSheet ? Alignment.center : Alignment.bottomCenter,
+            child: SizedBox(
+              width: sheetWidth,
+              child: Material(
+                color: Colors.transparent,
+                child: Container(
+                  height: widget.isSideSheet ? double.infinity : null,
+                  constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.9),
+                  decoration: BoxDecoration(
+                    color: AppColors.surface,
+                    borderRadius: widget.isSideSheet 
+                      ? const BorderRadius.horizontal(left: Radius.circular(24.0))
+                      : BorderRadius.vertical(top: Radius.circular(isCompact ? 32.r : 24.0)),
+                    border: Border.all(color: AppColors.white.withOpacity(0.05)),
+                  ),
                   child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: widget.isSideSheet ? MainAxisSize.max : MainAxisSize.min,
                     children: [
-                      _buildHeader(),
-                      SizedBox(height: 24.h),
-                      _sectionHeader(
-                        "INTAKE SCHEDULE",
-                        Icons.history_edu_rounded,
-                        recordEnabled,
-                        (val) {
-                          setState(() {
-                            recordEnabled = val;
-                            if (val && intakeReminders.isEmpty) {
-                              _addNewIntakeSlot();
-                            }
-                          });
-                        },
+                      if (widget.isSideSheet) SizedBox(height: 24.0),
+                      if (!widget.isSideSheet) _buildHandle(isCompact),
+                      Flexible(
+                        child: SingleChildScrollView(
+                          padding: EdgeInsets.fromLTRB(
+                            isCompact ? 24.w : 24.0, 
+                            0, 
+                            isCompact ? 24.w : 24.0, 
+                            isCompact ? 40.h : 32.0
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              _buildHeader(isCompact),
+                              SizedBox(height: isCompact ? 24.h : 20.0),
+                              _sectionHeader(
+                                "INTAKE SCHEDULE",
+                                Icons.history_edu_rounded,
+                                recordEnabled,
+                                isCompact,
+                                (val) {
+                                  setState(() {
+                                    recordEnabled = val;
+                                    if (val && intakeReminders.isEmpty) {
+                                      _addNewIntakeSlot();
+                                    }
+                                  });
+                                },
+                              ),
+                              if (recordEnabled) ...[
+                                _buildModeSelectorMaster(isCompact),
+                                SizedBox(height: isCompact ? 12.h : 10.0),
+                                ...intakeReminders.asMap().entries.map((e) => _buildIntakeCard(e.value, e.key, isCompact)),
+                                _buildAddButton("ADD TIME SLOT", _addNewIntakeSlot, isCompact),
+                              ],
+                              SizedBox(height: isCompact ? 32.h : 24.0),
+                              _sectionHeader(
+                                "INVENTORY ALERTS", 
+                                Icons.inventory_2_rounded, 
+                                restockEnabled, 
+                                isCompact,
+                                (val) => setState(() => restockEnabled = val)
+                              ),
+                              if (restockEnabled) ...[
+                                _instructionTile("Enter any inventory threshold value above 0 to trigger restock notifications.", isCompact),
+                                SizedBox(height: isCompact ? 12.h : 10.0),
+                                _buildLowStockCard(isCompact),
+                              ],
+                              SizedBox(height: isCompact ? 32.h : 24.0),
+                            ],
+                          ),
+                        ),
                       ),
-                      if (recordEnabled) ...[
-                        _buildModeSelectorMaster(),
-                        SizedBox(height: 12.h),
-                        ...intakeReminders.asMap().entries.map((e) => _buildIntakeCard(e.value, e.key)),
-                        _buildAddButton("ADD TIME SLOT", _addNewIntakeSlot),
-                      ],
-                      SizedBox(height: 32.h),
-                      _sectionHeader("INVENTORY ALERTS", Icons.inventory_2_rounded, restockEnabled, (val) => setState(() => restockEnabled = val)),
-                      if (restockEnabled) ...[
-                        _instructionTile("Enter any inventory threshold value above 0 to trigger restock notifications."),
-                        SizedBox(height: 12.h),
-                        _buildLowStockCard(),
-                      ],
-                      SizedBox(height: 32.h),
                     ],
                   ),
                 ),
               ),
-            ],
-          ),
-        ),
+            ),
+          );
+        },
       ),
     );
   }
 
-  void _addNewIntakeSlot() {
-    setState(() {
-      intakeReminders.add(
-        SupplementReminder(
-          days: [], times: [], value: 1.0, type: ReminderType.intake,
-          reminderMode: _selectedMode, intervalValue: 30, intervalUnit: IntervalUnit.minute,
-        ),
-      );
-      intakeUseServings.add(true);
-      _intakeControllers.add(TextEditingController(text: "1.0"));
-      _intervalControllers.add(TextEditingController(text: "30"));
-    });
-  }
-
-  Widget _buildModeSelectorMaster() {
+  Widget _buildModeSelectorMaster(bool isCompact) {
     return Container(
-      padding: EdgeInsets.all(2.r),
-      margin: EdgeInsets.only(bottom: 12.h),
-      decoration: BoxDecoration(color: AppColors.background, borderRadius: BorderRadius.circular(12.r)),
+      padding: EdgeInsets.all(isCompact ? 2.r : 2.0),
+      margin: EdgeInsets.only(bottom: isCompact ? 12.h : 10.0),
+      decoration: BoxDecoration(color: AppColors.background, borderRadius: BorderRadius.circular(isCompact ? 12.r : 10.0)),
       child: Row(
         children: [
-          _modeBtnMaster("FIXED SCHEDULE", ReminderMode.schedule),
-          _modeBtnMaster("INTERVAL LOOP", ReminderMode.interval),
+          _modeBtnMaster("FIXED SCHEDULE", ReminderMode.schedule, isCompact),
+          _modeBtnMaster("INTERVAL LOOP", ReminderMode.interval, isCompact),
         ],
       ),
     );
   }
 
-  Widget _modeBtnMaster(String l, ReminderMode m) {
+  Widget _modeBtnMaster(String l, ReminderMode m, bool isCompact) {
     bool active = _selectedMode == m;
     return Expanded(
       child: GestureDetector(
         onTap: () => setState(() => _selectedMode = m),
         child: Container(
-          padding: EdgeInsets.symmetric(vertical: 10.h),
-          decoration: BoxDecoration(color: active ? AppColors.crimson : Colors.transparent, borderRadius: BorderRadius.circular(10.r)),
+          padding: EdgeInsets.symmetric(vertical: isCompact ? 10.h : 10.0),
+          decoration: BoxDecoration(color: active ? AppColors.crimson : Colors.transparent, borderRadius: BorderRadius.circular(isCompact ? 10.r : 8.0)),
           alignment: Alignment.center,
-          child: Text(l, style: AppTextStyles.labelSmall.copyWith(fontSize: 10.sp, color: active ? Colors.white : AppColors.textSecondary, fontWeight: active ? FontWeight.bold : FontWeight.normal)),
+          child: Text(l, style: AppTextStyles.labelSmall.copyWith(fontSize: isCompact ? 10.sp : 10.0, color: active ? Colors.white : AppColors.textSecondary, fontWeight: FontWeight.w500)),
         ),
       ),
     );
   }
 
-  Widget _buildIntakeCard(SupplementReminder reminder, int index) {
+  Widget _buildIntakeCard(SupplementReminder reminder, int index, bool isCompact) {
     bool useServings = intakeUseServings[index];
     bool isSchedule = _selectedMode == ReminderMode.schedule;
 
     return Container(
-      margin: EdgeInsets.only(bottom: 20.h),
-      padding: EdgeInsets.all(20.r),
+      margin: EdgeInsets.only(bottom: isCompact ? 20.h : 16.0),
+      padding: EdgeInsets.all(isCompact ? 20.r : 16.0),
       decoration: BoxDecoration(
         color: AppColors.background.withOpacity(0.5),
-        borderRadius: BorderRadius.circular(24.r),
+        borderRadius: BorderRadius.circular(isCompact ? 24.r : 16.0),
         border: Border.all(color: AppColors.white.withOpacity(0.05)),
       ),
       child: Column(
@@ -279,7 +302,7 @@ class _NotificationSheetState extends State<NotificationSheet> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text("SET DOSE CONFIG", style: AppTextStyles.labelSmall.copyWith(fontWeight: FontWeight.w900, color: Colors.white)),
+              Text("SET DOSE CONFIG", style: AppTextStyles.labelSmall.copyWith(fontWeight: FontWeight.w500, color: Colors.white, fontSize: isCompact ? null : 11.0)),
               IconButton(
                 onPressed: () => setState(() {
                   intakeReminders.removeAt(index);
@@ -289,16 +312,16 @@ class _NotificationSheetState extends State<NotificationSheet> {
                   _intervalControllers[index].dispose();
                   _intervalControllers.removeAt(index);
                 }),
-                icon: Icon(Icons.delete_outline_rounded, color: AppColors.crimson.withOpacity(0.7), size: 20.r),
+                icon: Icon(Icons.delete_outline_rounded, color: AppColors.crimson.withOpacity(0.7), size: isCompact ? 20.r : 20.0),
               ),
             ],
           ),
-          SizedBox(height: 8.h),
+          SizedBox(height: isCompact ? 8.h : 6.0),
           Container(
-            padding: EdgeInsets.all(8.r),
+            padding: EdgeInsets.all(isCompact ? 8.r : 6.0),
             decoration: BoxDecoration(
               color: AppColors.surface,
-              borderRadius: BorderRadius.circular(16.r),
+              borderRadius: BorderRadius.circular(isCompact ? 16.r : 12.0),
               border: Border.all(color: AppColors.crimson.withOpacity(0.2)),
             ),
             child: Row(
@@ -308,33 +331,34 @@ class _NotificationSheetState extends State<NotificationSheet> {
                     controller: _intakeControllers[index],
                     value: reminder.value,
                     isInventory: false,
+                    isCompact: isCompact,
                     onChanged: (val) => setState(() {
                       intakeReminders[index] = reminder.copyWith(value: val);
                     }),
                   ),
                 ),
-                SizedBox(width: 12.w),
-                _unitBtn(widget.supplement.servingUnit.toUpperCase(), useServings, () => setState(() => intakeUseServings[index] = true)),
-                SizedBox(width: 4.w),
-                _unitBtn(widget.supplement.weightUnit.toUpperCase(), !useServings, () => setState(() => intakeUseServings[index] = false)),
+                SizedBox(width: isCompact ? 12.w : 12.0),
+                _unitBtn(widget.supplement.servingUnit.toUpperCase(), useServings, () => setState(() => intakeUseServings[index] = true), isCompact),
+                SizedBox(width: isCompact ? 4.w : 4.0),
+                _unitBtn(widget.supplement.weightUnit.toUpperCase(), !useServings, () => setState(() => intakeUseServings[index] = false), isCompact),
               ],
             ),
           ),
-          Divider(color: AppColors.white.withOpacity(0.05), height: 32.h),
+          Divider(color: AppColors.white.withOpacity(0.05), height: isCompact ? 32.h : 24.0),
 
           if (isSchedule) ...[
-            _buildDayPicker(reminder, index),
-            SizedBox(height: 20.h),
-            _buildTimeChips(reminder, index),
+            _buildDayPicker(reminder, index, isCompact),
+            SizedBox(height: isCompact ? 20.h : 16.0),
+            _buildTimeChips(reminder, index, isCompact),
           ] else ...[
-            _buildIntervalPicker(reminder, index),
+            _buildIntervalPicker(reminder, index, isCompact),
           ],
         ],
       ),
     );
   }
 
-  Widget _buildIntervalPicker(SupplementReminder reminder, int index) {
+  Widget _buildIntervalPicker(SupplementReminder reminder, int index, bool isCompact) {
     int currentVal = reminder.intervalValue ?? 30;
     IntervalUnit currentUnit = reminder.intervalUnit ?? IntervalUnit.minute;
     final controller = _intervalControllers[index];
@@ -345,12 +369,12 @@ class _NotificationSheetState extends State<NotificationSheet> {
       children: [
         Row(
           children: [
-            Text("REMIND ME EVERY:", style: AppTextStyles.labelSmall.copyWith(color: Colors.white, fontWeight: FontWeight.bold)),
+            Text("REMIND ME EVERY:", style: AppTextStyles.labelSmall.copyWith(color: Colors.white, fontWeight: FontWeight.w500, fontSize: isCompact ? null : 11.0)),
             const Spacer(),
             Container(
-              width: 140.w,
-              padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 2.h),
-              decoration: BoxDecoration(color: AppColors.background, borderRadius: BorderRadius.circular(10.r)),
+              width: isCompact ? 140.w : 120.0,
+              padding: EdgeInsets.symmetric(horizontal: isCompact ? 4.w : 4.0, vertical: isCompact ? 2.h : 2.0),
+              decoration: BoxDecoration(color: AppColors.background, borderRadius: BorderRadius.circular(isCompact ? 10.r : 8.0)),
               child: Row(
                 children: [
                   _stepBtn(Icons.remove, () {
@@ -358,13 +382,13 @@ class _NotificationSheetState extends State<NotificationSheet> {
                     int finalVal = next >= minLimit ? next : minLimit;
                     controller.text = finalVal.toString();
                     setState(() => intakeReminders[index] = reminder.copyWith(intervalValue: finalVal));
-                  }),
+                  }, isCompact),
                   Expanded(
                     child: TextFormField(
                       controller: controller,
                       keyboardType: TextInputType.number,
                       textAlign: TextAlign.center,
-                      style: AppTextStyles.labelSmall.copyWith(fontWeight: FontWeight.bold, color: Colors.white),
+                      style: AppTextStyles.labelSmall.copyWith(fontWeight: FontWeight.w500, color: Colors.white, fontSize: isCompact ? null : 11.0),
                       inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                       decoration: const InputDecoration(border: InputBorder.none, isDense: true, contentPadding: EdgeInsets.zero),
                       onChanged: (text) {
@@ -385,13 +409,13 @@ class _NotificationSheetState extends State<NotificationSheet> {
                     int next = currentVal + 1;
                     controller.text = next.toString();
                     setState(() => intakeReminders[index] = reminder.copyWith(intervalValue: next));
-                  }),
+                  }, isCompact),
                 ],
               ),
             ),
           ],
         ),
-        SizedBox(height: 16.h),
+        SizedBox(height: isCompact ? 16.h : 12.0),
         Row(
           mainAxisAlignment: MainAxisAlignment.end,
           children: [
@@ -399,42 +423,43 @@ class _NotificationSheetState extends State<NotificationSheet> {
                 int finalVal = currentVal;
                 if (finalVal < 15) { finalVal = 15; controller.text = "15"; }
                 setState(() => intakeReminders[index] = reminder.copyWith(intervalUnit: IntervalUnit.minute, intervalValue: finalVal));
-            }),
+            }, isCompact),
             SizedBox(width: 6.w),
-            _unitBtn("HRS", currentUnit == IntervalUnit.hour, () => setState(() => intakeReminders[index] = reminder.copyWith(intervalUnit: IntervalUnit.hour))),
+            _unitBtn("HRS", currentUnit == IntervalUnit.hour, () => setState(() => intakeReminders[index] = reminder.copyWith(intervalUnit: IntervalUnit.hour)), isCompact),
             SizedBox(width: 6.w),
-            _unitBtn("DAYS", currentUnit == IntervalUnit.day, () => setState(() => intakeReminders[index] = reminder.copyWith(intervalUnit: IntervalUnit.day))),
+            _unitBtn("DAYS", currentUnit == IntervalUnit.day, () => setState(() => intakeReminders[index] = reminder.copyWith(intervalUnit: IntervalUnit.day)), isCompact),
           ],
         ),
       ],
     );
   }
 
-  Widget _buildLowStockCard() {
+  Widget _buildLowStockCard(bool isCompact) {
     return Container(
-      padding: EdgeInsets.all(20.r),
+      padding: EdgeInsets.all(isCompact ? 20.r : 16.0),
       decoration: BoxDecoration(
         color: AppColors.background.withOpacity(0.5),
-        borderRadius: BorderRadius.circular(24.r),
+        borderRadius: BorderRadius.circular(isCompact ? 24.r : 16.0),
         border: Border.all(color: AppColors.white.withOpacity(0.05)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text("THRESHOLD CONFIG", style: AppTextStyles.labelSmall.copyWith(fontWeight: FontWeight.w900, color: Colors.white)),
-          SizedBox(height: 16.h),
+          Text("THRESHOLD CONFIG", style: AppTextStyles.labelSmall.copyWith(fontWeight: FontWeight.w500, color: Colors.white, fontSize: isCompact ? null : 11.0)),
+          SizedBox(height: isCompact ? 16.h : 12.0),
           Container(
-            padding: EdgeInsets.all(12.r),
-            decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(20.r)),
+            padding: EdgeInsets.all(isCompact ? 12.r : 10.0),
+            decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(isCompact ? 20.r : 14.0)),
             child: Column(
               children: [
                 _valueInputStepper(
                   controller: _restockController,
                   value: lowStockThreshold,
                   isInventory: true,
+                  isCompact: isCompact,
                   onChanged: (val) => setState(() => lowStockThreshold = val),
                 ),
-                SizedBox(height: 16.h),
+                SizedBox(height: isCompact ? 16.h : 12.0),
                 Row(
                   children: [
                     Expanded(child: _unitBtn(widget.supplement.servingUnit.toUpperCase(), restockUseServings, () {
@@ -448,8 +473,8 @@ class _NotificationSheetState extends State<NotificationSheet> {
                             restockUseServings = true;
                           });
                         }
-                    })),
-                    SizedBox(width: 12.w),
+                    }, isCompact)),
+                    SizedBox(width: isCompact ? 12.w : 12.0),
                     Expanded(child: _unitBtn(widget.supplement.weightUnit.toUpperCase(), !restockUseServings, () {
                         if (restockUseServings) {
                           setState(() {
@@ -459,7 +484,7 @@ class _NotificationSheetState extends State<NotificationSheet> {
                             restockUseServings = false;
                           });
                         }
-                    })),
+                    }, isCompact)),
                   ],
                 ),
               ],
@@ -470,10 +495,10 @@ class _NotificationSheetState extends State<NotificationSheet> {
     );
   }
 
-  Widget _valueInputStepper({required TextEditingController controller, required double value, required bool isInventory, required Function(double) onChanged}) {
+  Widget _valueInputStepper({required TextEditingController controller, required double value, required bool isInventory, required bool isCompact, required Function(double) onChanged}) {
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 2.h),
-      decoration: BoxDecoration(color: AppColors.background, borderRadius: BorderRadius.circular(10.r)),
+      padding: EdgeInsets.symmetric(horizontal: isCompact ? 4.w : 4.0, vertical: isCompact ? 2.h : 2.0),
+      decoration: BoxDecoration(color: AppColors.background, borderRadius: BorderRadius.circular(isCompact ? 10.r : 8.0)),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
@@ -482,13 +507,13 @@ class _NotificationSheetState extends State<NotificationSheet> {
             double newVal = (value > minVal) ? value - 0.5 : minVal;
             controller.text = newVal.toStringAsFixed(1);
             onChanged(newVal);
-          }),
+          }, isCompact),
           Expanded(
             child: TextField(
               controller: controller,
               keyboardType: const TextInputType.numberWithOptions(decimal: true),
               textAlign: TextAlign.center,
-              style: AppTextStyles.labelSmall.copyWith(fontWeight: FontWeight.bold),
+              style: AppTextStyles.labelSmall.copyWith(fontWeight: FontWeight.w500, fontSize: isCompact ? null : 11.0),
               inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'(^\d*\.?\d*)'))],
               decoration: const InputDecoration(border: InputBorder.none, isDense: true),
               onChanged: (text) {
@@ -506,37 +531,37 @@ class _NotificationSheetState extends State<NotificationSheet> {
             double newVal = value + 0.5;
             controller.text = newVal.toStringAsFixed(1);
             onChanged(newVal);
-          }),
+          }, isCompact),
         ],
       ),
     );
   }
 
-  Widget _stepBtn(IconData icon, VoidCallback onTap) => GestureDetector(
+  Widget _stepBtn(IconData icon, VoidCallback onTap, bool isCompact) => GestureDetector(
     onTap: onTap,
     child: Container(
-      padding: EdgeInsets.all(6.r),
+      padding: EdgeInsets.all(isCompact ? 6.r : 6.0),
       decoration: BoxDecoration(
         color: const Color(0xFF0A0A0A),
         borderRadius: BorderRadius.circular(8.r),
       ),
-      child: Icon(icon, color: AppColors.crimson, size: 16.r),
+      child: Icon(icon, color: AppColors.crimson, size: isCompact ? 16.r : 16.0),
     ),
   );
 
-  Widget _unitBtn(String label, bool active, VoidCallback onTap) =>
+  Widget _unitBtn(String label, bool active, VoidCallback onTap, bool isCompact) =>
       GestureDetector(
         onTap: onTap,
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 200),
-          padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 10.h),
+          padding: EdgeInsets.symmetric(horizontal: isCompact ? 14.w : 12.0, vertical: isCompact ? 10.h : 8.0),
           alignment: Alignment.center,
           decoration: BoxDecoration(color: active ? AppColors.crimson : AppColors.background, borderRadius: BorderRadius.circular(10.r)),
-          child: Text(label, style: AppTextStyles.labelSmall.copyWith(fontSize: 10.sp, color: active ? Colors.white : AppColors.textSecondary, fontWeight: active ? FontWeight.bold : FontWeight.normal)),
+          child: Text(label, style: AppTextStyles.labelSmall.copyWith(fontSize: isCompact ? 10.sp : 10.0, color: active ? Colors.white : AppColors.textSecondary, fontWeight: FontWeight.w500)),
         ),
       );
 
-  Widget _buildDayPicker(SupplementReminder reminder, int index) {
+  Widget _buildDayPicker(SupplementReminder reminder, int index, bool isCompact) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: List.generate(7, (i) {
@@ -550,24 +575,26 @@ class _NotificationSheetState extends State<NotificationSheet> {
               }
           }),
           child: Container(
-            width: 36.r, height: 36.r,
+            width: isCompact ? 36.r : 32.0, 
+            height: isCompact ? 36.r : 32.0,
             decoration: BoxDecoration(color: isSelected ? AppColors.crimson : AppColors.surface, shape: BoxShape.circle, border: Border.all(color: AppColors.white.withOpacity(0.05))),
             alignment: Alignment.center,
-            child: Text(weekDays[i], style: AppTextStyles.labelSmall.copyWith(color: isSelected ? Colors.white : AppColors.textSecondary, fontSize: 10.sp)),
+            child: Text(weekDays[i], style: AppTextStyles.labelSmall.copyWith(color: isSelected ? Colors.white : AppColors.textSecondary, fontSize: isCompact ? 10.sp : 10.0)),
           ),
         );
       }),
     );
   }
 
-  Widget _buildTimeChips(SupplementReminder reminder, int index) {
+  Widget _buildTimeChips(SupplementReminder reminder, int index, bool isCompact) {
     return Wrap(
-      spacing: 8.w, runSpacing: 8.h,
+      spacing: isCompact ? 8.w : 8.0, 
+      runSpacing: isCompact ? 8.h : 8.0,
       children: [
         ...reminder.times.map((t) => Chip(
             backgroundColor: AppColors.surface,
-            label: Text(t.format(context), style: AppTextStyles.labelSmall),
-            deleteIcon: Icon(Icons.close, size: 14.r, color: AppColors.crimson),
+            label: Text(t.format(context), style: AppTextStyles.labelSmall.copyWith(fontSize: isCompact ? null : 10.0)),
+            deleteIcon: Icon(Icons.close, size: isCompact ? 14.r : 14.0, color: AppColors.crimson),
             onDeleted: () => setState(() => reminder.times.remove(t)),
           ),
         ),
@@ -576,14 +603,14 @@ class _NotificationSheetState extends State<NotificationSheet> {
           child: GestureDetector(
             onTap: reminder.days.isNotEmpty ? () => _selectTime(reminder) : null,
             child: Container(
-                padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
+                padding: EdgeInsets.symmetric(horizontal: isCompact ? 12.w : 12.0, vertical: isCompact ? 8.h : 8.0),
                 decoration: BoxDecoration(color: AppColors.crimson.withOpacity(0.1), borderRadius: BorderRadius.circular(20.r)),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.access_time_rounded, size: 14.r, color: AppColors.crimson),
+                    Icon(Icons.access_time_rounded, size: isCompact ? 14.r : 14.0, color: AppColors.crimson),
                     SizedBox(width: 4.w),
-                    Text("ADD TIME", style: AppTextStyles.labelSmall.copyWith(color: AppColors.crimson, fontWeight: FontWeight.bold)),
+                    Text("ADD TIME", style: AppTextStyles.labelSmall.copyWith(color: AppColors.crimson, fontWeight: FontWeight.w500, fontSize: isCompact ? null : 10.0)),
                   ],
                 ),
               ),
@@ -600,71 +627,87 @@ class _NotificationSheetState extends State<NotificationSheet> {
     }
   }
 
-  Widget _buildHeader() {
+  Widget _buildHeader(bool isCompact) {
     return Row(
       children: [
-        Container(padding: EdgeInsets.all(10.r), decoration: BoxDecoration(color: AppColors.crimson.withOpacity(0.1), shape: BoxShape.circle), child: Icon(Icons.notifications_active_rounded, color: AppColors.crimson, size: 22.r)),
-        SizedBox(width: 12.w),
+        Container(
+          padding: EdgeInsets.all(isCompact ? 10.r : 10.0), 
+          decoration: BoxDecoration(color: AppColors.crimson.withOpacity(0.1), shape: BoxShape.circle), 
+          child: Icon(Icons.notifications_active_rounded, color: AppColors.crimson, size: isCompact ? 22.r : 22.0)
+        ),
+        SizedBox(width: isCompact ? 12.w : 12.0),
         Expanded(
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text("SUPPLEMENT NOTIFICATION", style: AppTextStyles.h3),
-              Text(widget.supplement.name.toUpperCase(), style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary, letterSpacing: 1.2)),
+              Text("SUPPLEMENT NOTIFICATION", style: AppTextStyles.h3.copyWith(fontSize: isCompact ? null : 18.0)),
+              Text(
+                widget.supplement.name.toUpperCase(), 
+                style: AppTextStyles.labelSmall.copyWith(
+                  color: AppColors.textSecondary, 
+                  letterSpacing: 1.2,
+                  fontSize: isCompact ? null : 10.0,
+                )
+              ),
             ],
           ),
         ),
+        if (widget.isSideSheet)
+          IconButton(
+            icon: const Icon(Icons.close, color: AppColors.textSecondary, size: 20),
+            onPressed: () => Navigator.pop(context),
+          ),
       ],
     );
   }
 
-  Widget _sectionHeader(String l, IconData i, bool v, Function(bool) o) =>
+  Widget _sectionHeader(String l, IconData i, bool v, bool isCompact, Function(bool) o) =>
       Padding(
-        padding: EdgeInsets.only(bottom: 8.h),
+        padding: EdgeInsets.only(bottom: isCompact ? 8.h : 6.0),
         child: Row(
           children: [
-            Icon(i, color: AppColors.crimson, size: 16.r),
-            SizedBox(width: 8.w),
-            Text(l, style: AppTextStyles.labelSmall.copyWith(letterSpacing: 1.5, fontWeight: FontWeight.bold, color: Colors.white)),
+            Icon(i, color: AppColors.crimson, size: isCompact ? 16.r : 16.0),
+            SizedBox(width: isCompact ? 8.w : 8.0),
+            Text(l, style: AppTextStyles.labelSmall.copyWith(letterSpacing: 1.5, fontWeight: FontWeight.w500, color: Colors.white, fontSize: isCompact ? null : 11.0)),
             const Spacer(),
             Transform.scale(scale: 0.8, child: Switch.adaptive(value: v, activeColor: AppColors.crimson, onChanged: o)),
           ],
         ),
       );
 
-  Widget _buildAddButton(String l, VoidCallback o) => GestureDetector(
+  Widget _buildAddButton(String l, VoidCallback o, bool isCompact) => GestureDetector(
     onTap: o,
     child: Container(
-      margin: EdgeInsets.only(top: 12.h),
-      padding: EdgeInsets.symmetric(vertical: 14.h),
-      decoration: BoxDecoration(borderRadius: BorderRadius.circular(16.r), border: Border.all(color: AppColors.white.withOpacity(0.05)), color: AppColors.white.withOpacity(0.02)),
+      margin: EdgeInsets.only(top: isCompact ? 12.h : 10.0),
+      padding: EdgeInsets.symmetric(vertical: isCompact ? 14.h : 14.0),
+      decoration: BoxDecoration(borderRadius: BorderRadius.circular(isCompact ? 16.r : 12.0), border: Border.all(color: AppColors.white.withOpacity(0.05)), color: AppColors.white.withOpacity(0.02)),
       alignment: Alignment.center,
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.add_circle_outline_rounded, color: AppColors.textSecondary, size: 18.r),
-          SizedBox(width: 8.w),
-          Text(l, style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary, fontWeight: FontWeight.bold)),
+          Icon(Icons.add_circle_outline_rounded, color: AppColors.textSecondary, size: isCompact ? 18.r : 18.0),
+          SizedBox(width: isCompact ? 8.w : 8.0),
+          Text(l, style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary, fontWeight: FontWeight.w500, fontSize: isCompact ? null : 11.0)),
         ],
       ),
     ),
   );
 
-  Widget _instructionTile(String t) {
+  Widget _instructionTile(String t, bool isCompact) {
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 12.h),
+      padding: EdgeInsets.symmetric(horizontal: isCompact ? 14.w : 14.0, vertical: isCompact ? 12.h : 10.0),
       decoration: BoxDecoration(
         color: AppColors.crimson.withOpacity(0.08),
-        borderRadius: BorderRadius.circular(12.r),
-        border: Border.all(color: AppColors.crimson.withOpacity(0.15), width: 1.r),
+        borderRadius: BorderRadius.circular(isCompact ? 12.r : 10.0),
+        border: Border.all(color: AppColors.crimson.withOpacity(0.15), width: 1.0),
       ),
       child: Row(
         children: [
-          Icon(Icons.info_outline_rounded, size: 14.r, color: AppColors.crimson),
-          SizedBox(width: 10.w),
-          Expanded(child: Text(t, style: AppTextStyles.labelSmall.copyWith(fontSize: 10.sp, color: AppColors.textSecondary, fontStyle: FontStyle.italic))),
+          Icon(Icons.info_outline_rounded, size: isCompact ? 14.r : 14.0, color: AppColors.crimson),
+          SizedBox(width: isCompact ? 10.w : 10.0),
+          Expanded(child: Text(t, style: AppTextStyles.labelSmall.copyWith(fontSize: isCompact ? 10.sp : 10.0, color: AppColors.textSecondary, fontStyle: FontStyle.italic))),
         ],
       ),
     );
   }
 
-  Widget _buildHandle() => Center(child: Container(margin: EdgeInsets.symmetric(vertical: 12.h), width: 40.w, height: 4.h, decoration: BoxDecoration(color: AppColors.textSecondary.withOpacity(0.3), borderRadius: BorderRadius.circular(2.r))));
+  Widget _buildHandle(bool isCompact) => Center(child: Container(margin: EdgeInsets.symmetric(vertical: isCompact ? 12.h : 10.0), width: isCompact ? 40.w : 40.0, height: isCompact ? 4.h : 4.0, decoration: BoxDecoration(color: AppColors.textSecondary.withOpacity(0.3), borderRadius: BorderRadius.circular(2.r))));
 }

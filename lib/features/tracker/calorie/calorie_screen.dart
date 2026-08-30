@@ -13,12 +13,14 @@ import '../../main_wrapper.dart';
 import 'model/saved_meal.dart';
 import 'package:heavy_duty/features/tracker/calorie/provider/calorie_provider.dart';
 import 'package:heavy_duty/features/tracker/calorie/widgets/add_meal_sheet.dart';
+import 'package:heavy_duty/core/utils/adaptive_utils.dart';
 import 'package:heavy_duty/features/tracker/calorie/model/calorie_log.dart';
 import 'package:heavy_duty/features/tracker/supplement/provider/supplement_provider.dart';
 import 'package:heavy_duty/features/auth/provider/auth_provider.dart';
 import 'package:intl/intl.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:uuid/uuid.dart';
+import 'package:heavy_duty/core/constants/dimensions.dart';
 
 class CalorieScreen extends StatefulWidget {
   final int initialTabIndex;
@@ -67,11 +69,10 @@ class _CalorieScreenState extends State<CalorieScreen> with SingleTickerProvider
 
   void _openAddMealSheet(BuildContext context) {
     final provider = context.read<CalorieProvider>();
-    showModalBottomSheet(
+    AdaptiveUtils.showAdaptiveSheet(
       context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => AddMealSheet(
+      sheetBuilder: (sheetContext, isSideSheet) => AddMealSheet(
+        isSideSheet: isSideSheet,
         savedMeals: provider.savedMeals,
         onSave: (log, saveTemplate, servings, multiplySupps) {
           provider.addLog(log);
@@ -100,119 +101,142 @@ class _CalorieScreenState extends State<CalorieScreen> with SingleTickerProvider
 
     final result = await showDialog<Map<String, dynamic>>(
       context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setDialogState) {
-          return AlertDialog(
-            backgroundColor: AppColors.surface,
-            surfaceTintColor: Colors.transparent,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28.r)),
-            title: Column(
-              children: [
-                Container(
-                  padding: EdgeInsets.all(12.r),
-                  decoration: BoxDecoration(
-                    color: Colors.greenAccent.withValues(alpha: 0.1),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(Icons.add_task_rounded, color: Colors.greenAccent, size: 28),
+      builder: (context) => LayoutBuilder(
+        builder: (context, constraints) {
+          final bool isCompact = constraints.maxWidth < 600;
+          return StatefulBuilder(
+            builder: (context, setDialogState) {
+              return AlertDialog(
+                backgroundColor: AppColors.surface,
+                surfaceTintColor: Colors.transparent,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(isCompact ? 28.r : 20.0),
                 ),
-                SizedBox(height: 16.h),
-                Text(
-                  "LOG MEAL",
-                  style: AppTextStyles.h3.copyWith(fontSize: 16.sp, letterSpacing: 1.2),
-                  textAlign: TextAlign.center,
-                ),
-              ],
-            ),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  "ADJUST SERVINGS FOR '${meal.name.toUpperCase()}'",
-                  textAlign: TextAlign.center,
-                  style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary),
-                ),
-                SizedBox(height: 24.h),
-                Container(
-                  padding: EdgeInsets.all(4.r),
-                  decoration: BoxDecoration(
-                    color: AppColors.background.withValues(alpha: 0.5),
-                    borderRadius: BorderRadius.circular(16.r),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      IconButton(
-                        onPressed: () {
-                          if (tempServings > 0.5) {
-                            setDialogState(() => tempServings -= 0.5);
-                          }
-                        },
-                        icon: const Icon(Icons.remove_circle_outline_rounded, color: Colors.white24),
-                      ),
-                      Text(
-                        "${tempServings % 1 == 0 ? tempServings.toInt() : tempServings.toStringAsFixed(1)}X",
-                        style: AppTextStyles.h2.copyWith(color: AppColors.crimson),
-                      ),
-                      IconButton(
-                        onPressed: () {
-                          if (tempServings < 99) {
-                            setDialogState(() => tempServings += 0.5);
-                          }
-                        },
-                        icon: const Icon(Icons.add_circle_outline_rounded, color: Colors.white24),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            actions: [
-              Padding(
-                padding: EdgeInsets.fromLTRB(12.w, 0, 12.w, 16.h),
-                child: Row(
+                title: Column(
                   children: [
-                    Expanded(
-                      child: GestureDetector(
-                        onTap: () => Navigator.pop(context),
-                        child: Container(
-                          padding: EdgeInsets.symmetric(vertical: 12.h),
-                          decoration: BoxDecoration(
-                            color: Colors.transparent,
-                            borderRadius: BorderRadius.circular(12.r),
-                            border: Border.all(color: AppColors.white.withValues(alpha: 0.1)),
-                          ),
-                          alignment: Alignment.center,
-                          child: Text(
-                            "CANCEL",
-                            style: AppTextStyles.labelMedium.copyWith(color: AppColors.textSecondary),
-                          ),
-                        ),
+                    Container(
+                      padding: EdgeInsets.all(isCompact ? 12.r : 12.0),
+                      decoration: BoxDecoration(
+                        color: Colors.greenAccent.withValues(alpha: 0.1),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(Icons.add_task_rounded, color: Colors.greenAccent, size: isCompact ? 28.r : 24.0),
+                    ),
+                    SizedBox(height: isCompact ? 16.h : 16.0),
+                    Text(
+                      "LOG MEAL",
+                      style: AppTextStyles.h3.copyWith(
+                        fontSize: isCompact ? 16.sp : 15.0,
+                        letterSpacing: 1.2
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                ),
+                content: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      "ADJUST SERVINGS FOR '${meal.name.toUpperCase()}'",
+                      textAlign: TextAlign.center,
+                      style: AppTextStyles.labelSmall.copyWith(
+                        color: AppColors.textSecondary,
+                        fontSize: isCompact ? 13.sp : 11.0,
                       ),
                     ),
-                    SizedBox(width: 12.w),
-                    Expanded(
-                      child: GestureDetector(
-                        onTap: () => Navigator.pop(context, {'servings': tempServings}),
-                        child: Container(
-                          padding: EdgeInsets.symmetric(vertical: 12.h),
-                          decoration: BoxDecoration(
-                            color: Colors.greenAccent.withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(12.r),
-                            border: Border.all(color: Colors.greenAccent.withValues(alpha: 0.5)),
+                    SizedBox(height: isCompact ? 24.h : 20.0),
+                    Container(
+                      padding: EdgeInsets.all(isCompact ? 4.r : 4.0),
+                      decoration: BoxDecoration(
+                        color: AppColors.background.withValues(alpha: 0.5),
+                        borderRadius: BorderRadius.circular(isCompact ? 16.r : 12.0),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          IconButton(
+                            onPressed: () {
+                              if (tempServings > 0.5) {
+                                setDialogState(() => tempServings -= 0.5);
+                              }
+                            },
+                            icon: const Icon(Icons.remove_circle_outline_rounded, color: Colors.white24),
                           ),
-                          alignment: Alignment.center,
-                          child: Text(
-                            "CONFIRM",
-                            style: AppTextStyles.labelMedium.copyWith(color: Colors.greenAccent, fontWeight: FontWeight.bold),
+                          Text(
+                            "${tempServings % 1 == 0 ? tempServings.toInt() : tempServings.toStringAsFixed(1)}X",
+                            style: AppTextStyles.h2.copyWith(
+                              color: AppColors.crimson,
+                              fontSize: isCompact ? 28.sp : 24.0,
+                            ),
                           ),
-                        ),
+                          IconButton(
+                            onPressed: () {
+                              if (tempServings < 99) {
+                                setDialogState(() => tempServings += 0.5);
+                              }
+                            },
+                            icon: const Icon(Icons.add_circle_outline_rounded, color: Colors.white24),
+                          ),
+                        ],
                       ),
                     ),
                   ],
                 ),
-              ),
-            ],
+                actions: [
+                  Padding(
+                    padding: EdgeInsets.fromLTRB(isCompact ? 12.w : 12.0, 0, isCompact ? 12.w : 12.0, isCompact ? 16.h : 16.0),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: GestureDetector(
+                            onTap: () => Navigator.pop(context),
+                            child: Container(
+                              padding: EdgeInsets.symmetric(vertical: isCompact ? 12.h : 12.0),
+                              decoration: BoxDecoration(
+                                color: Colors.transparent,
+                                borderRadius: BorderRadius.circular(isCompact ? 12.r : 10.0),
+                                border: Border.all(color: AppColors.white.withValues(alpha: 0.1)),
+                              ),
+                              alignment: Alignment.center,
+                              child: Text(
+                                "CANCEL",
+                                style: AppTextStyles.labelMedium.copyWith(
+                                  color: AppColors.textSecondary,
+                                  fontSize: isCompact ? 14.sp : 12.0,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                        SizedBox(width: isCompact ? 12.w : 12.0),
+                        Expanded(
+                          child: GestureDetector(
+                            onTap: () => Navigator.pop(context, {'servings': tempServings}),
+                            child: Container(
+                              padding: EdgeInsets.symmetric(vertical: isCompact ? 12.h : 12.0),
+                              decoration: BoxDecoration(
+                                color: Colors.greenAccent.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(isCompact ? 12.r : 10.0),
+                                border: Border.all(color: Colors.greenAccent.withValues(alpha: 0.5)),
+                              ),
+                              alignment: Alignment.center,
+                              child: Text(
+                                "CONFIRM",
+                                style: AppTextStyles.labelMedium.copyWith(
+                                  color: Colors.greenAccent,
+                                  fontWeight: FontWeight.w500,
+                                  fontSize: isCompact ? 14.sp : 12.0,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              );
+            },
           );
         },
       ),
@@ -332,83 +356,100 @@ class _CalorieScreenState extends State<CalorieScreen> with SingleTickerProvider
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      body: Column(
-        children: [
-          Padding(
-            padding: EdgeInsets.symmetric(vertical: 24.h, horizontal: 8.w),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                IntrinsicHeight(
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      IconButton(
-                        icon: const Icon(
-                          Icons.arrow_back_ios_new_rounded,
-                          color: AppColors.white,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final double width = constraints.maxWidth;
+        final bool isCompact = width < kMobileBreakpoint;
+        final double hPad = !isCompact
+            ? (width - kMaxContentWidth).clamp(24.0, double.infinity) / 2
+            : 8.w;
+
+        return Scaffold(
+          backgroundColor: AppColors.background,
+          body: Column(
+            children: [
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: hPad),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Padding(
+                      padding: EdgeInsets.symmetric(vertical: isCompact ? 24.h : 20.0),
+                      child: IntrinsicHeight(
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            IconButton(
+                              icon: Icon(
+                                Icons.arrow_back_ios_new_rounded,
+                                color: AppColors.white,
+                                size: isCompact ? 24.r : 20.0,
+                              ),
+                              onPressed: () => Navigator.pop(context),
+                            ),
+                            Expanded(
+                              child: Text(
+                                'CALORIE TRACKER',
+                                textAlign: TextAlign.center,
+                                style: AppTextStyles.h2.copyWith(
+                                  color: AppColors.white,
+                                  fontWeight: FontWeight.w500,
+                                  fontSize: isCompact ? 20.sp : 20.0,
+                                ),
+                              ),
+                            ),
+                            IconButton(
+                              icon: Icon(
+                                Icons.info_outline_rounded,
+                                color: Colors.transparent,
+                                size: isCompact ? 24.r : 20.0,
+                              ),
+                              onPressed: null,
+                            ),
+                          ],
                         ),
-                        onPressed: () => Navigator.pop(context),
                       ),
-                      Expanded(
-                        child: Text(
-                          'CALORIE TRACKER',
-                          textAlign: TextAlign.center,
-                          style: AppTextStyles.h2.copyWith(
-                            color: AppColors.white,
-                            fontWeight: FontWeight.w400,
-                          ),
-                        ),
+                    ),
+                    TabBar(
+                      controller: _tabController,
+                      indicatorColor: AppColors.crimson,
+                      indicatorSize: TabBarIndicatorSize.tab,
+                      labelStyle: AppTextStyles.labelMedium.copyWith(
+                        fontWeight: FontWeight.w500,
+                        fontSize: isCompact ? 11.sp : 11.0,
                       ),
-                      const Opacity(
-                        opacity: 0,
-                        child: IconButton(
-                          icon: Icon(Icons.info_outline_rounded),
-                          onPressed: null,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                TabBar(
-                  controller: _tabController,
-                  indicatorColor: AppColors.crimson,
-                  indicatorSize: TabBarIndicatorSize.tab,
-                  labelStyle: AppTextStyles.labelMedium.copyWith(
-                    fontWeight: FontWeight.w400,
-                  ),
-                  unselectedLabelColor: AppColors.textSecondary,
-                  labelColor: AppColors.crimson,
-                  dividerColor: Colors.transparent,
-                  tabs: const [
-                    Tab(text: "TRACKER"),
-                    Tab(text: "TRENDS"),
-                    Tab(text: "LIBRARY"),
-                    Tab(text: "LOGS"),
+                      unselectedLabelColor: AppColors.textSecondary,
+                      labelColor: AppColors.crimson,
+                      dividerColor: Colors.transparent,
+                      tabs: const [
+                        Tab(text: "TRACKER"),
+                        Tab(text: "TRENDS"),
+                        Tab(text: "LIBRARY"),
+                        Tab(text: "LOGS"),
+                      ],
+                    ),
                   ],
                 ),
-              ],
-            ),
+              ),
+              Expanded(
+                child: TabBarView(
+                  controller: _tabController,
+                  children: [
+                    _buildTrackerTab(isCompact),
+                    _buildTrendsTab(isCompact),
+                    _buildLibraryTab(isCompact),
+                    _buildHistoryTab(isCompact),
+                  ],
+                ),
+              ),
+            ],
           ),
-          Expanded(
-            child: TabBarView(
-              controller: _tabController,
-              children: [
-                _buildTrackerTab(),
-                _buildTrendsTab(),
-                _buildLibraryTab(),
-                _buildHistoryTab(),
-              ],
-            ),
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 
-  Widget _buildTrendsTab() {
+  Widget _buildTrendsTab(bool isCompact) {
     return Consumer<CalorieProvider>(
       builder: (context, provider, _) {
         if (provider.logs.isEmpty) {
@@ -418,6 +459,7 @@ class _CalorieScreenState extends State<CalorieScreen> with SingleTickerProvider
               style: AppTextStyles.labelSmall.copyWith(
                 color: AppColors.textSecondary.withOpacity(0.3),
                 letterSpacing: 1,
+                fontSize: isCompact ? 10.sp : 10.0,
               ),
             ),
           );
@@ -440,54 +482,128 @@ class _CalorieScreenState extends State<CalorieScreen> with SingleTickerProvider
           onRefresh: () => provider.forceRefresh(),
           color: AppColors.crimson,
           backgroundColor: AppColors.surface,
-          child: SingleChildScrollView(
-            physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
-            padding: EdgeInsets.all(24.r),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildSectionHeader("ENERGY TRENDS (KCAL)"),
-                SizedBox(height: 24.h),
-                CalorieAnalyticalGraph(
-                  dates: sortedDates,
-                  data: aggregatedData,
-                  visibleMetrics: _visibleAnalyticalMetrics,
-                  onPointSelected: (idx) {},
-                ),
-                SizedBox(height: 32.h),
-                _buildSectionHeader("METRIC OVERLAY"),
-                SizedBox(height: 16.h),
-                Wrap(
-                  spacing: 10.w,
-                  runSpacing: 10.h,
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final bool isWide = constraints.maxWidth > 700;
+
+              if (isWide) {
+                return Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _buildAnalyticalMetricToggle("CALORIES", "calories", AppColors.crimson),
-                    _buildAnalyticalMetricToggle("PROTEIN (kcal)", "protein", Colors.blueAccent),
-                    _buildAnalyticalMetricToggle("CARBS (kcal)", "carbs", Colors.greenAccent),
-                    _buildAnalyticalMetricToggle("FATS (kcal)", "fats", Colors.orangeAccent),
+                    // --- LEFT COLUMN: ANALYTICS ---
+                    Expanded(
+                      child: SingleChildScrollView(
+                        padding: EdgeInsets.all(isCompact ? 24.r : 20.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _buildSectionHeader("ENERGY TRENDS (KCAL)", isCompact),
+                            SizedBox(height: isCompact ? 24.h : 20.0),
+                            CalorieAnalyticalGraph(
+                              dates: sortedDates,
+                              data: aggregatedData,
+                              visibleMetrics: _visibleAnalyticalMetrics,
+                              onPointSelected: (idx) {},
+                              isCompact: isCompact,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    VerticalDivider(color: AppColors.white.withOpacity(0.05), width: 1),
+                    // --- RIGHT COLUMN: OVERLAY & COMPARISON ---
+                    Expanded(
+                      child: SingleChildScrollView(
+                        padding: EdgeInsets.all(isCompact ? 24.r : 20.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _buildSectionHeader("METRIC OVERLAY", isCompact),
+                            SizedBox(height: isCompact ? 16.h : 12.0),
+                            Wrap(
+                              spacing: isCompact ? 10.w : 10.0,
+                              runSpacing: isCompact ? 10.h : 10.0,
+                              children: [
+                                _buildAnalyticalMetricToggle("CALORIES", "calories", AppColors.crimson, isCompact),
+                                _buildAnalyticalMetricToggle("PROTEIN (kcal)", "protein", Colors.blueAccent, isCompact),
+                                _buildAnalyticalMetricToggle("CARBS (kcal)", "carbs", Colors.greenAccent, isCompact),
+                                _buildAnalyticalMetricToggle("FATS (kcal)", "fats", Colors.orangeAccent, isCompact),
+                              ],
+                            ),
+                            SizedBox(height: isCompact ? 40.h : 32.0),
+                            _buildSectionHeader("DATA COMPARISON", isCompact),
+                            SizedBox(height: isCompact ? 16.h : 12.0),
+                            CalorieComparisonWidget(
+                              idx1: _comparisonIdx1,
+                              idx2: _comparisonIdx2,
+                              dates: sortedDates,
+                              data: aggregatedData,
+                              isCompact: isCompact,
+                              onPointAChanged: (val) => setState(() => _comparisonIdx1 = val),
+                              onPointBChanged: (val) => setState(() => _comparisonIdx2 = val),
+                            ),
+                            SizedBox(height: 40.h),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                );
+              }
+
+              // --- MOBILE: SINGLE COLUMN ---
+              return SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+                padding: EdgeInsets.all(isCompact ? 24.r : 20.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildSectionHeader("ENERGY TRENDS (KCAL)", isCompact),
+                    SizedBox(height: isCompact ? 24.h : 20.0),
+                    CalorieAnalyticalGraph(
+                      dates: sortedDates,
+                      data: aggregatedData,
+                      visibleMetrics: _visibleAnalyticalMetrics,
+                      onPointSelected: (idx) {},
+                      isCompact: isCompact,
+                    ),
+                    SizedBox(height: isCompact ? 32.h : 24.0),
+                    _buildSectionHeader("METRIC OVERLAY", isCompact),
+                    SizedBox(height: isCompact ? 16.h : 12.0),
+                    Wrap(
+                      spacing: isCompact ? 10.w : 10.0,
+                      runSpacing: isCompact ? 10.h : 10.0,
+                      children: [
+                        _buildAnalyticalMetricToggle("CALORIES", "calories", AppColors.crimson, isCompact),
+                        _buildAnalyticalMetricToggle("PROTEIN (kcal)", "protein", Colors.blueAccent, isCompact),
+                        _buildAnalyticalMetricToggle("CARBS (kcal)", "carbs", Colors.greenAccent, isCompact),
+                        _buildAnalyticalMetricToggle("FATS (kcal)", "fats", Colors.orangeAccent, isCompact),
+                      ],
+                    ),
+                    SizedBox(height: isCompact ? 40.h : 32.0),
+                    _buildSectionHeader("DATA COMPARISON", isCompact),
+                    SizedBox(height: isCompact ? 16.h : 12.0),
+                    CalorieComparisonWidget(
+                      idx1: _comparisonIdx1,
+                      idx2: _comparisonIdx2,
+                      dates: sortedDates,
+                      data: aggregatedData,
+                      isCompact: isCompact,
+                      onPointAChanged: (val) => setState(() => _comparisonIdx1 = val),
+                      onPointBChanged: (val) => setState(() => _comparisonIdx2 = val),
+                    ),
+                    SizedBox(height: 40.h),
                   ],
                 ),
-                SizedBox(height: 40.h),
-                _buildSectionHeader("DATA COMPARISON"),
-                SizedBox(height: 16.h),
-                CalorieComparisonWidget(
-                  idx1: _comparisonIdx1,
-                  idx2: _comparisonIdx2,
-                  dates: sortedDates,
-                  data: aggregatedData,
-                  onPointAChanged: (val) => setState(() => _comparisonIdx1 = val),
-                  onPointBChanged: (val) => setState(() => _comparisonIdx2 = val),
-                ),
-                SizedBox(height: 40.h),
-              ],
-            ),
+              );
+            },
           ),
         );
       },
     );
   }
 
-  Widget _buildAnalyticalMetricToggle(String label, String key, Color color) {
+  Widget _buildAnalyticalMetricToggle(String label, String key, Color color, bool isCompact) {
     final bool isActive = _visibleAnalyticalMetrics.contains(key);
     return GestureDetector(
       onTap: () {
@@ -501,10 +617,10 @@ class _CalorieScreenState extends State<CalorieScreen> with SingleTickerProvider
       },
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 10.h),
+        padding: EdgeInsets.symmetric(horizontal: isCompact ? 16.w : 12.0, vertical: isCompact ? 10.h : 8.0),
         decoration: BoxDecoration(
           color: isActive ? color.withOpacity(0.1) : AppColors.surface,
-          borderRadius: BorderRadius.circular(12.r),
+          borderRadius: BorderRadius.circular(isCompact ? 12.r : 10.0),
           border: Border.all(
             color: isActive ? color : AppColors.white.withOpacity(0.05),
             width: 1.5,
@@ -514,20 +630,21 @@ class _CalorieScreenState extends State<CalorieScreen> with SingleTickerProvider
           mainAxisSize: MainAxisSize.min,
           children: [
             Container(
-              width: 8.r,
-              height: 8.r,
+              width: isCompact ? 8.r : 6.0,
+              height: isCompact ? 8.r : 6.0,
               decoration: BoxDecoration(
                 color: isActive ? color : AppColors.textSecondary.withOpacity(0.3),
                 shape: BoxShape.circle,
               ),
             ),
-            SizedBox(width: 10.w),
+            SizedBox(width: isCompact ? 10.w : 8.0),
             Text(
               label,
               style: AppTextStyles.labelSmall.copyWith(
                 color: isActive ? AppColors.white : AppColors.textSecondary,
-                fontWeight: isActive ? FontWeight.w900 : FontWeight.w500,
+                fontWeight: FontWeight.w500,
                 letterSpacing: 1,
+                fontSize: isCompact ? 10.sp : 10.0,
               ),
             ),
           ],
@@ -536,7 +653,7 @@ class _CalorieScreenState extends State<CalorieScreen> with SingleTickerProvider
     );
   }
 
-  Widget _buildTrackerTab() {
+  Widget _buildTrackerTab(bool isCompact) {
     return Consumer<CalorieProvider>(
       builder: (context, provider, _) {
         final settings = provider.settings;
@@ -546,37 +663,93 @@ class _CalorieScreenState extends State<CalorieScreen> with SingleTickerProvider
           onRefresh: () => provider.forceRefresh(),
           color: AppColors.crimson,
           backgroundColor: AppColors.surface,
-          child: SingleChildScrollView(
-            physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
-            child: Column(
-              children: [
-                _buildEnergySummary(
-                  consumed, 
-                  settings.dailyCalorieGoal,
-                  provider.proteinTotal,
-                  provider.carbsTotal,
-                  provider.fatsTotal,
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final bool isWide = constraints.maxWidth > 700;
+
+              if (isWide) {
+                return Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // --- LEFT COLUMN: SUMMARY & MACROS ---
+                    Expanded(
+                      child: ListView(
+                        padding: EdgeInsets.symmetric(vertical: 20.0),
+                        children: [
+                          _buildEnergySummary(
+                            consumed, 
+                            settings.dailyCalorieGoal,
+                            provider.proteinTotal,
+                            provider.carbsTotal,
+                            provider.fatsTotal,
+                            isCompact,
+                          ),
+                          if (settings.trackMacros) ...[
+                            SizedBox(height: 24.0),
+                            _buildMacroSection(
+                              provider.proteinTotal,
+                              provider.carbsTotal,
+                              provider.fatsTotal,
+                              isCompact,
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                    VerticalDivider(color: AppColors.white.withOpacity(0.05), width: 1),
+                    // --- RIGHT COLUMN: MEAL LOG ---
+                    Expanded(
+                      child: ListView(
+                        padding: EdgeInsets.all(20.0),
+                        children: [
+                          _buildMealLogSection(provider, isCompact),
+                        ],
+                      ),
+                    ),
+                  ],
+                );
+              }
+
+              // --- MOBILE: SINGLE COLUMN ---
+              return SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+                child: Column(
+                  children: [
+                    SizedBox(height: isCompact ? 20.h : 20.0),
+                    _buildEnergySummary(
+                      consumed, 
+                      settings.dailyCalorieGoal,
+                      provider.proteinTotal,
+                      provider.carbsTotal,
+                      provider.fatsTotal,
+                      isCompact,
+                    ),
+                    if (settings.trackMacros) ...[
+                      SizedBox(height: 24.h),
+                      _buildMacroSection(
+                        provider.proteinTotal,
+                        provider.carbsTotal,
+                        provider.fatsTotal,
+                        isCompact,
+                      ),
+                    ],
+                    SizedBox(height: 24.h),
+                    Padding(
+                      padding: EdgeInsets.symmetric(horizontal: isCompact ? 20.w : 24.0),
+                      child: _buildMealLogSection(provider, isCompact),
+                    ),
+                    SizedBox(height: 40.h),
+                  ],
                 ),
-                if (settings.trackMacros) ...[
-                  SizedBox(height: 24.h),
-                  _buildMacroSection(
-                    provider.proteinTotal,
-                    provider.carbsTotal,
-                    provider.fatsTotal,
-                  ),
-                ],
-                SizedBox(height: 24.h),
-                _buildMealLogSection(provider),
-                SizedBox(height: 40.h),
-              ],
-            ),
+              );
+            },
           ),
         );
       },
     );
   }
 
-  Widget _buildLibraryTab() {
+  Widget _buildLibraryTab(bool isCompact) {
     return Consumer<CalorieProvider>(
       builder: (context, provider, _) {
         final savedMeals = provider.savedMeals;
@@ -585,558 +758,142 @@ class _CalorieScreenState extends State<CalorieScreen> with SingleTickerProvider
           onRefresh: () => provider.forceRefresh(),
           color: AppColors.crimson,
           backgroundColor: AppColors.surface,
-          child: Column(
-            children: [
-              Padding(
-                padding: EdgeInsets.fromLTRB(20.w, 8.h, 20.w, 24.h),
-                child: GestureDetector(
-                  onTap: () {
-                    showModalBottomSheet(
-                      context: context,
-                      isScrollControlled: true,
-                      backgroundColor: Colors.transparent,
-                      builder: (context) => AddMealSheet(
-                        isLibraryOnly: true,
-                        savedMeals: provider.savedMeals,
-                        onSave: (log, _, servings, multiplySupps) {
-                          provider.saveMealTemplate(SavedMeal(
-                            id: Uuid().v4(),
-                            name: log.mealName,
-                            foodItems: log.foodItems,
-                            calories: log.calories,
-                            protein: log.protein,
-                            carbs: log.carbs,
-                            fats: log.fats,
-                            addedSupplementsJson: log.addedSupplementsJson,
-                            addedStacksJson: log.addedStacksJson,
-                            servings: servings,
-                            multiplySupps: multiplySupps,
-                          ));
-                        },
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final bool isWide = constraints.maxWidth > 700;
+
+              if (isWide) {
+                return Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // --- LEFT COLUMN: ACTIONS ---
+                    Expanded(
+                      flex: 4,
+                      child: ListView(
+                        padding: EdgeInsets.all(20.0),
+                        children: [
+                          _buildSectionHeader("MEAL ACTIONS", isCompact),
+                          SizedBox(height: 20.0),
+                          _buildAddMealButton(context, provider, isCompact),
+                        ],
                       ),
-                    );
-                  },
-                  child: Container(
-                    height: 50.h,
-                    decoration: BoxDecoration(
-                      color: AppColors.crimson.withValues(alpha: 0.1),
-                      border: Border.all(
-                        color: AppColors.crimson.withValues(alpha: 0.5),
-                      ),
-                      borderRadius: BorderRadius.circular(12.r),
                     ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.add_circle_outline_rounded,
-                          color: AppColors.crimson,
-                          size: 20.r,
-                        ),
-                        SizedBox(width: 8.w),
-                        Text(
-                          "ADD A MEAL",
-                          style: AppTextStyles.buttonPrimary.copyWith(
-                            color: AppColors.crimson,
-                          ),
-                        ),
-                      ],
+                    VerticalDivider(color: AppColors.white.withOpacity(0.05), width: 1),
+                    // --- RIGHT COLUMN: SAVED MEALS ---
+                    Expanded(
+                      flex: 6,
+                      child: savedMeals.isEmpty 
+                          ? Center(child: Text("No saved meals in your library.", style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary, fontSize: 12.0)))
+                          : ListView.builder(
+                              padding: EdgeInsets.all(20.0),
+                              itemCount: savedMeals.length,
+                              itemBuilder: (context, index) => _buildSavedMealItem(savedMeals[index], provider, isCompact),
+                            ),
                     ),
+                  ],
+                );
+              }
+
+              // --- MOBILE: SINGLE COLUMN ---
+              return Column(
+                children: [
+                  Padding(
+                    padding: EdgeInsets.fromLTRB(20.w, 8.h, 20.w, 24.h),
+                    child: _buildAddMealButton(context, provider, isCompact),
                   ),
-                ),
-              ),
-              Expanded(
-                child: savedMeals.isEmpty
-                    ? LayoutBuilder(
-                        builder: (context, constraints) => ListView(
-                          physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
-                          children: [
-                            Container(
-                              constraints: BoxConstraints(minHeight: constraints.maxHeight),
-                              child: Center(
-                                child: Text(
-                                  "No saved meals in your library.",
-                                  style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary),
+                  Expanded(
+                    child: savedMeals.isEmpty
+                        ? LayoutBuilder(
+                            builder: (context, constraints) => ListView(
+                              physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+                              children: [
+                                Container(
+                                  constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                                  child: Center(
+                                    child: Text(
+                                      "No saved meals in your library.",
+                                      style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary),
+                                    ),
+                                  ),
                                 ),
-                              ),
+                              ],
                             ),
-                          ],
-                        ),
-                      )
-                    : ListView.builder(
-                        physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
-                        padding: EdgeInsets.symmetric(horizontal: 20.w),
-                        itemCount: savedMeals.length,
-                        itemBuilder: (context, index) {
-                          final meal = savedMeals[index];
-                          final supplementProvider = context.read<SupplementProvider>();
-                          
-                          List<Map<String, dynamic>> additions = [];
-
-                          if (meal.addedSupplementsJson != null) {
-                            try {
-                              final List<dynamic> decoded = jsonDecode(meal.addedSupplementsJson!);
-                              for (var item in decoded) {
-                                final String id = (item is Map) ? item['id'] : item as String;
-                                final double amount = (item is Map) ? (item['amount'] as num).toDouble() : 1.0;
-                                
-                                final s = supplementProvider.library.firstWhere((s) => s.id == id);
-                                additions.add({
-                                  'name': s.name,
-                                  'cals': ((s.caloriesPerUnit ?? 0.0) * amount),
-                                  'pro': (s.proteinPerUnit ?? 0.0) * amount,
-                                  'cho': (s.carbsPerUnit ?? 0.0) * amount,
-                                  'fat': (s.fatsPerUnit ?? 0.0) * amount,
-                                });
-                              }
-                            } catch (_) {}
-                          }
-                          if (meal.addedStacksJson != null) {
-                            try {
-                              final List<dynamic> decoded = jsonDecode(meal.addedStacksJson!);
-                              for (var item in decoded) {
-                                final String id = (item is Map) ? item['id'] : item as String;
-                                final Map<String, double>? itemAmounts = (item is Map) 
-                                    ? (item['itemAmounts'] as Map).cast<String, dynamic>().map((k, v) => MapEntry(k, (v as num).toDouble()))
-                                    : null;
-
-                                final s = supplementProvider.supplementStacks.firstWhere((s) => s.id == id);
-                                double stPro = 0, stCho = 0, stFat = 0;
-                                double stCals = 0;
-                                
-                                for (var supplement in s.items) {
-                                  double amount = itemAmounts?[supplement.id] ?? 1.0;
-                                  stCals += ((supplement.caloriesPerUnit ?? 0.0) * amount);
-                                  stPro += (supplement.proteinPerUnit ?? 0.0) * amount;
-                                  stCho += (supplement.carbsPerUnit ?? 0.0) * amount;
-                                  stFat += (supplement.fatsPerUnit ?? 0.0) * amount;
-                                }
-
-                                additions.add({
-                                  'name': s.name,
-                                  'cals': stCals,
-                                  'pro': stPro,
-                                  'cho': stCho,
-                                  'fat': stFat,
-                                });
-                              }
-                            } catch (_) {}
-                          }
-
-                          return Padding(
-                            padding: EdgeInsets.only(bottom: 12.h),
-                            child: Dismissible(
-                              key: Key("library_${meal.id}"),
-                              confirmDismiss: (direction) async {
-                                if (direction == DismissDirection.startToEnd) {
-                                  await _showLogPrompt(meal, provider);
-                                  return false;
-                                } else {
-                                  final confirm = await _showActionConfirmation(
-                                    title: "DELETE SAVED MEAL",
-                                    message: "ARE YOU SURE YOU WANT TO PERMANENTLY REMOVE '${meal.name.toUpperCase()}' FROM YOUR LIBRARY?",
-                                    confirmText: "DELETE",
-                                    confirmColor: AppColors.crimson,
-                                    icon: Icons.delete_forever_rounded,
-                                  );
-                                  if (confirm == true) {
-                                    await provider.deleteSavedMeal(meal.id);
-                                    return true;
-                                  }
-                                  return false;
-                                }
-                              },
-                              background: Container(
-                                alignment: Alignment.centerLeft,
-                                padding: EdgeInsets.only(left: 20.w),
-                                decoration: BoxDecoration(
-                                  color: Colors.greenAccent.withValues(alpha: 0.1),
-                                  borderRadius: BorderRadius.circular(16.r),
-                                ),
-                                child: const Icon(Icons.add_circle_outline_rounded, color: Colors.greenAccent),
-                              ),
-                              secondaryBackground: Container(
-                                alignment: Alignment.centerRight,
-                                padding: EdgeInsets.only(right: 20.w),
-                                decoration: BoxDecoration(
-                                  color: AppColors.error.withValues(alpha: 0.1),
-                                  borderRadius: BorderRadius.circular(16.r),
-                                ),
-                                child: const Icon(Icons.delete_outline_rounded, color: AppColors.error),
-                              ),
-                              child: Container(
-                                padding: EdgeInsets.all(18.r),
-                                decoration: BoxDecoration(
-                                  color: AppColors.surface,
-                                  borderRadius: BorderRadius.circular(24.r),
-                                  border: Border.all(color: AppColors.white.withValues(alpha: 0.05)),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.black.withValues(alpha: 0.2),
-                                      blurRadius: 10,
-                                      offset: const Offset(0, 4),
-                                    ),
-                                  ],
-                                ),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Row(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Expanded(
-                                          child: Column(
-                                            crossAxisAlignment: CrossAxisAlignment.start,
-                                            children: [
-                                              Text(
-                                                meal.name.toUpperCase(), 
-                                                style: AppTextStyles.h3.copyWith(
-                                                  fontSize: 16.sp, 
-                                                  color: Colors.white,
-                                                  letterSpacing: 1,
-                                                ),
-                                              ),
-                                              if (meal.sharedBy != null)
-                                                Padding(
-                                                  padding: EdgeInsets.only(top: 4.h),
-                                                  child: Container(
-                                                    padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
-                                                    decoration: BoxDecoration(
-                                                      color: Colors.blueAccent.withValues(alpha: 0.1),
-                                                      borderRadius: BorderRadius.circular(6.r),
-                                                      border: Border.all(color: Colors.blueAccent.withValues(alpha: 0.2)),
-                                                    ),
-                                                    child: Row(
-                                                      mainAxisSize: MainAxisSize.min,
-                                                      children: [
-                                                        Icon(Icons.share_rounded, color: Colors.blueAccent, size: 10.r),
-                                                        SizedBox(width: 4.w),
-                                                        Text(
-                                                          "SHARED BY ${meal.sharedBy!.toUpperCase()}",
-                                                          style: AppTextStyles.labelSmall.copyWith(
-                                                            color: Colors.blueAccent,
-                                                            fontSize: 8.sp,
-                                                            fontWeight: FontWeight.w900,
-                                                          ),
-                                                        ),
-                                                      ],
-                                                    ),
-                                                  ),
-                                                ),
-                                              if (meal.foodItems.isNotEmpty)
-                                                Padding(
-                                                  padding: EdgeInsets.only(top: 4.h),
-                                                  child: Text(
-                                                    meal.foodItems,
-                                                    maxLines: 2,
-                                                    overflow: TextOverflow.ellipsis,
-                                                    style: AppTextStyles.labelSmall.copyWith(
-                                                      color: AppColors.textSecondary,
-                                                      fontSize: 11.sp,
-                                                      height: 1.3,
-                                                    ),
-                                                  ),
-                                                ),
-                                            ],
-                                          ),
-                                        ),
-                                        SizedBox(width: 12.w),
-                                        Row(
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: [
-                                            _buildQuickActionButton(
-                                              icon: Icons.ios_share_rounded,
-                                              isActive: false,
-                                              onTap: () async {
-                                                final authProvider = context.read<AuthProvider>();
-                                                final userName = authProvider.displayName;
-                                                
-                                                EliteSnackbar.show(context, "GENERATING SHAREABLE LINK...");
-
-                                                final link = await provider.generateShareableLink(meal, userName);
-                                                
-                                                if (link != null) {
-                                                  await Share.share(
-                                                    "CHECK OUT THIS MEAL SHARED BY $userName IN HEAVY DUTY:\n\n$link",
-                                                    subject: "MEAL SHARED BY $userName",
-                                                  );
-                                                }
-                                              },
-                                            ),
-                                            SizedBox(width: 8.w),
-                                            _buildQuickActionButton(
-                                              icon: Icons.edit_rounded,
-                                              isActive: false,
-                                              onTap: () {
-                                                showModalBottomSheet(
-                                                  context: context,
-                                                  isScrollControlled: true,
-                                                  backgroundColor: Colors.transparent,
-                                                  builder: (context) => AddMealSheet(
-                                                    isLibraryOnly: true,
-                                                    existingMeal: meal,
-                                                    savedMeals: provider.savedMeals,
-                                                    onSave: (log, _, servings, multiplySupps) {
-                                                      provider.saveMealTemplate(SavedMeal(
-                                                        id: log.id,
-                                                        name: log.mealName,
-                                                        foodItems: log.foodItems,
-                                                        calories: log.calories,
-                                                        protein: log.protein,
-                                                        carbs: log.carbs,
-                                                        fats: log.fats,
-                                                        addedSupplementsJson: log.addedSupplementsJson,
-                                                        addedStacksJson: log.addedStacksJson,
-                                                        isPinnedToHome: meal.isPinnedToHome,
-                                                        notificationsEnabled: meal.notificationsEnabled,
-                                                        reminders: meal.reminders,
-                                                        servings: servings,
-                                                        multiplySupps: multiplySupps,
-                                                      ));
-                                                    },
-                                                  ),
-                                                );
-                                              },
-                                            ),
-                                            SizedBox(width: 8.w),
-                                            _buildQuickActionButton(
-                                              icon: Icons.push_pin_rounded,
-                                              isActive: meal.isPinnedToHome,
-                                              onTap: () => provider.updateSavedMeal(meal.copyWith(isPinnedToHome: !meal.isPinnedToHome)),
-                                            ),
-                                            SizedBox(width: 8.w),
-                                            _buildQuickActionButton(
-                                              icon: Icons.notifications_active_outlined,
-                                              isActive: meal.notificationsEnabled,
-                                              onTap: () {
-                                                showModalBottomSheet(
-                                                  context: context,
-                                                  isScrollControlled: true,
-                                                  backgroundColor: Colors.transparent,
-                                                  builder: (context) => CalorieNotificationSheet(meal: meal),
-                                                );
-                                              },
-                                            ),
-                                          ],
-                                        ),
-                                      ],
-                                    ),
-                                    
-                                    if (additions.isNotEmpty) ...[
-                                      Padding(
-                                        padding: EdgeInsets.only(top: 16.h),
-                                        child: Divider(color: AppColors.white.withValues(alpha: 0.05), height: 1),
-                                      ),
-                                      ...(() {
-                                        final bool isExpanded = _expandedSupplementIds.contains(meal.id);
-                                        final List<Map<String, dynamic>> visibleAdditions = 
-                                            isExpanded ? additions : additions.take(1).toList();
-                                        final int totalAdditionsCals = additions.fold(0, (sum, item) => sum + (item['cals'] as num).round());
-                                        
-                                        return [
-                                          ...visibleAdditions.map((item) => Padding(
-                                            padding: EdgeInsets.only(top: 14.h),
-                                            child: Column(
-                                              crossAxisAlignment: CrossAxisAlignment.start,
-                                              children: [
-                                                Row(
-                                                  children: [
-                                                    Expanded(
-                                                      child: Text(
-                                                        item['name'].toUpperCase(),
-                                                        maxLines: 1,
-                                                        overflow: TextOverflow.ellipsis,
-                                                        style: AppTextStyles.labelSmall.copyWith(
-                                                          color: Colors.white,
-                                                          fontSize: 11.sp,
-                                                          fontWeight: FontWeight.w900,
-                                                          letterSpacing: 0.5,
-                                                        ),
-                                                      ),
-                                                    ),
-                                                    Row(
-                                                      mainAxisSize: MainAxisSize.min,
-                                                      children: [
-                                                        Icon(Icons.local_fire_department_rounded, color: AppColors.crimson, size: 12.r),
-                                                        SizedBox(width: 4.w),
-                                                        Text(
-                                                          "+${item['cals']}",
-                                                          style: AppTextStyles.h3.copyWith(
-                                                            color: Colors.white,
-                                                            fontSize: 14.sp,
-                                                            fontWeight: FontWeight.w900,
-                                                          ),
-                                                        ),
-                                                        SizedBox(width: 2.w),
-                                                        Text(
-                                                          "kcal",
-                                                          style: AppTextStyles.labelSmall.copyWith(
-                                                            color: AppColors.textSecondary.withValues(alpha: 0.5),
-                                                            fontSize: 8.sp,
-                                                            fontWeight: FontWeight.bold,
-                                                          ),
-                                                        ),
-                                                      ],
-                                                    ),
-                                                  ],
-                                                ),
-                                                Padding(
-                                                  padding: EdgeInsets.only(top: 4.h),
-                                                  child: Row(
-                                                    children: [
-                                                      _buildSpecMacro(item['pro'].toDouble(), "PRO", Colors.blueAccent),
-                                                      _buildSpecDivider(),
-                                                      _buildSpecMacro(item['cho'].toDouble(), "CHO", Colors.greenAccent),
-                                                      _buildSpecDivider(),
-                                                      _buildSpecMacro(item['fat'].toDouble(), "FAT", Colors.orangeAccent),
-                                                    ],
-                                                  ),
-                                                ),
-                                              ],
-                                            ),
-                                          )),
-                                          if (additions.length > 1)
-                                            GestureDetector(
-                                              onTap: () {
-                                                setState(() {
-                                                  if (isExpanded) {
-                                                    _expandedSupplementIds.remove(meal.id);
-                                                  } else {
-                                                    _expandedSupplementIds.add(meal.id);
-                                                  }
-                                                });
-                                              },
-                                              child: Container(
-                                                padding: EdgeInsets.only(top: 16.h),
-                                                color: Colors.transparent,
-                                                child: Row(
-                                                  mainAxisAlignment: MainAxisAlignment.center,
-                                                  children: [
-                                                    Text(
-                                                      isExpanded 
-                                                          ? "SHOW FEWER INGREDIENTS" 
-                                                          : "SHOW ${additions.length - 1} MORE ADDITIONS",
-                                                      style: AppTextStyles.labelSmall.copyWith(
-                                                        color: AppColors.textSecondary.withValues(alpha: 0.4),
-                                                        fontSize: 9.sp,
-                                                        fontWeight: FontWeight.bold,
-                                                        letterSpacing: 1.5,
-                                                      ),
-                                                    ),
-                                                    SizedBox(width: 8.w),
-                                                    Icon(
-                                                      isExpanded 
-                                                          ? Icons.keyboard_arrow_up_rounded 
-                                                          : Icons.keyboard_arrow_down_rounded,
-                                                      color: AppColors.textSecondary.withValues(alpha: 0.4),
-                                                      size: 16.r,
-                                                    ),
-                                                  ],
-                                                ),
-                                              ),
-                                            ),
-                                          if (additions.length > 1)
-                                            Padding(
-                                              padding: EdgeInsets.only(top: 16.h),
-                                              child: Row(
-                                                mainAxisAlignment: MainAxisAlignment.end,
-                                                children: [
-                                                  Text(
-                                                    "TOTAL ADDITIONS:",
-                                                    style: AppTextStyles.labelSmall.copyWith(
-                                                      color: AppColors.textSecondary.withValues(alpha: 0.5),
-                                                      fontSize: 9.sp,
-                                                      fontWeight: FontWeight.bold,
-                                                      letterSpacing: 1,
-                                                    ),
-                                                  ),
-                                                  SizedBox(width: 8.w),
-                                                  Row(
-                                                    mainAxisSize: MainAxisSize.min,
-                                                    children: [
-                                                      Icon(Icons.local_fire_department_rounded, color: AppColors.crimson, size: 12.r),
-                                                      SizedBox(width: 4.w),
-                                                      Text(
-                                                        "+$totalAdditionsCals",
-                                                        style: AppTextStyles.h3.copyWith(
-                                                          color: Colors.white,
-                                                          fontSize: 14.sp,
-                                                          fontWeight: FontWeight.w900,
-                                                        ),
-                                                      ),
-                                                      SizedBox(width: 2.w),
-                                                      Text(
-                                                        "kcal",
-                                                        style: AppTextStyles.labelSmall.copyWith(
-                                                          color: AppColors.textSecondary.withValues(alpha: 0.5),
-                                                          fontSize: 8.sp,
-                                                          fontWeight: FontWeight.bold,
-                                                        ),
-                                                      ),
-                                                    ],
-                                                  ),
-                                                ],
-                                              ),
-                                            ),
-                                        ];
-                                      })(),
-                                    ],
-
-                                    Padding(
-                                      padding: EdgeInsets.symmetric(vertical: 16.h),
-                                      child: Divider(color: AppColors.white.withValues(alpha: 0.05), height: 1),
-                                    ),
-                                    Row(
-                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        Row(
-                                          children: [
-                                            Icon(Icons.local_fire_department_rounded, color: AppColors.crimson, size: 16.r),
-                                            SizedBox(width: 6.w),
-                                            Text(
-                                              meal.calories % 1 == 0 ? meal.calories.toInt().toString() : meal.calories.toStringAsFixed(1),
-                                              style: AppTextStyles.h3.copyWith(
-                                                color: Colors.white,
-                                                fontSize: 18.sp,
-                                              ),
-                                            ),
-                                            SizedBox(width: 4.w),
-                                            Text(
-                                              "kcal",
-                                              style: AppTextStyles.labelSmall.copyWith(
-                                                color: AppColors.textSecondary,
-                                                fontSize: 10.sp,
-                                                fontWeight: FontWeight.bold,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                        Wrap(
-                                          spacing: 8.w,
-                                          children: [
-                                            if (meal.protein != null) _buildSmallMacroPill("${meal.protein!.toInt()}g Protein", Colors.blueAccent),
-                                            if (meal.carbs != null) _buildSmallMacroPill("${meal.carbs!.toInt()}g Carbs", Colors.greenAccent),
-                                            if (meal.fats != null) _buildSmallMacroPill("${meal.fats!.toInt()}g Fats", Colors.orangeAccent),
-                                          ],
-                                        ),
-                                      ],
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-              ),
-            ],
+                          )
+                        : ListView.builder(
+                            physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+                            padding: EdgeInsets.symmetric(horizontal: 20.w),
+                            itemCount: savedMeals.length,
+                            itemBuilder: (context, index) => _buildSavedMealItem(savedMeals[index], provider, isCompact),
+                          ),
+                  ),
+                ],
+              );
+            },
           ),
         );
       },
     );
   }
 
-  Widget _buildHistoryTab() {
+  Widget _buildAddMealButton(BuildContext context, CalorieProvider provider, bool isCompact) {
+    return GestureDetector(
+      onTap: () {
+        AdaptiveUtils.showAdaptiveSheet(
+          context: context,
+          sheetBuilder: (sheetContext, isSideSheet) => AddMealSheet(
+            isSideSheet: isSideSheet,
+            isLibraryOnly: true,
+            savedMeals: provider.savedMeals,
+            onSave: (log, _, servings, multiplySupps) {
+              provider.saveMealTemplate(SavedMeal(
+                id: Uuid().v4(),
+                name: log.mealName,
+                foodItems: log.foodItems,
+                calories: log.calories,
+                protein: log.protein,
+                carbs: log.carbs,
+                fats: log.fats,
+                addedSupplementsJson: log.addedSupplementsJson,
+                addedStacksJson: log.addedStacksJson,
+                servings: servings,
+                multiplySupps: multiplySupps,
+              ));
+            },
+          ),
+        );
+      },
+      child: Container(
+        height: isCompact ? 50.h : 48.0,
+        decoration: BoxDecoration(
+          color: AppColors.crimson.withValues(alpha: 0.1),
+          border: Border.all(
+            color: AppColors.crimson.withValues(alpha: 0.5),
+          ),
+          borderRadius: BorderRadius.circular(12.r),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.add_circle_outline_rounded,
+              color: AppColors.crimson,
+              size: isCompact ? 20.r : 18.0,
+            ),
+            SizedBox(width: 8.w),
+            Text(
+              "ADD A MEAL",
+              style: AppTextStyles.buttonPrimary.copyWith(
+                color: AppColors.crimson,
+                fontSize: isCompact ? 12.sp : 12.0,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHistoryTab(bool isCompact) {
     return Consumer<CalorieProvider>(
       builder: (context, provider, _) {
         final Set<DateTime> dateSet = provider.logs.map((l) => 
@@ -1163,78 +920,156 @@ class _CalorieScreenState extends State<CalorieScreen> with SingleTickerProvider
             ? historyLogs.fold(0.0, (sum, l) => sum + (l.fats ?? 0.0)) 
             : null;
 
-        if (_isCalendarExpanded) {
-          return Container(
-            color: AppColors.background,
-            child: Column(
-              children: [
-                Expanded(
-                  child: SingleChildScrollView(
-                    physics: const BouncingScrollPhysics(),
-                    child: _buildCustomExpandedCalendar(dateSet),
+        return LayoutBuilder(
+          builder: (context, constraints) {
+            final bool isWide = constraints.maxWidth > 700;
+
+            if (isWide) {
+              return Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // --- LEFT COLUMN: CALENDAR (TAKES WHOLE SPACE) ---
+                  Expanded(
+                    flex: 5,
+                    child: Container(
+                      color: AppColors.background,
+                      child: Column(
+                        children: [
+                          Expanded(
+                            child: SingleChildScrollView(
+                              physics: const BouncingScrollPhysics(),
+                              padding: const EdgeInsets.symmetric(vertical: 20.0),
+                              child: _buildCustomExpandedCalendar(dateSet, isCompact),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
+                  VerticalDivider(color: AppColors.white.withOpacity(0.05), width: 1),
+                  // --- RIGHT COLUMN: SLIDER + LOGS ---
+                  Expanded(
+                    flex: 5,
+                    child: Column(
+                      children: [
+                        _buildHorizontalCalendar(dateSet, isCompact),
+                        const Divider(color: Colors.white10, height: 1),
+                        Expanded(
+                          child: ListView(
+                            padding: const EdgeInsets.all(20.0),
+                            physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+                            children: [
+                              if (historyLogs.isNotEmpty) ...[
+                                _buildEnergySummary(
+                                  consumed, 
+                                  provider.settings.dailyCalorieGoal,
+                                  protein,
+                                  carbs,
+                                  fats,
+                                  isCompact,
+                                ),
+                                if (provider.settings.trackMacros) ...[
+                                  SizedBox(height: 24.0),
+                                  _buildMacroSection(protein, carbs, fats, isCompact),
+                                ],
+                                SizedBox(height: 24.0),
+                                _buildSectionHeader("LOGGED MEALS", isCompact),
+                                SizedBox(height: 20.0),
+                                Column(
+                                  children: historyLogs.map((log) => _buildMealCard(log, provider, isCompact)).toList(),
+                                ),
+                              ] else
+                                SizedBox(
+                                  height: 400,
+                                  child: Center(
+                                    child: Text(
+                                      "No logs for this date.",
+                                      style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary, fontSize: isCompact ? 13.sp : 12.0),
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              );
+            }
+
+            // --- MOBILE: SINGLE COLUMN ---
+            if (_isCalendarExpanded) {
+              return Container(
+                color: AppColors.background,
+                child: Column(
+                  children: [
+                    Expanded(
+                      child: SingleChildScrollView(
+                        physics: const BouncingScrollPhysics(),
+                        child: _buildCustomExpandedCalendar(dateSet, isCompact),
+                      ),
+                    ),
+                    GestureDetector(
+                      onTap: () {
+                        setState(() => _isCalendarExpanded = false);
+                        WidgetsBinding.instance.addPostFrameCallback((_) {
+                          final now = DateTime.now();
+                          final today = DateTime(now.year, now.month, now.day);
+                          final target = DateTime(_selectedHistoryDate.year, _selectedHistoryDate.month, _selectedHistoryDate.day);
+                          final int dayDiff = today.difference(target).inDays;
+                          if (dayDiff >= 0 && dayDiff < 365) {
+                            if (_pageController.hasClients) {
+                              _pageController.animateToPage(
+                                dayDiff, 
+                                duration: const Duration(milliseconds: 300), 
+                                curve: Curves.easeInOut
+                              );
+                            }
+                          }
+                        });
+                      },
+                      child: Container(
+                        width: double.infinity,
+                        padding: EdgeInsets.symmetric(vertical: 16.h),
+                        color: Colors.transparent,
+                        child: Icon(
+                          Icons.keyboard_arrow_up_rounded,
+                          color: AppColors.textSecondary.withValues(alpha: 0.4),
+                          size: 24.r,
+                        ),
+                      ),
+                    ),
+                    SizedBox(height: 20.h),
+                  ],
                 ),
+              );
+            }
+
+            return Column(
+              children: [
+                _buildHorizontalCalendar(dateSet, isCompact),
                 GestureDetector(
                   onTap: () {
-                    setState(() => _isCalendarExpanded = false);
-                    WidgetsBinding.instance.addPostFrameCallback((_) {
-                      final now = DateTime.now();
-                      final today = DateTime(now.year, now.month, now.day);
-                      final target = DateTime(_selectedHistoryDate.year, _selectedHistoryDate.month, _selectedHistoryDate.day);
-                      final int dayDiff = today.difference(target).inDays;
-                      if (dayDiff >= 0 && dayDiff < 365) {
-                        if (_pageController.hasClients) {
-                          _pageController.animateToPage(
-                            dayDiff, 
-                            duration: const Duration(milliseconds: 300), 
-                            curve: Curves.easeInOut
-                          );
-                        }
-                      }
+                    setState(() {
+                      _isCalendarExpanded = true;
+                      _displayedMonth = DateTime(_selectedHistoryDate.year, _selectedHistoryDate.month);
                     });
                   },
                   child: Container(
                     width: double.infinity,
-                    padding: EdgeInsets.symmetric(vertical: 16.h),
+                    padding: EdgeInsets.symmetric(vertical: 4.h),
                     color: Colors.transparent,
                     child: Icon(
-                      Icons.keyboard_arrow_up_rounded,
+                      Icons.keyboard_arrow_down_rounded,
                       color: AppColors.textSecondary.withValues(alpha: 0.4),
                       size: 24.r,
                     ),
                   ),
                 ),
-                SizedBox(height: 20.h),
-              ],
-            ),
-          );
-        }
-
-        return Column(
-          children: [
-            _buildHorizontalCalendar(dateSet),
-            GestureDetector(
-              onTap: () {
-                setState(() {
-                  _isCalendarExpanded = true;
-                  _displayedMonth = DateTime(_selectedHistoryDate.year, _selectedHistoryDate.month);
-                });
-              },
-              child: Container(
-                width: double.infinity,
-                padding: EdgeInsets.symmetric(vertical: 4.h),
-                color: Colors.transparent,
-                child: Icon(
-                  Icons.keyboard_arrow_down_rounded,
-                  color: AppColors.textSecondary.withValues(alpha: 0.4),
-                  size: 24.r,
-                ),
-              ),
-            ),
-            const Divider(color: Colors.white10, height: 1),
-            Expanded(
-              child: LayoutBuilder(
-                  builder: (context, constraints) => ListView(
+                const Divider(color: Colors.white10, height: 1),
+                Expanded(
+                  child: ListView(
                     padding: EdgeInsets.zero,
                     physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
                     children: [
@@ -1246,27 +1081,28 @@ class _CalorieScreenState extends State<CalorieScreen> with SingleTickerProvider
                           protein,
                           carbs,
                           fats,
+                          isCompact,
                         ),
                         if (provider.settings.trackMacros) ...[
                           SizedBox(height: 24.h),
-                          _buildMacroSection(protein, carbs, fats),
+                          _buildMacroSection(protein, carbs, fats, isCompact),
                         ],
                         SizedBox(height: 24.h),
                         Padding(
                           padding: EdgeInsets.symmetric(horizontal: 20.w),
-                          child: _buildSectionHeader("LOGGED MEALS"),
+                          child: _buildSectionHeader("LOGGED MEALS", isCompact),
                         ),
                         SizedBox(height: 12.h),
                         Padding(
                           padding: EdgeInsets.symmetric(horizontal: 20.w),
                           child: Column(
-                            children: historyLogs.map((log) => _buildMealCard(log, provider)).toList(),
+                            children: historyLogs.map((log) => _buildMealCard(log, provider, isCompact)).toList(),
                           ),
                         ),
                         SizedBox(height: 40.h),
                       ] else
-                        Container(
-                          constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                        SizedBox(
+                          height: 300.h,
                           child: Center(
                             child: Text(
                               "No logs for this date.",
@@ -1277,20 +1113,21 @@ class _CalorieScreenState extends State<CalorieScreen> with SingleTickerProvider
                     ],
                   ),
                 ),
-            ),
-          ],
+              ],
+            );
+          },
         );
       },
     );
   }
 
-  Widget _buildCustomExpandedCalendar(Set<DateTime> dateSet) {
+  Widget _buildCustomExpandedCalendar(Set<DateTime> dateSet, bool isCompact) {
     final daysInMonth = DateTime(_displayedMonth.year, _displayedMonth.month + 1, 0).day;
     final firstDayOfMonth = DateTime(_displayedMonth.year, _displayedMonth.month, 1).weekday;
     final isCurrentMonth = _displayedMonth.year == DateTime.now().year && _displayedMonth.month == DateTime.now().month;
     
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 10.h),
+      padding: EdgeInsets.symmetric(horizontal: isCompact ? 16.w : 16.0, vertical: isCompact ? 10.h : 8.0),
       child: Column(
         children: [
           Row(
@@ -1320,7 +1157,7 @@ class _CalorieScreenState extends State<CalorieScreen> with SingleTickerProvider
                 },
                 child: Text(
                   DateFormat('MMMM yyyy').format(_displayedMonth).toUpperCase(),
-                  style: AppTextStyles.labelMedium.copyWith(color: Colors.white, letterSpacing: 1.5),
+                  style: AppTextStyles.labelMedium.copyWith(color: Colors.white, letterSpacing: 1.5, fontSize: isCompact ? 14.sp : 14.0),
                 ),
               ),
               IconButton(
@@ -1331,15 +1168,14 @@ class _CalorieScreenState extends State<CalorieScreen> with SingleTickerProvider
               ),
             ],
           ),
-          SizedBox(height: 10.h),
+          SizedBox(height: isCompact ? 10.h : 8.0),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: ["M", "T", "W", "T", "F", "S", "S"].map((d) => SizedBox(
-              width: 40.w,
-              child: Text(d, textAlign: TextAlign.center, style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary.withValues(alpha: 0.5), fontSize: 10.sp)),
+            children: ["M", "T", "W", "T", "F", "S", "S"].map((d) => Expanded(
+              child: Text(d, textAlign: TextAlign.center, style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary.withValues(alpha: 0.5), fontSize: isCompact ? 10.sp : 10.0)),
             )).toList(),
           ),
-          SizedBox(height: 10.h),
+          SizedBox(height: isCompact ? 10.h : 8.0),
           GridView.builder(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
@@ -1388,15 +1224,16 @@ class _CalorieScreenState extends State<CalorieScreen> with SingleTickerProvider
                           color: isSelected 
                               ? Colors.white 
                               : (isFuture ? Colors.white.withValues(alpha: 0.05) : (hasData ? Colors.white : Colors.white.withValues(alpha: 0.2))),
-                          fontWeight: (isSelected || hasData) ? FontWeight.bold : FontWeight.normal,
+                          fontWeight: FontWeight.w500,
+                          fontSize: isCompact ? 12.sp : 12.0,
                         ),
                       ),
                       if (hasData && !isSelected)
                         Positioned(
-                          bottom: 4.h,
+                          bottom: isCompact ? 4.h : 4.0,
                           child: Container(
-                            width: 3.r,
-                            height: 3.r,
+                            width: isCompact ? 3.r : 3.0,
+                            height: isCompact ? 3.r : 3.0,
                             decoration: const BoxDecoration(color: AppColors.crimson, shape: BoxShape.circle),
                           ),
                         ),
@@ -1411,13 +1248,13 @@ class _CalorieScreenState extends State<CalorieScreen> with SingleTickerProvider
     );
   }
 
-  Widget _buildHorizontalCalendar(Set<DateTime> dateSet) {
+  Widget _buildHorizontalCalendar(Set<DateTime> dateSet, bool isCompact) {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
 
     return Container(
-      height: 90.h,
-      padding: EdgeInsets.symmetric(vertical: 10.h),
+      height: isCompact ? 90.h : 80.0,
+      padding: EdgeInsets.symmetric(vertical: isCompact ? 10.h : 8.0),
       child: PageView.builder(
         controller: _pageController,
         padEnds: false,
@@ -1442,10 +1279,10 @@ class _CalorieScreenState extends State<CalorieScreen> with SingleTickerProvider
             },
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 200),
-              margin: EdgeInsets.symmetric(horizontal: 6.w),
+              margin: EdgeInsets.symmetric(horizontal: isCompact ? 6.w : 6.0),
               decoration: BoxDecoration(
                 color: isSelected ? AppColors.crimson : Colors.transparent,
-                borderRadius: BorderRadius.circular(12.r),
+                borderRadius: BorderRadius.circular(isCompact ? 12.r : 10.0),
                 border: isToday && !isSelected 
                     ? Border.all(color: AppColors.crimson.withValues(alpha: 0.5))
                     : null,
@@ -1456,18 +1293,18 @@ class _CalorieScreenState extends State<CalorieScreen> with SingleTickerProvider
                   Text(
                     DateFormat('EEE').format(dateOnly).toUpperCase(),
                     style: AppTextStyles.labelSmall.copyWith(
-                      fontSize: 10.sp,
+                      fontSize: isCompact ? 10.sp : 10.0,
                       color: isSelected 
                           ? Colors.white 
                           : (hasData ? AppColors.textSecondary : AppColors.textSecondary.withValues(alpha: 0.2)),
-                      fontWeight: (isSelected || hasData) ? FontWeight.bold : FontWeight.normal,
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
-                  SizedBox(height: 4.h),
+                  SizedBox(height: isCompact ? 4.h : 4.0),
                   Text(
                     dateOnly.day.toString(),
                     style: AppTextStyles.h3.copyWith(
-                      fontSize: 16.sp,
+                      fontSize: isCompact ? 16.sp : 16.0,
                       color: isSelected 
                           ? Colors.white 
                           : (hasData ? AppColors.white : AppColors.white.withValues(alpha: 0.15)),
@@ -1475,9 +1312,9 @@ class _CalorieScreenState extends State<CalorieScreen> with SingleTickerProvider
                   ),
                   if (hasData && !isSelected)
                     Container(
-                      margin: EdgeInsets.only(top: 4.h),
-                      width: 4.r,
-                      height: 4.r,
+                      margin: EdgeInsets.only(top: isCompact ? 4.h : 4.0),
+                      width: isCompact ? 4.r : 4.0,
+                      height: isCompact ? 4.r : 4.0,
                       decoration: const BoxDecoration(
                         color: AppColors.crimson,
                         shape: BoxShape.circle,
@@ -1492,7 +1329,7 @@ class _CalorieScreenState extends State<CalorieScreen> with SingleTickerProvider
     );
   }
 
-  Widget _buildEnergySummary(int consumed, int goal, double? protein, double? carbs, double? fats) {
+  Widget _buildEnergySummary(int consumed, int goal, double? protein, double? carbs, double? fats, bool isCompact) {
     return Consumer<CalorieProvider>(
       builder: (context, provider, _) {
         final settings = provider.settings;
@@ -1503,11 +1340,11 @@ class _CalorieScreenState extends State<CalorieScreen> with SingleTickerProvider
         final bool hasMacros = totalMacros > 0;
 
         return Container(
-          margin: EdgeInsets.symmetric(horizontal: 20.w),
-          padding: EdgeInsets.all(24.r),
+          margin: EdgeInsets.symmetric(horizontal: isCompact ? 20.w : 24.0),
+          padding: EdgeInsets.all(isCompact ? 24.r : 20.0),
           decoration: BoxDecoration(
             color: AppColors.surfaceLight.withValues(alpha: 0.3),
-            borderRadius: BorderRadius.circular(24.r),
+            borderRadius: BorderRadius.circular(isCompact ? 24.r : 20.0),
             border: Border.all(color: AppColors.white.withValues(alpha: 0.05)),
           ),
           child: Row(
@@ -1520,12 +1357,13 @@ class _CalorieScreenState extends State<CalorieScreen> with SingleTickerProvider
                     "CONSUMED",
                     style: AppTextStyles.labelSmall.copyWith(
                       color: AppColors.textSecondary,
+                      fontSize: isCompact ? 10.sp : 9.0,
                     ),
                   ),
                   Text(
                     "$consumed",
                     style: AppTextStyles.h1.copyWith(
-                      fontSize: 32.sp,
+                      fontSize: isCompact ? 32.sp : 24.0,
                       color: AppColors.white,
                     ),
                   ),
@@ -1533,44 +1371,45 @@ class _CalorieScreenState extends State<CalorieScreen> with SingleTickerProvider
                     "/ $goal kcal",
                     style: AppTextStyles.labelSmall.copyWith(
                       color: AppColors.white.withValues(alpha: 0.5),
-                      fontWeight: FontWeight.bold,
+                      fontWeight: FontWeight.w500,
+                      fontSize: isCompact ? 10.sp : 9.0,
                     ),
                   ),
                   if (settings.showRemaining) ...[
-                    SizedBox(height: 8.h),
+                    SizedBox(height: isCompact ? 8.h : 6.0),
                     Text(
                       isOver ? "OVER: ${remaining.abs()} kcal" : "REMAINING: $remaining kcal",
                       style: AppTextStyles.labelSmall.copyWith(
                         color: isOver ? AppColors.crimson : Colors.greenAccent,
-                        fontSize: 10.sp,
-                        fontWeight: FontWeight.bold,
+                        fontSize: isCompact ? 10.sp : 9.0,
+                        fontWeight: FontWeight.w500,
                       ),
                     ),
                   ],
                 ],
               ),
               SizedBox(
-                height: 90.r,
-                width: 90.r,
+                height: isCompact ? 90.r : 80.0,
+                width: isCompact ? 90.r : 80.0,
                 child: Stack(
                   alignment: Alignment.center,
                   children: [
                     PieChart(
                       PieChartData(
                         sectionsSpace: 0,
-                        centerSpaceRadius: 32.r,
+                        centerSpaceRadius: isCompact ? 32.r : 28.0,
                         startDegreeOffset: -90,
                         sections: [
                           PieChartSectionData(
                             color: AppColors.crimson,
                             value: consumed.toDouble(),
-                            radius: 6.r,
+                            radius: isCompact ? 6.r : 5.0,
                             showTitle: false,
                           ),
                           PieChartSectionData(
                             color: AppColors.white.withValues(alpha: 0.05),
                             value: remaining < 0 ? 0 : remaining.toDouble(),
-                            radius: 6.r,
+                            radius: isCompact ? 6.r : 5.0,
                             showTitle: false,
                           ),
                         ],
@@ -1578,30 +1417,30 @@ class _CalorieScreenState extends State<CalorieScreen> with SingleTickerProvider
                     ),
                     if (hasMacros)
                       SizedBox(
-                        height: 56.r,
-                        width: 56.r,
+                        height: isCompact ? 56.r : 48.0,
+                        width: isCompact ? 56.r : 48.0,
                         child: PieChart(
                           PieChartData(
                             sectionsSpace: 2,
-                            centerSpaceRadius: 20.r,
+                            centerSpaceRadius: isCompact ? 20.r : 18.0,
                             startDegreeOffset: -90,
                             sections: [
                               PieChartSectionData(
                                 color: Colors.blueAccent,
                                 value: protein ?? 0,
-                                radius: 6.r,
+                                radius: isCompact ? 6.r : 5.0,
                                 showTitle: false,
                               ),
                               PieChartSectionData(
                                 color: Colors.greenAccent,
                                 value: carbs ?? 0,
-                                radius: 6.r,
+                                radius: isCompact ? 6.r : 5.0,
                                 showTitle: false,
                               ),
                               PieChartSectionData(
                                 color: Colors.orangeAccent,
                                 value: fats ?? 0,
-                                radius: 6.r,
+                                radius: isCompact ? 6.r : 5.0,
                                 showTitle: false,
                               ),
                             ],
@@ -1618,7 +1457,7 @@ class _CalorieScreenState extends State<CalorieScreen> with SingleTickerProvider
     );
   }
 
-  Widget _buildMacroSection(double? protein, double? carbs, double? fats) {
+  Widget _buildMacroSection(double? protein, double? carbs, double? fats, bool isCompact) {
     return Consumer<CalorieProvider>(
       builder: (context, provider, _) {
         final settings = provider.settings;
@@ -1629,28 +1468,31 @@ class _CalorieScreenState extends State<CalorieScreen> with SingleTickerProvider
         final targetFat = (goal * (settings.fatPercent / 100)) / 9;
 
         return Padding(
-          padding: EdgeInsets.symmetric(horizontal: 20.w),
+          padding: EdgeInsets.symmetric(horizontal: isCompact ? 20.w : 24.0),
           child: Row(
             children: [
               _buildMacroTile(
                 "Protein", 
                 protein != null ? "${protein.toInt()}g" : "-", 
                 "${targetPro.toInt()}g",
-                Colors.blueAccent
+                Colors.blueAccent,
+                isCompact,
               ),
-              SizedBox(width: 10.w),
+              SizedBox(width: isCompact ? 10.w : 10.0),
               _buildMacroTile(
                 "Carbs", 
                 carbs != null ? "${carbs.toInt()}g" : "-", 
                 "${targetCho.toInt()}g",
-                Colors.greenAccent
+                Colors.greenAccent,
+                isCompact,
               ),
-              SizedBox(width: 10.w),
+              SizedBox(width: isCompact ? 10.w : 10.0),
               _buildMacroTile(
                 "Fats", 
                 fats != null ? "${fats.toInt()}g" : "-", 
                 "${targetFat.toInt()}g",
-                Colors.orangeAccent
+                Colors.orangeAccent,
+                isCompact,
               ),
             ],
           ),
@@ -1659,31 +1501,31 @@ class _CalorieScreenState extends State<CalorieScreen> with SingleTickerProvider
     );
   }
 
-  Widget _buildMacroTile(String label, String value, String target, Color color) {
+  Widget _buildMacroTile(String label, String value, String target, Color color, bool isCompact) {
     return Expanded(
       child: Container(
-        padding: EdgeInsets.symmetric(vertical: 16.h),
+        padding: EdgeInsets.symmetric(vertical: isCompact ? 16.h : 14.0),
         decoration: BoxDecoration(
           color: AppColors.surfaceLight.withValues(alpha: 0.2),
-          borderRadius: BorderRadius.circular(16.r),
+          borderRadius: BorderRadius.circular(isCompact ? 16.r : 14.0),
         ),
         child: Column(
           children: [
             Text(
               value,
-              style: AppTextStyles.labelMedium.copyWith(color: AppColors.white, fontWeight: FontWeight.w900),
+              style: AppTextStyles.labelMedium.copyWith(color: AppColors.white, fontWeight: FontWeight.w500, fontSize: isCompact ? 14.sp : 13.0),
             ),
             Text(
               "/ $target",
-              style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary, fontSize: 10.sp, fontWeight: FontWeight.bold),
+              style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary, fontSize: isCompact ? 10.sp : 9.0, fontWeight: FontWeight.w500),
             ),
-            SizedBox(height: 4.h),
+            SizedBox(height: isCompact ? 4.h : 4.0),
             Text(
               label.toUpperCase(),
               style: AppTextStyles.labelSmall.copyWith(
-                fontSize: 9.sp,
+                fontSize: isCompact ? 9.sp : 8.0,
                 color: color,
-                fontWeight: FontWeight.w900,
+                fontWeight: FontWeight.w500,
                 letterSpacing: 1,
               ),
             ),
@@ -1693,7 +1535,7 @@ class _CalorieScreenState extends State<CalorieScreen> with SingleTickerProvider
     );
   }
 
-  Widget _buildMealLogSection(CalorieProvider provider) {
+  Widget _buildMealLogSection(CalorieProvider provider, bool isCompact) {
     final todayLogs = provider.logs.where((l) {
       final now = DateTime.now();
       return l.timestamp.year == now.year &&
@@ -1701,62 +1543,64 @@ class _CalorieScreenState extends State<CalorieScreen> with SingleTickerProvider
           l.timestamp.day == now.day;
     }).toList();
 
-    return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 20.w),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          GestureDetector(
-            onTap: () => _openAddMealSheet(context),
-            child: Container(
-              height: 50.h,
-              decoration: BoxDecoration(
-                color: AppColors.crimson.withValues(alpha: 0.1),
-                border: Border.all(
-                  color: AppColors.crimson.withValues(alpha: 0.5),
-                ),
-                borderRadius: BorderRadius.circular(12.r),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.add_circle_outline_rounded,
-                    color: AppColors.crimson,
-                    size: 20.r,
-                  ),
-                  SizedBox(width: 8.w),
-                  Text(
-                    "ADD MEAL ENTRY",
-                    style: AppTextStyles.buttonPrimary.copyWith(
-                      color: AppColors.crimson,
-                    ),
-                  ),
-                ],
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildAddMealEntryButton(context, provider, isCompact),
+        SizedBox(height: isCompact ? 24.h : 20.0),
+        _buildSectionHeader("DAILY MEALS", isCompact),
+        SizedBox(height: isCompact ? 12.h : 10.0),
+        if (todayLogs.isEmpty)
+          Center(
+            child: Padding(
+              padding: EdgeInsets.symmetric(vertical: isCompact ? 20.h : 16.0),
+              child: Text(
+                "No meals logged today.",
+                style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary, fontSize: isCompact ? 10.sp : 10.0),
               ),
             ),
+          )
+        else
+          ...todayLogs.map((log) => _buildMealCard(log, provider, isCompact)),
+      ],
+    );
+  }
+
+  Widget _buildAddMealEntryButton(BuildContext context, CalorieProvider provider, bool isCompact) {
+    return GestureDetector(
+      onTap: () => _openAddMealSheet(context),
+      child: Container(
+        height: isCompact ? 50.h : 48.0,
+        decoration: BoxDecoration(
+          color: AppColors.crimson.withValues(alpha: 0.1),
+          border: Border.all(
+            color: AppColors.crimson.withValues(alpha: 0.5),
           ),
-          SizedBox(height: 24.h),
-          _buildSectionHeader("DAILY MEALS"),
-          SizedBox(height: 12.h),
-          if (todayLogs.isEmpty)
-            Center(
-              child: Padding(
-                padding: EdgeInsets.symmetric(vertical: 20.h),
-                child: Text(
-                  "No meals logged today.",
-                  style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary),
-                ),
+          borderRadius: BorderRadius.circular(12.r),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.add_circle_outline_rounded,
+              color: AppColors.crimson,
+              size: isCompact ? 20.r : 18.0,
+            ),
+            SizedBox(width: 8.w),
+            Text(
+              "ADD MEAL ENTRY",
+              style: AppTextStyles.buttonPrimary.copyWith(
+                color: AppColors.crimson,
+                fontSize: isCompact ? 12.sp : 12.0,
               ),
-            )
-          else
-            ...todayLogs.map((log) => _buildMealCard(log, provider)),
-        ],
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildMealCard(CalorieLog log, CalorieProvider provider) {
+  Widget _buildMealCard(CalorieLog log, CalorieProvider provider, bool isCompact) {
     final supplementProvider = context.read<SupplementProvider>();
     List<Map<String, dynamic>> additions = [];
     double totalSuppCals = 0;
@@ -1828,13 +1672,13 @@ class _CalorieScreenState extends State<CalorieScreen> with SingleTickerProvider
       direction: DismissDirection.endToStart,
       background: Container(
         alignment: Alignment.centerRight,
-        padding: EdgeInsets.only(right: 24.w),
-        margin: EdgeInsets.only(bottom: 20.h),
+        padding: EdgeInsets.only(right: isCompact ? 24.w : 20.0),
+        margin: EdgeInsets.only(bottom: isCompact ? 20.h : 16.0),
         decoration: BoxDecoration(
           color: AppColors.error.withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(28.r),
+          borderRadius: BorderRadius.circular(isCompact ? 28.r : 20.0),
         ),
-        child: const Icon(Icons.delete_outline_rounded, color: AppColors.error, size: 28),
+        child: Icon(Icons.delete_outline_rounded, color: AppColors.error, size: isCompact ? 28.r : 24.0),
       ),
       confirmDismiss: (direction) async => await _showActionConfirmation(
         title: "DELETE MEAL ENTRY",
@@ -1851,10 +1695,10 @@ class _CalorieScreenState extends State<CalorieScreen> with SingleTickerProvider
         provider.deleteLog(log.id);
       },
       child: Container(
-        margin: EdgeInsets.only(bottom: 20.h),
+        margin: EdgeInsets.only(bottom: isCompact ? 20.h : 16.0),
         decoration: BoxDecoration(
           color: AppColors.surface,
-          borderRadius: BorderRadius.circular(28.r),
+          borderRadius: BorderRadius.circular(isCompact ? 28.r : 20.0),
           border: Border.all(color: AppColors.white.withValues(alpha: 0.08)),
           boxShadow: [
             BoxShadow(color: Colors.black.withValues(alpha: 0.3), blurRadius: 20, offset: const Offset(0, 8)),
@@ -1864,7 +1708,7 @@ class _CalorieScreenState extends State<CalorieScreen> with SingleTickerProvider
           children: [
             // --- HEADER: Name & Summary ---
             Padding(
-              padding: EdgeInsets.fromLTRB(24.r, 24.r, 24.r, 12.r),
+              padding: EdgeInsets.fromLTRB(isCompact ? 24.r : 20.0, isCompact ? 24.r : 20.0, isCompact ? 24.r : 20.0, isCompact ? 12.r : 10.0),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -1873,43 +1717,46 @@ class _CalorieScreenState extends State<CalorieScreen> with SingleTickerProvider
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(log.mealName.toUpperCase(), 
-                          style: AppTextStyles.h2.copyWith(fontSize: 20.sp, color: Colors.white, fontWeight: FontWeight.w900)),
+                          style: AppTextStyles.h2.copyWith(fontSize: isCompact ? 20.sp : 16.0, color: Colors.white, fontWeight: FontWeight.w500)),
                         if (log.foodItems.isNotEmpty)
                           Padding(
                             padding: EdgeInsets.only(top: 4.h),
                             child: Text(log.foodItems, 
-                              style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary, fontSize: 12.sp)),
+                              style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary, fontSize: isCompact ? 12.sp : 10.0)),
                           ),
                       ],
                     ),
                   ),
-                  _buildTotalBadge(finalTotalCals),
+                  _buildTotalBadge(finalTotalCals, isCompact),
                 ],
               ),
             ),
 
             // --- VIVID BIG MACROS (Center Aligned) ---
             Padding(
-              padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
+              padding: EdgeInsets.symmetric(horizontal: isCompact ? 16.w : 14.0, vertical: isCompact ? 12.h : 10.0),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Expanded(child: _buildBigVividMacro(
                     log.protein != null ? "${log.protein!.toStringAsFixed(log.protein! % 1 == 0 ? 0 : 1)}G" : "-", 
                     "PROTEIN", 
-                    Colors.blueAccent
+                    Colors.blueAccent,
+                    isCompact,
                   )),
-                  SizedBox(width: 8.w),
+                  SizedBox(width: isCompact ? 8.w : 8.0),
                   Expanded(child: _buildBigVividMacro(
                     log.carbs != null ? "${log.carbs!.toStringAsFixed(log.carbs! % 1 == 0 ? 0 : 1)}G" : "-", 
                     "CARBS", 
-                    Colors.greenAccent
+                    Colors.greenAccent,
+                    isCompact,
                   )),
-                  SizedBox(width: 8.w),
+                  SizedBox(width: isCompact ? 8.w : 8.0),
                   Expanded(child: _buildBigVividMacro(
                     log.fats != null ? "${log.fats!.toStringAsFixed(log.fats! % 1 == 0 ? 0 : 1)}G" : "-", 
                     "FAT", 
-                    Colors.orangeAccent
+                    Colors.orangeAccent,
+                    isCompact,
                   )),
                 ],
               ),
@@ -1917,7 +1764,7 @@ class _CalorieScreenState extends State<CalorieScreen> with SingleTickerProvider
 
             // --- TOGGLE BUTTON: Unified Adaptive Design ---
             Padding(
-              padding: EdgeInsets.symmetric(horizontal: 24.w),
+              padding: EdgeInsets.symmetric(horizontal: isCompact ? 24.w : 20.0),
               child: Divider(color: AppColors.white.withValues(alpha: 0.05), height: 1),
             ),
             GestureDetector(
@@ -1930,7 +1777,7 @@ class _CalorieScreenState extends State<CalorieScreen> with SingleTickerProvider
               }),
               child: Container(
                 width: double.infinity,
-                padding: EdgeInsets.symmetric(vertical: 12.h),
+                padding: EdgeInsets.symmetric(vertical: isCompact ? 12.h : 10.0),
                 color: Colors.transparent,
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -1939,7 +1786,7 @@ class _CalorieScreenState extends State<CalorieScreen> with SingleTickerProvider
                       _expandedSupplementIds.contains(log.id) ? "COLLAPSE DETAILS" : "SHOW MORE DETAILS",
                       style: AppTextStyles.labelSmall.copyWith(
                         color: AppColors.textSecondary.withValues(alpha: 0.4),
-                        fontSize: 9.sp,
+                        fontSize: isCompact ? 9.sp : 9.0,
                         letterSpacing: 2,
                         fontWeight: FontWeight.w500,
                       ),
@@ -1951,7 +1798,7 @@ class _CalorieScreenState extends State<CalorieScreen> with SingleTickerProvider
                       child: Icon(
                         Icons.keyboard_arrow_down_rounded,
                         color: AppColors.textSecondary.withValues(alpha: 0.4),
-                        size: 16.r,
+                        size: isCompact ? 16.r : 16.0,
                       ),
                     ),
                   ],
@@ -1966,28 +1813,28 @@ class _CalorieScreenState extends State<CalorieScreen> with SingleTickerProvider
               alignment: Alignment.topCenter,
               child: _expandedSupplementIds.contains(log.id)
                   ? Container(
-                      padding: EdgeInsets.fromLTRB(24.w, 0, 24.w, 16.h),
+                      padding: EdgeInsets.fromLTRB(isCompact ? 24.w : 20.0, 0, isCompact ? 24.w : 20.0, isCompact ? 16.h : 14.0),
                       child: Container(
-                        padding: EdgeInsets.all(20.r),
+                        padding: EdgeInsets.all(isCompact ? 20.r : 16.0),
                         decoration: BoxDecoration(
                           color: AppColors.surfaceLight.withValues(alpha: 0.3),
-                          borderRadius: BorderRadius.circular(20.r),
+                          borderRadius: BorderRadius.circular(isCompact ? 20.r : 16.0),
                         ),
                         child: Column(
                           children: [
-                            _buildLedgerRow("ORIGINAL MEAL", "${baseMealOriginalCals.toInt()} kcal"),
-                            _buildLedgerRow("PORTION SCALE", "× ${portion % 1 == 0 ? portion.toInt() : portion.toStringAsFixed(1)}", isAccent: true),
+                            _buildLedgerRow("ORIGINAL MEAL", "${baseMealOriginalCals.toInt()} kcal", isCompact),
+                            _buildLedgerRow("PORTION SCALE", "× ${portion % 1 == 0 ? portion.toInt() : portion.toStringAsFixed(1)}", isCompact, isAccent: true),
                             
                             if (additions.isNotEmpty) ...[
-                              SizedBox(height: 12.h),
-                              ...additions.map((item) => _buildIngredientDetail(item)),
+                              SizedBox(height: isCompact ? 12.h : 10.0),
+                              ...additions.map((item) => _buildIngredientDetail(item, isCompact)),
                             ],
 
                             Padding(
-                              padding: EdgeInsets.symmetric(vertical: 12.h),
+                              padding: EdgeInsets.symmetric(vertical: isCompact ? 12.h : 10.0),
                               child: Divider(color: AppColors.white.withValues(alpha: 0.05), height: 1),
                             ),
-                            _buildLedgerRow("TOTAL INTAKE", "${finalTotalCals.toInt()} kcal", isBold: true),
+                            _buildLedgerRow("TOTAL INTAKE", "${finalTotalCals.toInt()} kcal", isCompact, isBold: true),
                           ],
                         ),
                       ),
@@ -2001,24 +1848,480 @@ class _CalorieScreenState extends State<CalorieScreen> with SingleTickerProvider
     );
   }
 
-  Widget _buildTotalBadge(double total) {
+  Widget _buildSavedMealItem(SavedMeal meal, CalorieProvider provider, bool isCompact) {
+    final supplementProvider = context.read<SupplementProvider>();
+    List<Map<String, dynamic>> additions = [];
+
+    if (meal.addedSupplementsJson != null) {
+      try {
+        final List<dynamic> decoded = jsonDecode(meal.addedSupplementsJson!);
+        for (var item in decoded) {
+          final String id = (item is Map) ? item['id'] : item as String;
+          final double amount = (item is Map) ? (item['amount'] as num).toDouble() : 1.0;
+          final s = supplementProvider.library.firstWhere((s) => s.id == id);
+          additions.add({
+            'name': s.name,
+            'cals': ((s.caloriesPerUnit ?? 0.0) * amount),
+            'pro': (s.proteinPerUnit ?? 0.0) * amount,
+            'cho': (s.carbsPerUnit ?? 0.0) * amount,
+            'fat': (s.fatsPerUnit ?? 0.0) * amount,
+          });
+        }
+      } catch (_) {}
+    }
+    if (meal.addedStacksJson != null) {
+      try {
+        final List<dynamic> decoded = jsonDecode(meal.addedStacksJson!);
+        for (var item in decoded) {
+          final String id = (item is Map) ? item['id'] : item as String;
+          final Map<String, double>? itemAmounts = (item is Map) 
+              ? (item['itemAmounts'] as Map).cast<String, dynamic>().map((k, v) => MapEntry(k, (v as num).toDouble()))
+              : null;
+
+          final s = supplementProvider.supplementStacks.firstWhere((s) => s.id == id);
+          double stPro = 0, stCho = 0, stFat = 0;
+          double stCals = 0;
+          
+          for (var supplement in s.items) {
+            double amount = itemAmounts?[supplement.id] ?? 1.0;
+            stCals += ((supplement.caloriesPerUnit ?? 0.0) * amount);
+            stPro += (supplement.proteinPerUnit ?? 0.0) * amount;
+            stCho += (supplement.carbsPerUnit ?? 0.0) * amount;
+            stFat += (supplement.fatsPerUnit ?? 0.0) * amount;
+          }
+
+          additions.add({
+            'name': s.name,
+            'cals': stCals,
+            'pro': stPro,
+            'cho': stCho,
+            'fat': stFat,
+          });
+        }
+      } catch (_) {}
+    }
+
+    return Padding(
+      padding: EdgeInsets.only(bottom: 12.h),
+      child: Dismissible(
+        key: Key("library_${meal.id}"),
+        confirmDismiss: (direction) async {
+              if (direction == DismissDirection.startToEnd) {
+                await _showLogPrompt(meal, provider);
+                return false;
+              } else {
+            final confirm = await _showActionConfirmation(
+              title: "DELETE SAVED MEAL",
+              message: "ARE YOU SURE YOU WANT TO PERMANENTLY REMOVE '${meal.name.toUpperCase()}' FROM YOUR LIBRARY?",
+              confirmText: "DELETE",
+              confirmColor: AppColors.crimson,
+              icon: Icons.delete_forever_rounded,
+            );
+            if (confirm == true) {
+              await provider.deleteSavedMeal(meal.id);
+              return true;
+            }
+            return false;
+          }
+        },
+        background: Container(
+          alignment: Alignment.centerLeft,
+          padding: EdgeInsets.only(left: 20.w),
+          decoration: BoxDecoration(
+            color: Colors.greenAccent.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(16.r),
+          ),
+          child: const Icon(Icons.add_circle_outline_rounded, color: Colors.greenAccent),
+        ),
+        secondaryBackground: Container(
+          alignment: Alignment.centerRight,
+          padding: EdgeInsets.only(right: 20.w),
+          decoration: BoxDecoration(
+            color: AppColors.error.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(16.r),
+          ),
+          child: const Icon(Icons.delete_outline_rounded, color: AppColors.error),
+        ),
+        child: Container(
+          padding: EdgeInsets.all(isCompact ? 18.r : 16.0),
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: BorderRadius.circular(isCompact ? 24.r : 20.0),
+            border: Border.all(color: AppColors.white.withValues(alpha: 0.05)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.2),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          meal.name.toUpperCase(), 
+                          style: AppTextStyles.h3.copyWith(
+                            fontSize: isCompact ? 16.sp : 15.0, 
+                            color: Colors.white,
+                            letterSpacing: 1,
+                          ),
+                        ),
+                        if (meal.sharedBy != null)
+                          Padding(
+                            padding: EdgeInsets.only(top: 4.h),
+                            child: Container(
+                              padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
+                              decoration: BoxDecoration(
+                                color: Colors.blueAccent.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(6.r),
+                                border: Border.all(color: Colors.blueAccent.withValues(alpha: 0.2)),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.share_rounded, color: Colors.blueAccent, size: isCompact ? 10.r : 10.0),
+                                  SizedBox(width: 4.w),
+                                  Text(
+                                    "SHARED BY ${meal.sharedBy!.toUpperCase()}",
+                                    style: AppTextStyles.labelSmall.copyWith(
+                                      color: Colors.blueAccent,
+                                      fontSize: isCompact ? 8.sp : 8.0,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        if (meal.foodItems.isNotEmpty)
+                          Padding(
+                            padding: EdgeInsets.only(top: 4.h),
+                            child: Text(
+                              meal.foodItems,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: AppTextStyles.labelSmall.copyWith(
+                                color: AppColors.textSecondary,
+                                fontSize: isCompact ? 11.sp : 10.0,
+                                height: 1.3,
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                  SizedBox(width: 12.w),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      _buildQuickActionButton(
+                        icon: Icons.ios_share_rounded,
+                        isActive: false,
+                        onTap: () async {
+                          final authProvider = context.read<AuthProvider>();
+                          final userName = authProvider.displayName;
+                          EliteSnackbar.show(context, "GENERATING SHAREABLE LINK...");
+                          final link = await provider.generateShareableLink(meal, userName);
+                          if (link != null) {
+                            await Share.share(
+                              "CHECK OUT THIS MEAL SHARED BY $userName IN HEAVY DUTY:\n\n$link",
+                              subject: "MEAL SHARED BY $userName",
+                            );
+                          }
+                        },
+                        isCompact: isCompact,
+                      ),
+                      SizedBox(width: isCompact ? 8.w : 6.0),
+                      _buildQuickActionButton(
+                        icon: Icons.edit_rounded,
+                        isActive: false,
+                        onTap: () {
+                          AdaptiveUtils.showAdaptiveSheet(
+                            context: context,
+                            sheetBuilder: (sheetContext, isSideSheet) => AddMealSheet(
+                              isSideSheet: isSideSheet,
+                              isLibraryOnly: true,
+                              existingMeal: meal,
+                              savedMeals: provider.savedMeals,
+                              onSave: (log, _, servings, multiplySupps) {
+                                provider.saveMealTemplate(SavedMeal(
+                                  id: log.id,
+                                  name: log.mealName,
+                                  foodItems: log.foodItems,
+                                  calories: log.calories,
+                                  protein: log.protein,
+                                  carbs: log.carbs,
+                                  fats: log.fats,
+                                  addedSupplementsJson: log.addedSupplementsJson,
+                                  addedStacksJson: log.addedStacksJson,
+                                  isPinnedToHome: meal.isPinnedToHome,
+                                  notificationsEnabled: meal.notificationsEnabled,
+                                  reminders: meal.reminders,
+                                  servings: servings,
+                                  multiplySupps: multiplySupps,
+                                ));
+                              },
+                            ),
+                          );
+                        },
+                        isCompact: isCompact,
+                      ),
+                      SizedBox(width: isCompact ? 8.w : 6.0),
+                      _buildQuickActionButton(
+                        icon: Icons.push_pin_rounded,
+                        isActive: meal.isPinnedToHome,
+                        onTap: () => provider.updateSavedMeal(meal.copyWith(isPinnedToHome: !meal.isPinnedToHome)),
+                        isCompact: isCompact,
+                      ),
+                      SizedBox(width: isCompact ? 8.w : 6.0),
+                      _buildQuickActionButton(
+                        icon: Icons.notifications_active_outlined,
+                        isActive: meal.notificationsEnabled,
+                        onTap: () {
+                          AdaptiveUtils.showAdaptiveSheet(
+                            context: context,
+                            sheetBuilder: (sheetContext, isSideSheet) => CalorieNotificationSheet(meal: meal, isSideSheet: isSideSheet),
+                          );
+                        },
+                        isCompact: isCompact,
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              
+              if (additions.isNotEmpty) ...[
+                Padding(
+                  padding: EdgeInsets.only(top: 16.h),
+                  child: Divider(color: AppColors.white.withValues(alpha: 0.05), height: 1),
+                ),
+                ...(() {
+                  final bool isExpanded = _expandedSupplementIds.contains(meal.id);
+                  final List<Map<String, dynamic>> visibleAdditions = 
+                      isExpanded ? additions : additions.take(1).toList();
+                  final int totalAdditionsCals = additions.fold(0, (sum, item) => sum + (item['cals'] as num).round());
+                  
+                  return [
+                    ...visibleAdditions.map((item) => Padding(
+                      padding: EdgeInsets.only(top: 14.h),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  item['name'].toUpperCase(),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: AppTextStyles.labelSmall.copyWith(
+                                    color: Colors.white,
+                                    fontSize: isCompact ? 11.sp : 10.0,
+                                    fontWeight: FontWeight.w500,
+                                    letterSpacing: 0.5,
+                                  ),
+                                ),
+                              ),
+                              Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.local_fire_department_rounded, color: AppColors.crimson, size: isCompact ? 12.r : 12.0),
+                                  SizedBox(width: 4.w),
+                                  Text(
+                                    "+${item['cals']}",
+                                    style: AppTextStyles.h3.copyWith(
+                                      color: Colors.white,
+                                      fontSize: isCompact ? 14.sp : 13.0,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                  SizedBox(width: 2.w),
+                                  Text(
+                                    "kcal",
+                                    style: AppTextStyles.labelSmall.copyWith(
+                                      color: AppColors.textSecondary.withValues(alpha: 0.5),
+                                      fontSize: isCompact ? 8.sp : 8.0,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                          Padding(
+                            padding: EdgeInsets.only(top: 4.h),
+                            child: Row(
+                              children: [
+                                _buildSpecMacro(item['pro'].toDouble(), "PRO", Colors.blueAccent, isCompact),
+                                _buildSpecDivider(isCompact),
+                                _buildSpecMacro(item['cho'].toDouble(), "CHO", Colors.greenAccent, isCompact),
+                                _buildSpecDivider(isCompact),
+                                _buildSpecMacro(item['fat'].toDouble(), "FAT", Colors.orangeAccent, isCompact),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    )),
+                    if (additions.length > 1)
+                      GestureDetector(
+                        onTap: () {
+                          setState(() {
+                            if (isExpanded) {
+                              _expandedSupplementIds.remove(meal.id);
+                            } else {
+                              _expandedSupplementIds.add(meal.id);
+                            }
+                          });
+                        },
+                        child: Container(
+                          padding: EdgeInsets.only(top: 16.h),
+                          color: Colors.transparent,
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                isExpanded 
+                                    ? "SHOW FEWER INGREDIENTS" 
+                                    : "SHOW ${additions.length - 1} MORE ADDITIONS",
+                                style: AppTextStyles.labelSmall.copyWith(
+                                  color: AppColors.textSecondary.withValues(alpha: 0.4),
+                                  fontSize: isCompact ? 9.sp : 9.0,
+                                  fontWeight: FontWeight.w500,
+                                  letterSpacing: 1.5,
+                                ),
+                              ),
+                              SizedBox(width: 8.w),
+                              Icon(
+                                isExpanded 
+                                    ? Icons.keyboard_arrow_up_rounded 
+                                    : Icons.keyboard_arrow_down_rounded,
+                                color: AppColors.textSecondary.withValues(alpha: 0.4),
+                                size: isCompact ? 16.r : 14.0,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    if (additions.length > 1)
+                      Padding(
+                        padding: EdgeInsets.only(top: 16.h),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: [
+                            Text(
+                              "TOTAL ADDITIONS:",
+                              style: AppTextStyles.labelSmall.copyWith(
+                                color: AppColors.textSecondary.withValues(alpha: 0.5),
+                                fontSize: isCompact ? 9.sp : 9.0,
+                                fontWeight: FontWeight.w500,
+                                letterSpacing: 1,
+                              ),
+                            ),
+                            SizedBox(width: 8.w),
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.local_fire_department_rounded, color: AppColors.crimson, size: isCompact ? 12.r : 12.0),
+                                SizedBox(width: 4.w),
+                                Text(
+                                  "+$totalAdditionsCals",
+                                  style: AppTextStyles.h3.copyWith(
+                                    color: Colors.white,
+                                    fontSize: isCompact ? 14.sp : 13.0,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                                SizedBox(width: 2.w),
+                                Text(
+                                  "kcal",
+                                  style: AppTextStyles.labelSmall.copyWith(
+                                    color: AppColors.textSecondary.withValues(alpha: 0.5),
+                                    fontSize: isCompact ? 8.sp : 8.0,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                  ];
+                })(),
+              ],
+
+              Padding(
+                padding: EdgeInsets.symmetric(vertical: 16.h),
+                child: Divider(color: AppColors.white.withValues(alpha: 0.05), height: 1),
+              ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      Icon(Icons.local_fire_department_rounded, color: AppColors.crimson, size: isCompact ? 16.r : 16.0),
+                      SizedBox(width: 6.w),
+                      Text(
+                        meal.calories % 1 == 0 ? meal.calories.toInt().toString() : meal.calories.toStringAsFixed(1),
+                        style: AppTextStyles.h3.copyWith(
+                          color: Colors.white,
+                          fontSize: isCompact ? 18.sp : 17.0,
+                        ),
+                      ),
+                      SizedBox(width: 4.w),
+                      Text(
+                        "kcal",
+                        style: AppTextStyles.labelSmall.copyWith(
+                          color: AppColors.textSecondary,
+                          fontSize: isCompact ? 10.sp : 10.0,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                  Wrap(
+                    spacing: isCompact ? 8.w : 6.0,
+                    children: [
+                      if (meal.protein != null) _buildSmallMacroPill("${meal.protein!.toInt()}g Protein", Colors.blueAccent, isCompact),
+                      if (meal.carbs != null) _buildSmallMacroPill("${meal.carbs!.toInt()}g Carbs", Colors.greenAccent, isCompact),
+                      if (meal.fats != null) _buildSmallMacroPill("${meal.fats!.toInt()}g Fats", Colors.orangeAccent, isCompact),
+                    ],
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTotalBadge(double total, bool isCompact) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.end,
       children: [
         Text(
           total % 1 == 0 ? total.toInt().toString() : total.toStringAsFixed(1),
           style: AppTextStyles.h1.copyWith(
-            fontSize: 28.sp,
+            fontSize: isCompact ? 28.sp : 22.0,
             color: Colors.white,
             height: 1,
-            fontWeight: FontWeight.w900,
+            fontWeight: FontWeight.w500,
           ),
         ),
         Text(
           "KCAL",
           style: AppTextStyles.labelSmall.copyWith(
-            fontSize: 10.sp,
-            fontWeight: FontWeight.w900,
+            fontSize: isCompact ? 10.sp : 8.0,
+            fontWeight: FontWeight.w500,
             color: AppColors.crimson,
             letterSpacing: 1.2,
           ),
@@ -2027,9 +2330,9 @@ class _CalorieScreenState extends State<CalorieScreen> with SingleTickerProvider
     );
   }
 
-  Widget _buildBigVividMacro(String value, String label, Color color) {
+  Widget _buildBigVividMacro(String value, String label, Color color, bool isCompact) {
     return Container(
-      padding: EdgeInsets.symmetric(vertical: 12.h),
+      padding: EdgeInsets.symmetric(vertical: isCompact ? 12.h : 8.0),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(16.r),
@@ -2041,16 +2344,16 @@ class _CalorieScreenState extends State<CalorieScreen> with SingleTickerProvider
       child: Column(
         children: [
           Text(value, 
-            style: AppTextStyles.h2.copyWith(fontSize: 22.sp, color: Colors.white, fontWeight: FontWeight.w900)),
+            style: AppTextStyles.h2.copyWith(fontSize: isCompact ? 22.sp : 15.0, color: Colors.white, fontWeight: FontWeight.w500)),
           SizedBox(height: 2.h),
           Text(label, 
-            style: AppTextStyles.labelSmall.copyWith(color: color, fontSize: 11.sp, fontWeight: FontWeight.w900, letterSpacing: 0.8)),
+            style: AppTextStyles.labelSmall.copyWith(color: color, fontSize: isCompact ? 11.sp : 8.0, fontWeight: FontWeight.w500, letterSpacing: 0.8)),
         ],
       ),
     );
   }
 
-  Widget _buildLedgerRow(String label, String value, {bool isAccent = false, bool isBold = false}) {
+  Widget _buildLedgerRow(String label, String value, bool isCompact, {bool isAccent = false, bool isBold = false}) {
     return Padding(
       padding: EdgeInsets.symmetric(vertical: 6.h),
       child: Row(
@@ -2059,35 +2362,35 @@ class _CalorieScreenState extends State<CalorieScreen> with SingleTickerProvider
           Text(label, 
             style: AppTextStyles.labelSmall.copyWith(
               color: isAccent ? AppColors.crimson.withValues(alpha: 0.9) : AppColors.textSecondary,
-              fontWeight: isBold ? FontWeight.w900 : FontWeight.bold,
-              fontSize: 11.sp,
+              fontWeight: FontWeight.w500,
+              fontSize: isCompact ? 11.sp : 10.0,
               letterSpacing: 1,
             )),
           Text(value, 
             style: AppTextStyles.labelMedium.copyWith(
               color: isBold ? Colors.white : Colors.white.withValues(alpha: 0.7),
-              fontWeight: isBold ? FontWeight.w900 : FontWeight.bold,
-              fontSize: isBold ? 15.sp : 13.sp,
+              fontWeight: FontWeight.w500,
+              fontSize: isBold ? (isCompact ? 15.sp : 14.0) : (isCompact ? 13.sp : 12.0),
             )),
         ],
       ),
     );
   }
 
-  Widget _buildPremiumMacroPill(String text, Color color) {
+  Widget _buildPremiumMacroPill(String text, Color color, bool isCompact) {
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
+      padding: EdgeInsets.symmetric(horizontal: isCompact ? 12.w : 10.0, vertical: isCompact ? 8.h : 6.0),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(12.r),
         border: Border.all(color: color.withValues(alpha: 0.2), width: 1),
       ),
       child: Text(text, 
-        style: AppTextStyles.labelSmall.copyWith(color: color, fontWeight: FontWeight.w900, fontSize: 10.sp)),
+        style: AppTextStyles.labelSmall.copyWith(color: color, fontWeight: FontWeight.w500, fontSize: isCompact ? 10.sp : 9.0)),
     );
   }
 
-  Widget _buildIngredientDetail(Map<String, dynamic> item) {
+  Widget _buildIngredientDetail(Map<String, dynamic> item, bool isCompact) {
     return Padding(
       padding: EdgeInsets.only(bottom: 8.h),
       child: Row(
@@ -2095,7 +2398,7 @@ class _CalorieScreenState extends State<CalorieScreen> with SingleTickerProvider
           Icon(
             item['isStack'] == true ? Icons.layers_rounded : Icons.medication_rounded, 
             color: AppColors.crimson.withValues(alpha: 0.6), 
-            size: 14.r
+            size: isCompact ? 14.r : 14.0
           ),
           SizedBox(width: 10.w),
           Expanded(
@@ -2103,8 +2406,8 @@ class _CalorieScreenState extends State<CalorieScreen> with SingleTickerProvider
               item['name'].toString().toUpperCase(), 
               style: AppTextStyles.labelSmall.copyWith(
                 color: Colors.white.withValues(alpha: 0.8), 
-                fontWeight: FontWeight.bold, 
-                fontSize: 11.sp,
+                fontWeight: FontWeight.w500, 
+                fontSize: isCompact ? 11.sp : 10.0,
                 letterSpacing: 0.5,
               )
             ),
@@ -2113,8 +2416,8 @@ class _CalorieScreenState extends State<CalorieScreen> with SingleTickerProvider
             "+${item['cals']} kcal", 
             style: AppTextStyles.labelSmall.copyWith(
               color: AppColors.textSecondary.withValues(alpha: 0.6), 
-              fontWeight: FontWeight.w900, 
-              fontSize: 11.sp,
+              fontWeight: FontWeight.w500, 
+              fontSize: isCompact ? 11.sp : 10.0,
             )
           ),
         ],
@@ -2122,12 +2425,12 @@ class _CalorieScreenState extends State<CalorieScreen> with SingleTickerProvider
     );
   }
 
-  Widget _buildSectionHeader(String title) {
+  Widget _buildSectionHeader(String title, bool isCompact) {
     return Row(
       children: [
         Container(
-          width: 3.w,
-          height: 12.h,
+          width: 3.0,
+          height: isCompact ? 12.h : 10.0,
           decoration: BoxDecoration(
             color: AppColors.crimson,
             borderRadius: BorderRadius.circular(2.r),
@@ -2138,15 +2441,16 @@ class _CalorieScreenState extends State<CalorieScreen> with SingleTickerProvider
           title,
           style: AppTextStyles.labelSmall.copyWith(
             color: AppColors.textSecondary.withValues(alpha: 0.8),
+            fontSize: isCompact ? 12.sp : 10.0,
           ),
         ),
       ],
     );
   }
 
-  Widget _buildSmallMacroPill(String text, Color color) {
+  Widget _buildSmallMacroPill(String text, Color color, bool isCompact) {
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 6.h),
+      padding: EdgeInsets.symmetric(horizontal: isCompact ? 10.w : 8.0, vertical: isCompact ? 6.h : 4.0),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.15),
         borderRadius: BorderRadius.circular(8.r),
@@ -2156,15 +2460,15 @@ class _CalorieScreenState extends State<CalorieScreen> with SingleTickerProvider
         text.toUpperCase(),
         style: AppTextStyles.labelSmall.copyWith(
           color: Colors.white,
-          fontSize: 10.sp,
-          fontWeight: FontWeight.w900,
+          fontSize: isCompact ? 10.sp : 9.0,
+          fontWeight: FontWeight.w500,
           letterSpacing: 0.5,
         ),
       ),
     );
   }
 
-  Widget _buildSpecMacro(num? value, String label, Color color) {
+  Widget _buildSpecMacro(num? value, String label, Color color, bool isCompact) {
     if (value == null) {
       return Text.rich(
         TextSpan(
@@ -2173,16 +2477,16 @@ class _CalorieScreenState extends State<CalorieScreen> with SingleTickerProvider
               text: "- ",
               style: AppTextStyles.labelSmall.copyWith(
                 color: Colors.white.withValues(alpha: 0.9),
-                fontSize: 9.sp,
-                fontWeight: FontWeight.bold,
+                fontSize: isCompact ? 9.sp : 8.0,
+                fontWeight: FontWeight.w500,
               ),
             ),
             TextSpan(
               text: label,
               style: AppTextStyles.labelSmall.copyWith(
                 color: color,
-                fontSize: 8.sp,
-                fontWeight: FontWeight.w900,
+                fontSize: isCompact ? 8.sp : 7.0,
+                fontWeight: FontWeight.w500,
               ),
             ),
           ],
@@ -2197,16 +2501,16 @@ class _CalorieScreenState extends State<CalorieScreen> with SingleTickerProvider
             text: "$formattedValue ",
             style: AppTextStyles.labelSmall.copyWith(
               color: Colors.white.withValues(alpha: 0.9),
-              fontSize: 9.sp,
-              fontWeight: FontWeight.bold,
+              fontSize: isCompact ? 9.sp : 8.0,
+              fontWeight: FontWeight.w500,
             ),
           ),
           TextSpan(
             text: label,
             style: AppTextStyles.labelSmall.copyWith(
               color: color,
-              fontSize: 8.sp,
-              fontWeight: FontWeight.w900,
+              fontSize: isCompact ? 8.sp : 7.0,
+              fontWeight: FontWeight.w500,
             ),
           ),
         ],
@@ -2214,14 +2518,14 @@ class _CalorieScreenState extends State<CalorieScreen> with SingleTickerProvider
     );
   }
 
-  Widget _buildSpecDivider() {
+  Widget _buildSpecDivider(bool isCompact) {
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: 8.w),
       child: Text(
         "|",
         style: AppTextStyles.labelSmall.copyWith(
           color: AppColors.white.withValues(alpha: 0.1),
-          fontSize: 8.sp,
+          fontSize: isCompact ? 9.sp : 8.0,
         ),
       ),
     );
@@ -2231,11 +2535,12 @@ class _CalorieScreenState extends State<CalorieScreen> with SingleTickerProvider
     required IconData icon,
     required bool isActive,
     required VoidCallback onTap,
+    required bool isCompact,
   }) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: EdgeInsets.all(8.r),
+        padding: EdgeInsets.all(isCompact ? 8.r : 8.0),
         decoration: BoxDecoration(
           color: isActive ? AppColors.crimson.withValues(alpha: 0.1) : AppColors.white.withValues(alpha: 0.03),
           borderRadius: BorderRadius.circular(10.r),
@@ -2246,7 +2551,7 @@ class _CalorieScreenState extends State<CalorieScreen> with SingleTickerProvider
         child: Icon(
           icon,
           color: isActive ? AppColors.crimson : AppColors.textSecondary,
-          size: 18.r,
+          size: isCompact ? 18.r : 16.0,
         ),
       ),
     );

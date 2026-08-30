@@ -25,10 +25,27 @@ class StockPrediction {
 class SupplementProvider with ChangeNotifier {
   // Dual-storage persistence pipeline configurations
   SupplementLocalRepository? _localRepo;
-  final SupplementCloudRepository _cloudRepo = SupplementCloudRepository();
-  final NotificationService _notificationService = NotificationService();
-  final SupabaseClient _supabase = Supabase.instance.client;
+  SupplementCloudRepository _cloudRepo = SupplementCloudRepository();
+  NotificationService _notificationService = NotificationService();
+  SupabaseClient get _supabase => Supabase.instance.client;
   RealtimeChannel? _realtimeChannel;
+
+  void setRepositories({SupplementLocalRepository? local, SupplementCloudRepository? cloud, NotificationService? notifications}) {
+    if (local != null) _localRepo = local;
+    if (cloud != null) _cloudRepo = cloud;
+    if (notifications != null) _notificationService = notifications;
+  }
+
+  // Helper for integration tests to simulate state
+  void setLibraryForTest(List<Supplement> items) {
+    _library.clear();
+    _library.addAll(items);
+  }
+
+  void setStacksForTest(List<SupplementStack> stacks) {
+    _supplementStacks.clear();
+    _supplementStacks.addAll(stacks);
+  }
 
   SupplementProvider() {
     // No longer listening to notification actions for interventions
@@ -837,7 +854,7 @@ class SupplementProvider with ChangeNotifier {
     }
   }
 
-  void deleteStack(String stackId, {void Function(String id, double cals, double pro, double cho, double fat)? onDeleted}) async {
+  Future<void> deleteStack(String stackId, {void Function(String id, double cals, double pro, double cho, double fat)? onDeleted}) async {
     final stack = _supplementStacks.firstWhere((s) => s.id == stackId, orElse: () => null as dynamic);
     if (onDeleted != null) {
       // Calculate stack totals

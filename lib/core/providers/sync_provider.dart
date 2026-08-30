@@ -7,13 +7,21 @@ import 'package:heavy_duty/core/services/connectivity_service.dart';
 enum SyncUIState { idle, online, syncing, completed }
 
 class SyncProvider with ChangeNotifier {
-  static final SyncProvider _instance = SyncProvider._internal();
+  static SyncProvider _instance = SyncProvider._internal();
   factory SyncProvider() => _instance;
+  
+  // Added for testing
+  static void setMockInstance(SyncProvider mock) => _instance = mock;
   
   SyncUIState _state = SyncUIState.idle;
   int _totalItems = 0;
   int _completedItems = 0;
   int _activeFeatures = 0;
+  
+  // Controls whether the sync flow should be visible to the user.
+  // We only show it on RECONNECTION, not on app launch.
+  bool _shouldShowUI = false;
+  
   bool _isSyncFlowStarted = false;
   Timer? _finalizeTimer;
 
@@ -26,13 +34,16 @@ class SyncProvider with ChangeNotifier {
   }
 
   void _onReconnect() {
-    // Reset counters but stay silent (idle)
-    // We only wake up the UI if a provider reports > 0 unsynced items
+    // internet returned while app was open
+    _shouldShowUI = true; 
+    _resetCounters();
+  }
+
+  void _resetCounters() {
     _totalItems = 0;
     _completedItems = 0;
     _isSyncFlowStarted = false;
     _activeFeatures = 0;
-    // Don't notify listeners here to keep UI clean
   }
 
   void startFeatureSync() {
@@ -41,16 +52,17 @@ class SyncProvider with ChangeNotifier {
   }
 
   void addTotalItems(int count) {
-    // IGNORE 0 VALUES: Only increment the total if there is actual work to do.
     if (count <= 0) return;
     
     _totalItems += count;
     
-    // Trigger the UI sequence only on the first piece of work found
-    if (!_isSyncFlowStarted) {
+    // Trigger the UI sequence only if internet was JUST restored
+    if (_shouldShowUI && !_isSyncFlowStarted) {
       _startVisualSequence();
     } else {
-      notifyListeners();
+      // Background sync: still notify if UI is already up, 
+      // but don't wake it up for background-only work.
+      if (_isSyncFlowStarted) notifyListeners();
     }
   }
 
@@ -65,7 +77,6 @@ class SyncProvider with ChangeNotifier {
     await Future.delayed(const Duration(seconds: 2));
 
     // 2. Transition to "Syncing" bar
-    // Check if we were cancelled or reset during wait
     if (_isSyncFlowStarted) {
       _state = SyncUIState.syncing;
       notifyListeners();
@@ -75,20 +86,18 @@ class SyncProvider with ChangeNotifier {
   void incrementCompleted() {
     _completedItems++;
     if (_completedItems > _totalItems) _totalItems = _completedItems;
-    notifyListeners();
+    if (_isSyncFlowStarted) notifyListeners();
   }
 
   void endFeatureSync() {
     _activeFeatures--;
     if (_activeFeatures <= 0) {
-      // Debounce finalize to ensure all features had a chance to report
       _finalizeTimer?.cancel();
       _finalizeTimer = Timer(const Duration(seconds: 2), () {
         if (_activeFeatures <= 0) {
-          if (_state == SyncUIState.syncing || _state == SyncUIState.online) {
+          if (_isSyncFlowStarted) {
             finalizeSync();
           } else {
-            // If we found 0 items across all features, just reset to idle
             _resetToIdle();
           }
         }
@@ -99,7 +108,6 @@ class SyncProvider with ChangeNotifier {
   Future<void> finalizeSync() async {
     if (!_isSyncFlowStarted) return;
     
-    // Ensure counter looks full for completion
     if (_completedItems < _totalItems) _completedItems = _totalItems;
     
     _state = SyncUIState.completed;
@@ -114,6 +122,7 @@ class SyncProvider with ChangeNotifier {
     _totalItems = 0;
     _completedItems = 0;
     _isSyncFlowStarted = false;
+    _shouldShowUI = false; // Reset for next reconnection
     notifyListeners();
   }
 

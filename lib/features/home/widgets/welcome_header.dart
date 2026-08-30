@@ -6,7 +6,8 @@ import 'package:heavy_duty/features/auth/provider/auth_provider.dart';
 import 'package:provider/provider.dart';
 
 class WelcomeHeader extends StatelessWidget {
-  const WelcomeHeader({super.key});
+  final bool isCompact;
+  const WelcomeHeader({super.key, this.isCompact = false});
 
   @override
   Widget build(BuildContext context) {
@@ -22,15 +23,15 @@ class WelcomeHeader extends StatelessWidget {
               style: AppTextStyles.labelSmall.copyWith(
                 color: AppColors.crimson,
                 letterSpacing: 2,
-                fontSize: 12.sp,
+                fontSize: isCompact ? 13.sp : 11.0,
                 fontWeight: FontWeight.w500,
               ),
             ),
-            SizedBox(height: 6.h),
+            const SizedBox(height: 6),
             Text(
               'READY FOR INTENSITY?',
               style: AppTextStyles.h1.copyWith(
-                fontSize: 32.sp,
+                fontSize: isCompact ? 32.sp : 28.0,
                 fontWeight: FontWeight.w500,
                 color: Colors.white,
                 letterSpacing: -0.5,

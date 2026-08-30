@@ -160,7 +160,7 @@ class MyApp extends StatelessWidget {
         title: 'Heavy Duty',
         debugShowCheckedModeBanner: false,
         routerConfig: appRouter,
-        theme: AppPickerTheme.themeData,
+        theme: AppPickerTheme.theme(context),
         builder: (context, routerChild) => Stack(
           children: [
             routerChild!,

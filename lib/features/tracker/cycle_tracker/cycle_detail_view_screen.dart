@@ -33,132 +33,155 @@ class CycleDetailViewScreen extends StatelessWidget {
         return Scaffold(
           backgroundColor: AppColors.background,
           appBar: null,
-          body: Column(
-            children: [
-              Padding(
-                padding: EdgeInsets.symmetric(vertical: 24.h, horizontal: 8.w),
-                child: IntrinsicHeight(
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      IconButton(
-                        icon: const Icon(Icons.arrow_back_ios_new_rounded, color: AppColors.white),
-                        onPressed: () => Navigator.pop(context),
-                      ),
-                      Expanded(
-                        child: Text(
-                          cycleName.toUpperCase(),
-                          textAlign: TextAlign.center,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: AppTextStyles.h2.copyWith(
-                            color: AppColors.white,
-                            fontWeight: FontWeight.w400,
+          body: LayoutBuilder(
+            builder: (context, constraints) {
+              final bool isCompact = constraints.maxWidth < 600;
+              return Column(
+                children: [
+                  Padding(
+                    padding: EdgeInsets.symmetric(
+                      vertical: isCompact ? 24.h : 24.0, 
+                      horizontal: isCompact ? 24.w : 24.0
+                    ),
+                    child: IntrinsicHeight(
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          IconButton(
+                            icon: Icon(
+                              Icons.arrow_back_ios_new_rounded, 
+                              color: AppColors.white,
+                              size: isCompact ? null : 20.0,
+                            ),
+                            onPressed: () => Navigator.pop(context),
                           ),
-                        ),
-                      ),
-                      if (isModifiable)
-                        IconButton(
-                          icon: const Icon(Icons.edit_note_rounded, color: AppColors.white),
-                          onPressed: () async {
-                            final cycle = provider.cycles.firstWhere((c) => c.id == cycleId);
-                            final result = await Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => CreateCycleScreen(existingCycle: cycle),
+                          Expanded(
+                            child: Text(
+                              cycleName.toUpperCase(),
+                              textAlign: TextAlign.center,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: AppTextStyles.h2.copyWith(
+                                color: AppColors.white,
+                                fontWeight: FontWeight.w500,
+                                fontSize: isCompact ? null : 20.0,
                               ),
-                            );
-                            if (result == true && context.mounted) {
-                              Navigator.pop(context, true);
-                            }
-                          },
-                        )
-                      else
-                        const Opacity(
-                          opacity: 0,
-                          child: IconButton(
-                            icon: Icon(Icons.arrow_back_ios_new_rounded),
-                            onPressed: null,
+                            ),
                           ),
-                        ),
-                    ],
-                  ),
-                ),
-              ),
-
-              // Scrollable content area
-              Expanded(
-                child: ListView(
-                  padding: EdgeInsets.all(24.r),
-                  physics: const BouncingScrollPhysics(),
-                  children: [
-                    if (cycle.description.isNotEmpty) ...[
-                      Text(
-                        cycle.description.toUpperCase(),
-                        style: AppTextStyles.labelSmall.copyWith(
-                          color: AppColors.textSecondary.withValues(alpha: 0.6),
-                          fontSize: 12.sp,
-                          letterSpacing: 1,
-                          height: 1.4,
-                        ),
-                        textAlign: TextAlign.center,
+                          if (isModifiable)
+                            IconButton(
+                              icon: Icon(
+                                Icons.edit_note_rounded, 
+                                color: AppColors.white,
+                                size: isCompact ? null : 24.0,
+                              ),
+                              onPressed: () async {
+                                final cycle = provider.cycles.firstWhere((c) => c.id == cycleId);
+                                final result = await Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => CreateCycleScreen(existingCycle: cycle),
+                                  ),
+                                );
+                                if (result == true && context.mounted) {
+                                  Navigator.pop(context, true);
+                                }
+                              },
+                            )
+                          else
+                            const Opacity(
+                              opacity: 0,
+                              child: IconButton(
+                                icon: Icon(Icons.arrow_back_ios_new_rounded),
+                                onPressed: null,
+                              ),
+                            ),
+                        ],
                       ),
-                      SizedBox(height: 24.h),
-                    ],
-                    _buildInfoTile("STRUCTURE", "${cycleWorkouts.length} SESSIONS"),
-                    SizedBox(height: 24.h),
-                    _buildSectionHeader("WORKOUT ARCHITECTURE"),
-                    SizedBox(height: 16.h),
-                    ...cycleWorkouts.map((workout) => _buildWorkoutSummaryCard(workout, provider)),
-                  ],
-                ),
-              ),
+                    ),
+                  ),
 
-              // Fixed Action Area at the bottom
-              Padding(
-                padding: EdgeInsets.all(24.r),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    if (!cycle.isDefault) ...[
-                      _buildShareButton(context, provider),
-                      SizedBox(height: 16.h),
-                    ],
-                    _buildActivateButton(context, provider),
-                  ],
-                ),
-              ),
-            ],
+                  // Scrollable content area
+                  Expanded(
+                    child: ListView(
+                      padding: EdgeInsets.symmetric(
+                        vertical: isCompact ? 24.h : 24.0, 
+                        horizontal: isCompact ? 24.w : 24.0
+                      ),
+                      physics: const BouncingScrollPhysics(),
+                      children: [
+                        if (cycle.description.isNotEmpty) ...[
+                          Text(
+                            cycle.description.toUpperCase(),
+                            style: AppTextStyles.labelSmall.copyWith(
+                              color: AppColors.textSecondary.withValues(alpha: 0.6),
+                              fontSize: isCompact ? 12.sp : 12.0,
+                              letterSpacing: 1,
+                              height: 1.4,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                          SizedBox(height: isCompact ? 24.h : 24.0),
+                        ],
+                        _buildInfoTile("STRUCTURE", "${cycleWorkouts.length} SESSIONS", isCompact),
+                        SizedBox(height: isCompact ? 24.h : 24.0),
+                        _buildSectionHeader("WORKOUT ARCHITECTURE", isCompact),
+                        SizedBox(height: isCompact ? 16.h : 16.0),
+                        ...cycleWorkouts.map((workout) => _buildWorkoutSummaryCard(workout, provider, isCompact)),
+                      ],
+                    ),
+                  ),
+
+                  // Fixed Action Area at the bottom
+                  Padding(
+                    padding: EdgeInsets.symmetric(
+                      vertical: isCompact ? 24.h : 24.0, 
+                      horizontal: isCompact ? 24.w : 24.0
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (!cycle.isDefault) ...[
+                          _buildShareButton(context, provider, isCompact),
+                          SizedBox(height: isCompact ? 16.h : 16.0),
+                        ],
+                        _buildActivateButton(context, provider, isCompact),
+                      ],
+                    ),
+                  ),
+                ],
+              );
+            }
           ),
         );
       },
     );
   }
 
-  Widget _buildSectionHeader(String title) {
+  Widget _buildSectionHeader(String title, bool isCompact) {
     return Row(
       children: [
         Container(
-          width: 2.5.w,
-          height: 12.h,
+          width: isCompact ? 2.5.w : 2.5,
+          height: isCompact ? 12.h : 12.0,
           decoration: BoxDecoration(
             color: AppColors.crimson,
-            borderRadius: BorderRadius.circular(2.r),
+            borderRadius: BorderRadius.circular(isCompact ? 2.r : 2.0),
           ),
         ),
-        SizedBox(width: 8.w),
+        SizedBox(width: isCompact ? 8.w : 8.0),
         Text(
           title,
           style: AppTextStyles.labelSmall.copyWith(
             color: AppColors.textSecondary.withValues(alpha: 0.8),
-            fontSize: 12.sp,
+            fontSize: isCompact ? 12.sp : 12.0,
           ),
         ),
       ],
     );
   }
 
-  Widget _buildShareButton(BuildContext context, CycleProvider provider) {
+  Widget _buildShareButton(BuildContext context, CycleProvider provider, bool isCompact) {
     return GestureDetector(
       onTap: () async {
         final authProvider = context.read<AuthProvider>();
@@ -181,23 +204,24 @@ class CycleDetailViewScreen extends StatelessWidget {
       },
       child: Container(
         width: double.infinity,
-        padding: EdgeInsets.symmetric(vertical: 18.h),
+        padding: EdgeInsets.symmetric(vertical: isCompact ? 18.h : 16.0),
         decoration: BoxDecoration(
-          color: Colors.blueAccent.withOpacity(0.1),
-          borderRadius: BorderRadius.circular(12.r),
-          border: Border.all(color: Colors.blueAccent.withOpacity(0.5)),
+          color: Colors.blueAccent.withValues(alpha : 0.1),
+          borderRadius: BorderRadius.circular(isCompact ? 12.r : 10.0),
+          border: Border.all(color: Colors.blueAccent.withValues(alpha : 0.5)),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.ios_share_rounded, color: Colors.blueAccent, size: 20.r),
-            SizedBox(width: 12.w),
+            Icon(Icons.ios_share_rounded, color: Colors.blueAccent, size: isCompact ? 20.r : 20.0),
+            SizedBox(width: isCompact ? 12.w : 12.0),
             Text(
               "SHARE CYCLE",
               style: AppTextStyles.labelMedium.copyWith(
                 color: Colors.blueAccent,
                 fontWeight: FontWeight.w500,
                 letterSpacing: 1.5,
+                fontSize: isCompact ? null : 14.0,
               ),
             ),
           ],
@@ -206,7 +230,7 @@ class CycleDetailViewScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildActivateButton(BuildContext context, CycleProvider provider) {
+  Widget _buildActivateButton(BuildContext context, CycleProvider provider, bool isCompact) {
     return GestureDetector(
       onTap: () async {
         final active = provider.activeCycle;
@@ -230,16 +254,23 @@ else {
               builder: (ctx) => AlertDialog(
                 backgroundColor: AppColors.surface,
                 surfaceTintColor: Colors.transparent,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28.r)),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(isCompact ? 28.r : 20.0)),
                 title: Column(
                   children: [
                     Container(
-                      padding: EdgeInsets.all(12.r),
-                      decoration: BoxDecoration(color: Colors.greenAccent.withOpacity(0.1), shape: BoxShape.circle),
-                      child: const Icon(Icons.bolt_rounded, color: Colors.greenAccent, size: 28),
+                      padding: EdgeInsets.all(isCompact ? 12.r : 12.0),
+                      decoration: BoxDecoration(color: Colors.greenAccent.withValues(alpha : 0.1), shape: BoxShape.circle),
+                      child: Icon(Icons.bolt_rounded, color: Colors.greenAccent, size: isCompact ? 28.r : 28.0),
                     ),
-                    SizedBox(height: 16.h),
-                    Text("ACTIVATE PROTOCOL", style: AppTextStyles.h3.copyWith(fontSize: 16.sp, letterSpacing: 1.2), textAlign: TextAlign.center),
+                    SizedBox(height: isCompact ? 16.h : 16.0),
+                    Text(
+                      "ACTIVATE PROTOCOL", 
+                      style: AppTextStyles.h3.copyWith(
+                        fontSize: isCompact ? 16.sp : 15.0, 
+                        letterSpacing: 1.2
+                      ), 
+                      textAlign: TextAlign.center
+                    ),
                   ],
                 ),
                 content: Column(
@@ -248,35 +279,44 @@ else {
                     Text(
                       "DO YOU WANT TO INITIALIZE THE '${cycleName.toUpperCase()}' TEMPLATE AS YOUR ACTIVE TRAINING CYCLE?",
                       textAlign: TextAlign.center,
-                      style: AppTextStyles.labelMedium.copyWith(color: AppColors.textSecondary, height: 1.4),
+                      style: AppTextStyles.labelMedium.copyWith(
+                        color: AppColors.textSecondary, 
+                        height: 1.4,
+                        fontSize: isCompact ? null : 12.0,
+                      ),
                     ),
                   ],
                 ),
                 actions: [
                   Padding(
-                    padding: EdgeInsets.fromLTRB(12.w, 0, 12.w, 16.h),
+                    padding: EdgeInsets.fromLTRB(
+                      isCompact ? 12.w : 12.0, 
+                      0, 
+                      isCompact ? 12.w : 12.0, 
+                      isCompact ? 16.h : 16.0
+                    ),
                     child: Row(
                       children: [
                         Expanded(
                           child: GestureDetector(
                             onTap: () => Navigator.pop(ctx, false),
                             child: Container(
-                              padding: EdgeInsets.symmetric(vertical: 12.h),
-                              decoration: BoxDecoration(color: Colors.transparent, borderRadius: BorderRadius.circular(12.r), border: Border.all(color: AppColors.white.withOpacity(0.1))),
+                              padding: EdgeInsets.symmetric(vertical: isCompact ? 12.h : 12.0),
+                              decoration: BoxDecoration(color: Colors.transparent, borderRadius: BorderRadius.circular(isCompact ? 12.r : 10.0), border: Border.all(color: AppColors.white.withValues(alpha : 0.1))),
                               alignment: Alignment.center,
-                              child: Text("CANCEL", style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary, fontWeight: FontWeight.w500)),
+                              child: Text("CANCEL", style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary, fontWeight: FontWeight.w500, fontSize: isCompact ? null : 12.0)),
                             ),
                           ),
                         ),
-                        SizedBox(width: 12.w),
+                        SizedBox(width: isCompact ? 12.w : 12.0),
                         Expanded(
                           child: GestureDetector(
                             onTap: () => Navigator.pop(ctx, true),
                             child: Container(
-                              padding: EdgeInsets.symmetric(vertical: 12.h),
-                              decoration: BoxDecoration(color: Colors.greenAccent.withOpacity(0.1), borderRadius: BorderRadius.circular(12.r), border: Border.all(color: Colors.greenAccent.withOpacity(0.5))),
+                              padding: EdgeInsets.symmetric(vertical: isCompact ? 12.h : 12.0),
+                              decoration: BoxDecoration(color: Colors.greenAccent.withValues(alpha : 0.1), borderRadius: BorderRadius.circular(isCompact ? 12.r : 10.0), border: Border.all(color: Colors.greenAccent.withValues(alpha : 0.5))),
                               alignment: Alignment.center,
-                              child: Text("ACTIVATE", style: AppTextStyles.labelSmall.copyWith(color: Colors.greenAccent, fontWeight: FontWeight.w500)),
+                              child: Text("ACTIVATE", style: AppTextStyles.labelSmall.copyWith(color: Colors.greenAccent, fontWeight: FontWeight.w500, fontSize: isCompact ? null : 12.0)),
                             ),
                           ),
                         ),
@@ -308,66 +348,92 @@ else {
       },
       child: Container(
         width: double.infinity,
-        padding: EdgeInsets.symmetric(vertical: 18.h),
+        padding: EdgeInsets.symmetric(vertical: isCompact ? 18.h : 16.0),
         decoration: BoxDecoration(
           color: AppColors.crimson,
-          borderRadius: BorderRadius.circular(12.r),
+          borderRadius: BorderRadius.circular(isCompact ? 12.r : 10.0),
           boxShadow: [
-            BoxShadow(color: AppColors.crimson.withValues(alpha: 0.3), blurRadius: 20, offset: const Offset(0, 10)),
+            BoxShadow(
+              color: AppColors.crimson.withValues(alpha: 0.3), 
+              blurRadius: 20, 
+              offset: const Offset(0, 10)
+            ),
           ],
         ),
         child: Center(
           child: Text(
             "ACTIVATE THIS CYCLE",
-            style: AppTextStyles.labelMedium.copyWith(color: AppColors.white, fontWeight: FontWeight.w500, letterSpacing: 2),
+            style: AppTextStyles.labelMedium.copyWith(
+              color: AppColors.white, 
+              fontWeight: FontWeight.w500, 
+              letterSpacing: 2,
+              fontSize: isCompact ? null : 14.0,
+            ),
           ),
         ),
       ),
     );
   }
 
-  Widget _buildInfoTile(String label, String value) {
+  Widget _buildInfoTile(String label, String value, bool isCompact) {
     return Container(
-      padding: EdgeInsets.all(16.r),
-      decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(12.r)),
+      padding: EdgeInsets.all(isCompact ? 16.r : 16.0),
+      decoration: BoxDecoration(
+        color: AppColors.surface, 
+        borderRadius: BorderRadius.circular(isCompact ? 12.r : 10.0)
+      ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary)),
-          Text(value, style: AppTextStyles.labelSmall.copyWith(color: AppColors.white, fontWeight: FontWeight.w500)),
+          Text(label, style: AppTextStyles.labelSmall.copyWith(
+            color: AppColors.textSecondary,
+            fontSize: isCompact ? null : 12.0,
+          )),
+          Text(value, style: AppTextStyles.labelSmall.copyWith(
+            color: AppColors.white, 
+            fontWeight: FontWeight.w500,
+            fontSize: isCompact ? null : 12.0,
+          )),
         ],
       ),
     );
   }
 
-  Widget _buildWorkoutSummaryCard(Workout workout, CycleProvider provider) {
+  Widget _buildWorkoutSummaryCard(Workout workout, CycleProvider provider, bool isCompact) {
     final workoutExercises = workout.exercises;
 
     return Container(
-      margin: EdgeInsets.only(bottom: 16.h),
-      padding: EdgeInsets.all(20.r),
+      margin: EdgeInsets.only(bottom: isCompact ? 16.h : 16.0),
+      padding: EdgeInsets.all(isCompact ? 20.r : 16.0),
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.circular(16.r),
+        borderRadius: BorderRadius.circular(isCompact ? 16.r : 12.0),
         border: Border.all(color: AppColors.white.withValues(alpha: 0.05)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(workout.name, style: AppTextStyles.labelSmall.copyWith(color: AppColors.white, fontWeight: FontWeight.w500)),
-          SizedBox(height: 12.h),
+          Text(workout.name, style: AppTextStyles.labelSmall.copyWith(
+            color: AppColors.white, 
+            fontWeight: FontWeight.w500,
+            fontSize: isCompact ? null : 12.0,
+          )),
+          SizedBox(height: isCompact ? 12.h : 12.0),
           const Divider(color: Colors.white10),
-          SizedBox(height: 8.h),
+          SizedBox(height: isCompact ? 8.h : 8.0),
           ...workoutExercises.map((exercise) {
             return Padding(
-              padding: EdgeInsets.symmetric(vertical: 4.h),
+              padding: EdgeInsets.symmetric(vertical: isCompact ? 4.h : 4.0),
               child: Row(
                 children: [
-                  Icon(Icons.circle, size: 6.r, color: AppColors.crimson),
-                  SizedBox(width: 12.w),
+                  Icon(Icons.circle, size: isCompact ? 6.r : 6.0, color: AppColors.crimson),
+                  SizedBox(width: isCompact ? 12.w : 12.0),
                   Text(
                     exercise.name,
-                    style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary, fontSize: 12.sp),
+                    style: AppTextStyles.labelSmall.copyWith(
+                      color: AppColors.textSecondary, 
+                      fontSize: isCompact ? 12.sp : 12.0
+                    ),
                   ),
                 ],
               ),
@@ -378,3 +444,4 @@ else {
     );
   }
 }
+

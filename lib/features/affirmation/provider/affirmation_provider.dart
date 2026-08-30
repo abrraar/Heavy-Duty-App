@@ -12,9 +12,14 @@ import 'package:heavy_duty/core/providers/sync_provider.dart';
 
 class AffirmationProvider with ChangeNotifier {
   AffirmationLocalRepository? _localRepo;
-  final AffirmationCloudRepository _cloudRepo = AffirmationCloudRepository();
-  final SupabaseClient _supabase = Supabase.instance.client;
+  AffirmationCloudRepository _cloudRepo = AffirmationCloudRepository();
+  SupabaseClient get _supabase => Supabase.instance.client;
   RealtimeChannel? _realtimeChannel;
+
+  void setRepositories({AffirmationLocalRepository? local, AffirmationCloudRepository? cloud}) {
+    if (local != null) _localRepo = local;
+    if (cloud != null) _cloudRepo = cloud;
+  }
 
   List<Affirmation> _customAffirmations = [];
   Affirmation? _currentAffirmation;

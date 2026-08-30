@@ -7,7 +7,8 @@ import 'package:heavy_duty/features/exercise/provider/exercise_provider.dart';
 import 'package:provider/provider.dart';
 
 class AddCustomExerciseSheet extends StatefulWidget {
-  const AddCustomExerciseSheet({super.key});
+  final bool isSideSheet;
+  const AddCustomExerciseSheet({super.key, this.isSideSheet = false});
 
   @override
   State<AddCustomExerciseSheet> createState() => _AddCustomExerciseSheetState();
@@ -67,82 +68,131 @@ class _AddCustomExerciseSheetState extends State<AddCustomExerciseSheet> {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: EdgeInsets.only(
-        bottom: MediaQuery.of(context).viewInsets.bottom,
-      ),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(32.r)),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Padding(
-            padding: EdgeInsets.only(top: 12.h, bottom: 8.h),
-            child: _buildHandle(),
-          ),
-          Flexible(
-            child: SingleChildScrollView(
-              padding: EdgeInsets.fromLTRB(24.r, 0, 24.r, 24.r),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final bool isCompact = constraints.maxWidth < 600 && !widget.isSideSheet;
+        final double sheetWidth = widget.isSideSheet ? constraints.maxWidth : (isCompact ? constraints.maxWidth : 600.0);
+
+        return Center(
+          child: SizedBox(
+            width: sheetWidth,
+            child: Container(
+              height: widget.isSideSheet ? double.infinity : null,
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(context).viewInsets.bottom,
+              ),
+              decoration: BoxDecoration(
+                color: AppColors.surface,
+                borderRadius: widget.isSideSheet 
+                  ? const BorderRadius.horizontal(left: Radius.circular(24.0))
+                  : BorderRadius.vertical(top: Radius.circular(isCompact ? 32.r : 24.0)),
+              ),
               child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: widget.isSideSheet ? MainAxisSize.max : MainAxisSize.min,
                 children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text("NEW EXERCISE", style: AppTextStyles.h3),
-                      // Cancel button removed as requested
-                    ],
-                  ),
-                  SizedBox(height: 24.h),
-                  _buildTextField("EXERCISE NAME", _nameController, "e.g. Hammer Curls"),
-                  SizedBox(height: 24.h),
-                  _buildTextField("ABOUT THE MOVEMENT (OPTIONAL)", _aboutController, "Describe the proper form...", maxLines: 3),
-                  SizedBox(height: 24.h),
-                  Text("TARGET MUSCLES", style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary, fontSize: 10.sp)),
-                  SizedBox(height: 12.h),
-                  Wrap(
-                    spacing: 8.w,
-                    runSpacing: 8.h,
-                    children: _muscles.map((m) {
-                      bool isSelected = _selectedMuscles.contains(m);
-                      return GestureDetector(
-                        onTap: () => _toggleMuscle(m),
-                        child: Container(
-                          padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
-                          decoration: BoxDecoration(
-                            color: isSelected ? AppColors.crimson : AppColors.surfaceLight.withOpacity(0.2),
-                            borderRadius: BorderRadius.circular(8.r),
-                            border: Border.all(color: isSelected ? AppColors.crimson : AppColors.white.withOpacity(0.05)),
+                  if (!widget.isSideSheet)
+                    Padding(
+                      padding: EdgeInsets.only(
+                        top: isCompact ? 12.h : 12.0, 
+                        bottom: isCompact ? 8.h : 8.0
+                      ),
+                      child: _buildHandle(isCompact),
+                    ),
+                  if (widget.isSideSheet) SizedBox(height: 24.0),
+                  Flexible(
+                    child: SingleChildScrollView(
+                      padding: EdgeInsets.fromLTRB(
+                        isCompact ? 24.r : 24.0, 
+                        0, 
+                        isCompact ? 24.r : 24.0, 
+                        isCompact ? 24.r : 24.0
+                      ),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                "NEW EXERCISE", 
+                                style: AppTextStyles.h3.copyWith(fontSize: isCompact ? null : 16.0)
+                              ),
+                              if (widget.isSideSheet)
+                                IconButton(
+                                  icon: const Icon(Icons.close, color: AppColors.textSecondary, size: 20),
+                                  onPressed: () => Navigator.pop(context),
+                                ),
+                            ],
                           ),
-                          child: Text(m.toUpperCase(), style: AppTextStyles.labelSmall.copyWith(color: isSelected ? Colors.white : AppColors.textSecondary, fontSize: 9.sp)),
-                        ),
-                      );
-                    }).toList(),
+                          SizedBox(height: isCompact ? 24.h : 20.0),
+                          _buildTextField("EXERCISE NAME", _nameController, "e.g. Hammer Curls", isCompact: isCompact),
+                          SizedBox(height: isCompact ? 24.h : 20.0),
+                          _buildTextField("ABOUT THE MOVEMENT (OPTIONAL)", _aboutController, "Describe the proper form...", maxLines: 3, isCompact: isCompact),
+                          SizedBox(height: isCompact ? 24.h : 20.0),
+                          Text(
+                            "TARGET MUSCLES", 
+                            style: AppTextStyles.labelSmall.copyWith(
+                              color: AppColors.textSecondary, 
+                              fontSize: isCompact ? 10.sp : 9.0,
+                              fontWeight: FontWeight.w500,
+                            )
+                          ),
+                          SizedBox(height: isCompact ? 12.h : 10.0),
+                          Wrap(
+                            spacing: isCompact ? 8.w : 8.0,
+                            runSpacing: isCompact ? 8.h : 8.0,
+                            children: _muscles.map((m) {
+                              bool isSelected = _selectedMuscles.contains(m);
+                              return GestureDetector(
+                                onTap: () => _toggleMuscle(m),
+                                child: Container(
+                                  padding: EdgeInsets.symmetric(
+                                    horizontal: isCompact ? 12.w : 10.0, 
+                                    vertical: isCompact ? 6.h : 6.0
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: isSelected ? AppColors.crimson : AppColors.surfaceLight.withOpacity(0.2),
+                                    borderRadius: BorderRadius.circular(isCompact ? 8.r : 8.0),
+                                    border: Border.all(color: isSelected ? AppColors.crimson : AppColors.white.withOpacity(0.05)),
+                                  ),
+                                  child: Text(
+                                    m.toUpperCase(), 
+                                    style: AppTextStyles.labelSmall.copyWith(
+                                      color: isSelected ? Colors.white : AppColors.textSecondary, 
+                                      fontSize: isCompact ? 9.sp : 8.0,
+                                      fontWeight: FontWeight.w500,
+                                    )
+                                  ),
+                                ),
+                              );
+                            }).toList(),
+                          ),
+                          
+                          SizedBox(height: isCompact ? 24.h : 20.0),
+                          _buildAutoMetricsDisplay(isCompact),
+                          
+                          SizedBox(height: isCompact ? 32.h : 24.0),
+                          _buildSaveButton(isCompact),
+                        ],
+                      ),
+                    ),
                   ),
-                  
-                  SizedBox(height: 24.h),
-                  _buildAutoMetricsDisplay(),
-                  
-                  SizedBox(height: 32.h),
-                  _buildSaveButton(),
                 ],
               ),
             ),
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 
-  Widget _buildAutoMetricsDisplay() {
+  Widget _buildAutoMetricsDisplay(bool isCompact) {
     return Container(
-      padding: EdgeInsets.all(16.r),
+      padding: EdgeInsets.all(isCompact ? 16.r : 12.0),
       decoration: BoxDecoration(
         color: AppColors.background.withOpacity(0.5),
-        borderRadius: BorderRadius.circular(12.r),
+        borderRadius: BorderRadius.circular(isCompact ? 12.r : 10.0),
         border: Border.all(color: AppColors.white.withOpacity(0.03)),
       ),
       child: Column(
@@ -150,29 +200,47 @@ class _AddCustomExerciseSheetState extends State<AddCustomExerciseSheet> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text("TYPE", style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary, fontSize: 10.sp)),
+              Text(
+                "TYPE", 
+                style: AppTextStyles.labelSmall.copyWith(
+                  color: AppColors.textSecondary, 
+                  fontSize: isCompact ? 10.sp : 9.0,
+                  fontWeight: FontWeight.w500,
+                )
+              ),
               Container(
-                padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 2.h),
+                padding: EdgeInsets.symmetric(
+                  horizontal: isCompact ? 8.w : 6.0, 
+                  vertical: isCompact ? 2.h : 2.0
+                ),
                 decoration: BoxDecoration(
                   color: _calculatedType == ExerciseType.compound ? AppColors.crimson.withOpacity(0.1) : AppColors.white.withOpacity(0.05),
-                  borderRadius: BorderRadius.circular(4.r),
+                  borderRadius: BorderRadius.circular(isCompact ? 4.r : 4.0),
                 ),
                 child: Text(
                   _calculatedType.name.toUpperCase(),
                   style: AppTextStyles.labelSmall.copyWith(
                     color: _calculatedType == ExerciseType.compound ? AppColors.crimson : AppColors.textSecondary,
                     fontWeight: FontWeight.w500,
+                    fontSize: isCompact ? null : 9.0,
                   ),
                 ),
               ),
             ],
           ),
-          SizedBox(height: 12.h),
+          SizedBox(height: isCompact ? 12.h : 8.0),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text("DEMAND", style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary, fontSize: 10.sp)),
-              _buildFireRating(_calculatedIntensity),
+              Text(
+                "DEMAND", 
+                style: AppTextStyles.labelSmall.copyWith(
+                  color: AppColors.textSecondary, 
+                  fontSize: isCompact ? 10.sp : 9.0,
+                  fontWeight: FontWeight.w500,
+                )
+              ),
+              _buildFireRating(_calculatedIntensity, isCompact),
             ],
           ),
         ],
@@ -180,50 +248,57 @@ class _AddCustomExerciseSheetState extends State<AddCustomExerciseSheet> {
     );
   }
 
-  Widget _buildFireRating(int score) {
+  Widget _buildFireRating(int score, bool isCompact) {
     return Row(
       children: List.generate(5, (index) => Icon(
         Icons.local_fire_department_rounded,
-        size: 16.r,
+        size: isCompact ? 16.r : 16.0,
         color: index < score ? AppColors.crimson : AppColors.white.withOpacity(0.05),
       )),
     );
   }
 
-  Widget _buildTextField(String label, TextEditingController controller, String hint, {int maxLines = 1}) {
+  Widget _buildTextField(String label, TextEditingController controller, String hint, {int maxLines = 1, required bool isCompact}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary, fontSize: 10.sp)),
-        SizedBox(height: 8.h),
+        Text(
+          label, 
+          style: AppTextStyles.labelSmall.copyWith(
+            color: AppColors.textSecondary, 
+            fontSize: isCompact ? 10.sp : 9.0,
+            fontWeight: FontWeight.w500,
+          )
+        ),
+        SizedBox(height: isCompact ? 8.h : 6.0),
         TextField(
           controller: controller,
           maxLines: maxLines,
-          style: const TextStyle(color: Colors.white),
+          style: TextStyle(color: Colors.white, fontSize: isCompact ? null : 13.0),
           textCapitalization: TextCapitalization.words,
           decoration: InputDecoration(
             hintText: hint,
-            hintStyle: TextStyle(color: AppColors.textSecondary.withValues(alpha: 0.2), fontSize: 12.sp),
+            hintStyle: TextStyle(color: AppColors.textSecondary.withValues(alpha: 0.2), fontSize: isCompact ? 12.sp : 13.0),
             filled: true,
             fillColor: AppColors.background.withValues(alpha: 0.5),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12.r), borderSide: BorderSide.none),
-            contentPadding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(isCompact ? 12.r : 10.0), borderSide: BorderSide.none),
+            contentPadding: EdgeInsets.symmetric(horizontal: isCompact ? 16.w : 12.0, vertical: isCompact ? 14.h : 10.0),
           ),
         ),
       ],
     );
   }
 
-  Widget _buildSaveButton() {
+  Widget _buildSaveButton(bool isCompact) {
     return GestureDetector(
       onTap: _isReady ? _saveExercise : null,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        height: 54.h,
+        height: isCompact ? 54.h : 44.0,
         width: double.infinity,
         decoration: BoxDecoration(
           color: _isReady ? AppColors.crimson : AppColors.surfaceLight.withOpacity(0.1),
-          borderRadius: BorderRadius.circular(12.r),
+          borderRadius: BorderRadius.circular(isCompact ? 12.r : 10.0),
           boxShadow: _isReady ? [
             BoxShadow(color: AppColors.crimson.withOpacity(0.2), blurRadius: 10, offset: const Offset(0, 4)),
           ] : [],
@@ -235,17 +310,18 @@ class _AddCustomExerciseSheetState extends State<AddCustomExerciseSheet> {
             color: _isReady ? Colors.white : AppColors.textSecondary.withOpacity(0.5),
             fontWeight: FontWeight.w500,
             letterSpacing: 1.2,
+            fontSize: isCompact ? null : 12.0,
           ),
         ),
       ),
     );
   }
 
-  Widget _buildHandle() {
+  Widget _buildHandle(bool isCompact) {
     return Center(
       child: Container(
-        width: 40.w,
-        height: 4.h,
+        width: isCompact ? 40.w : 40.0,
+        height: isCompact ? 4.h : 4.0,
         decoration: BoxDecoration(color: AppColors.textSecondary.withOpacity(0.2), borderRadius: BorderRadius.circular(2.r)),
       ),
     );

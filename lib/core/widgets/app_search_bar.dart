@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:heavy_duty/core/constants/dimensions.dart';
 import 'package:heavy_duty/core/theme/app_colors.dart';
 import 'package:heavy_duty/core/theme/app_text_styles.dart';
 
@@ -30,15 +31,17 @@ class AppSearchBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final bool isCompact = MediaQuery.sizeOf(context).width < kMobileBreakpoint;
+
     return Container(
       width: double.infinity,
       color: AppColors.background,
-      padding: EdgeInsets.symmetric(vertical: 4.h),
+      padding: EdgeInsets.symmetric(vertical: isCompact ? 4.h : 4.0),
       child: Row(
         children: [
           Expanded(
             child: Container(
-              height: 44.h,
+              height: isCompact ? 44.h : 48.0,
               decoration: BoxDecoration(
                 color: AppColors.surfaceLight.withOpacity(0.15),
                 borderRadius: BorderRadius.circular(10.r),
@@ -56,32 +59,33 @@ class AppSearchBar extends StatelessWidget {
                 ],
                 style: AppTextStyles.inputText.copyWith(
                   color: AppColors.white,
-                  fontSize: 14.sp,
+                  fontSize: isCompact ? 14.sp : 15.0,
                 ),
                 decoration: InputDecoration(
                   counterText: "",
                   hintText: hintText,
                   hintStyle: AppTextStyles.inputHint.copyWith(
                     color: AppColors.textSecondary.withOpacity(0.4),
+                    fontSize: isCompact ? 14.sp : 15.0,
                   ),
                   prefixIcon: Icon(
                     Icons.search_rounded,
                     color: AppColors.crimson,
-                    size: 18.r,
+                    size: isCompact ? 18.r : 20.0,
                   ),
                   border: InputBorder.none,
-                  contentPadding: EdgeInsets.symmetric(vertical: 10.h),
+                  contentPadding: EdgeInsets.symmetric(vertical: isCompact ? 10.h : 12.0),
                 ),
               ),
             ),
           ),
           Padding(
-            padding: EdgeInsets.only(left: 8.w),
+            padding: EdgeInsets.only(left: isCompact ? 8.w : 12.0),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                _buildAnimatedButton(showFilter, Icons.tune_rounded, onFilterTap),
-                _buildAnimatedButton(showAdd, Icons.add_rounded, onAddTap),
+                _buildAnimatedButton(showFilter, Icons.tune_rounded, onFilterTap, isCompact),
+                _buildAnimatedButton(showAdd, Icons.add_rounded, onAddTap, isCompact),
               ],
             ),
           ),
@@ -90,25 +94,25 @@ class AppSearchBar extends StatelessWidget {
     );
   }
 
-  Widget _buildAnimatedButton(bool show, IconData icon, VoidCallback? onTap) {
+  Widget _buildAnimatedButton(bool show, IconData icon, VoidCallback? onTap, bool isCompact) {
     return AnimatedSwitcher(
       duration: const Duration(milliseconds: 300),
       transitionBuilder: (Widget child, Animation<double> animation) {
         return FadeTransition(opacity: animation, child: ScaleTransition(scale: animation, child: child));
       },
       child: show
-          ? _buildCompactIconButton(icon, onTap, key: ValueKey(icon))
+          ? _buildCompactIconButton(icon, onTap, isCompact, key: ValueKey(icon))
           : const SizedBox.shrink(key: ValueKey('empty')),
     );
   }
 
-  Widget _buildCompactIconButton(IconData icon, VoidCallback? onTap, {Key? key}) {
+  Widget _buildCompactIconButton(IconData icon, VoidCallback? onTap, bool isCompact, {Key? key}) {
     return GestureDetector(
       key: key,
       onTap: onTap,
       child: Container(
-        margin: EdgeInsets.only(left: 6.w),
-        padding: EdgeInsets.all(8.r),
+        margin: EdgeInsets.only(left: isCompact ? 6.w : 8.0),
+        padding: EdgeInsets.all(isCompact ? 8.r : 10.0),
         decoration: BoxDecoration(
           color: AppColors.surfaceLight.withOpacity(0.3),
           borderRadius: BorderRadius.circular(8.r),
@@ -116,7 +120,7 @@ class AppSearchBar extends StatelessWidget {
         child: Icon(
           icon,
           color: AppColors.white.withOpacity(0.9),
-          size: 20.r,
+          size: isCompact ? 20.r : 22.0,
         ),
       ),
     );

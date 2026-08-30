@@ -14,14 +14,57 @@ import 'package:heavy_duty/core/providers/sync_provider.dart';
 
 class CycleProvider with ChangeNotifier {
   CycleLocalRepository? _localRepo;
-  final CycleCloudRepository _cloudRepo = CycleCloudRepository();
-  final SupabaseClient _supabase = Supabase.instance.client;
+  CycleCloudRepository _cloudRepo = CycleCloudRepository();
+  SupabaseClient get _supabase => Supabase.instance.client;
   RealtimeChannel? _realtimeChannel;
+
+  void setRepositories({CycleLocalRepository? local, CycleCloudRepository? cloud}) {
+    if (local != null) _localRepo = local;
+    if (cloud != null) _cloudRepo = cloud;
+  }
+
+  void setCyclesForTest(List<TrainingCycle> list) {
+    _cycles.clear();
+    _cycles.addAll(list);
+  }
 
   List<TrainingCycle> _cycles = [];
   final List<ExerciseLog> _logs = [];
   CycleSettings _settings = CycleSettings();
   bool _isLoading = false;
+
+  // Persistent Selection State for Navigation & Two-Pane layouts
+  String? _selectedWorkoutId;
+  String? _selectedWorkoutName;
+  String? _selectedExerciseId;
+  String? _selectedExerciseName;
+
+  String? get selectedWorkoutId => _selectedWorkoutId;
+  String? get selectedWorkoutName => _selectedWorkoutName;
+  String? get selectedExerciseId => _selectedExerciseId;
+  String? get selectedExerciseName => _selectedExerciseName;
+
+  void setWorkoutSelection(String? id, String? name) {
+    _selectedWorkoutId = id;
+    _selectedWorkoutName = name;
+    _selectedExerciseId = null; // Clear exercise when workout changes
+    _selectedExerciseName = null;
+    notifyListeners();
+  }
+
+  void setExerciseSelection(String? id, String? name) {
+    _selectedExerciseId = id;
+    _selectedExerciseName = name;
+    notifyListeners();
+  }
+
+  void clearSelection() {
+    _selectedWorkoutId = null;
+    _selectedWorkoutName = null;
+    _selectedExerciseId = null;
+    _selectedExerciseName = null;
+    notifyListeners();
+  }
 
   Set<String> get visibleMetrics => _settings.visibleMetrics;
 
@@ -1049,14 +1092,12 @@ class CycleProvider with ChangeNotifier {
 
       if (allExercisesFinished && currentTargetWorkout.exercises.isNotEmpty) {
         // --- 1. POTENTIAL COMPLETION ---
-        // A workout is complete ONLY if all exercises are done AND it has a date (auto or manual)
-        // If it doesn't have a date yet, we assign "now" (Auto-entry)
-        if (!isCurrentlyCompleted || currentTargetWorkout.completedAt == null) {
+        // A workout is complete ONLY if all exercises are done.
+        // We no longer auto-assign the current date if it's missing.
+        if (!isCurrentlyCompleted) {
           debugPrint("CycleProvider: All exercises finished. Updating workout '${currentTargetWorkout.name}' to COMPLETED.");
-          final DateTime? initialDate = currentTargetWorkout.completedAt;
           final updatedWorkout = currentTargetWorkout.copyWith(
             status: WorkoutStatus.completed,
-            completedAt: () => initialDate ?? DateTime.now(),
           );
           await _updateWorkoutInCycle(currentTargetCycle, updatedWorkout);
         }
@@ -1218,21 +1259,16 @@ class CycleProvider with ChangeNotifier {
         // 1. Update the date
         final updatedWorkout = targetWorkout.copyWith(
           completedAt: () => date,
-          status: (date == null && targetWorkout.status == WorkoutStatus.completed) 
-              ? WorkoutStatus.pending 
-              : targetWorkout.status,
           isSynced: 0,
           updatedAt: DateTime.now(),
         );
 
-        debugPrint("CycleProvider: Workout Status now: ${updatedWorkout.status}");
+        debugPrint("CycleProvider: Workout Status remains: ${updatedWorkout.status}");
 
         await _updateWorkoutInCycle(_cycles[i], updatedWorkout);
 
-        // 2. If a date was added, re-check if the workout should now be "Completed"
-        if (date != null) {
-          await _checkWorkoutCompletion(workoutId: workoutId);
-        }
+        // 2. Re-check if the workout should be "Completed" based on exercises
+        await _checkWorkoutCompletion(workoutId: workoutId);
         break;
       }
     }

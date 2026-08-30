@@ -11,9 +11,14 @@ import 'package:heavy_duty/core/providers/sync_provider.dart';
 
 class ExerciseProvider with ChangeNotifier {
   ExerciseLocalRepository? _localRepo;
-  final ExerciseCloudRepository _cloudRepo = ExerciseCloudRepository();
-  final SupabaseClient _supabase = Supabase.instance.client;
+  ExerciseCloudRepository _cloudRepo = ExerciseCloudRepository();
+  SupabaseClient get _supabase => Supabase.instance.client;
   RealtimeChannel? _realtimeChannel;
+
+  void setRepositories({ExerciseLocalRepository? local, ExerciseCloudRepository? cloud}) {
+    if (local != null) _localRepo = local;
+    if (cloud != null) _cloudRepo = cloud;
+  }
 
   List<ExerciseTemplate> _templates = [];
   bool _isLoading = false;
@@ -197,7 +202,10 @@ class ExerciseProvider with ChangeNotifier {
       
       // SYNC: Add or Update templates from the cloud
       for (var t in cloudTemplates) {
-        await _localRepo!.insertTemplate(t.copyWith(isSynced: 1), isFromCloud: true);
+        // SAFETY: Never pull default templates from cloud (they are managed locally)
+        if (!t.isDefault) {
+          await _localRepo!.insertTemplate(t.copyWith(isSynced: 1), isFromCloud: true);
+        }
       }
 
       // 3. Final memory refresh
@@ -270,17 +278,21 @@ class ExerciseProvider with ChangeNotifier {
 
   ExerciseTemplate _create(String name, String muscles, ExerciseType type, int intensity, [String? about]) {
     // ELITE CLOUD MAPPING: Generate the Supabase Storage URL from the name using SNAKE_CASE
-    // Example: "Dumbbell Flyes" -> "https://fmudyebwpvpgqbnrjtpi.supabase.co/storage/v1/object/public/exercise-photos/dumbbell_flyes.webp"
     final String fileName = name.toLowerCase()
         .replaceAll(' ', '_')
         .replaceAll('-', '_')
         .replaceAll('(', '')
         .replaceAll(')', '');
+    
+    // DETERMINISTIC ID: Prevents duplicates by using a fixed ID based on the name
+    final String fixedId = 'mentzer_$fileName';
+    
     final String publicUrl = 'https://fmudyebwpvpgqbnrjtpi.supabase.co/storage/v1/object/public/exercise-photos/$fileName.webp';
 
     final String citedAbout = '"$about"\n\n— Mike Mentzer, High Intensity Training: The Mike Mentzer Way';
 
     return ExerciseTemplate(
+      id: fixedId,
       name: name,
       targetMuscles: muscles,
       type: type,

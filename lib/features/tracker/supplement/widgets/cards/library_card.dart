@@ -20,6 +20,7 @@ class LibraryCard extends StatefulWidget {
   final int index;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
+  final bool isCompact;
 
   const LibraryCard({
     super.key,
@@ -28,6 +29,7 @@ class LibraryCard extends StatefulWidget {
     required this.index,
     required this.onEdit,
     required this.onDelete,
+    this.isCompact = true,
   });
 
   @override
@@ -60,7 +62,7 @@ class _LibraryCardState extends State<LibraryCard> {
             borderRadius: BorderRadius.circular(12.r),
             border: Border.all(
               color: bg == Colors.transparent
-                  ? AppColors.white.withOpacity(0.1)
+                  ? AppColors.white.withValues(alpha: 0.1)
                   : Colors.transparent,
             ),
           ),
@@ -69,7 +71,8 @@ class _LibraryCardState extends State<LibraryCard> {
             label,
             style: AppTextStyles.labelSmall.copyWith(
               color: text,
-              fontWeight: FontWeight.bold,
+              fontWeight: FontWeight.w500,
+              fontSize: widget.isCompact ? 12.sp : 12.0,
             ),
           ),
         ),
@@ -88,25 +91,31 @@ class _LibraryCardState extends State<LibraryCard> {
     String remainingServings =
         "${widget.provider.getRemainingServings(widget.item)}s left in stock";
 
+    final bool isCompact = widget.isCompact;
+
     return AnimatedContainer(
       duration: const Duration(milliseconds: 200),
-      margin: EdgeInsets.only(bottom: 12.h),
-      padding: EdgeInsets.fromLTRB(20.w, 20.h, 12.w, 20.h),
+      margin: EdgeInsets.only(bottom: isCompact ? 12.h : 10.0),
+      padding: EdgeInsets.fromLTRB(
+        isCompact ? 20.w : 16.0, 
+        isCompact ? 20.h : 16.0, 
+        isCompact ? 12.w : 10.0, 
+        isCompact ? 20.h : 16.0
+      ),
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.circular(16.r),
+        borderRadius: BorderRadius.circular(isCompact ? 16.r : 12.0),
         border: Border.all(
           color: widget.item.isActive
               ? Colors.transparent
-              : AppColors.white.withOpacity(0.05),
+              : AppColors.white.withValues(alpha: 0.05),
         ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-            crossAxisAlignment: CrossAxisAlignment
-                .start, // Aligns toggle and option buttons to the top row layout boundary
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Switch(
                 value: widget.item.isActive,
@@ -122,12 +131,12 @@ class _LibraryCardState extends State<LibraryCard> {
                   );
                 },
               ),
-              SizedBox(width: 12.w),
+              SizedBox(width: isCompact ? 12.w : 12.0),
               Expanded(
                 child: Padding(
                   padding: EdgeInsets.only(
-                    top: 4.h,
-                  ), // Adjusts vertical alignment to balance perfectly with the top-aligned controls
+                    top: isCompact ? 4.h : 4.0,
+                  ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -136,61 +145,66 @@ class _LibraryCardState extends State<LibraryCard> {
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                         style: AppTextStyles.labelSmall.copyWith(
-                          fontSize: 14.sp,
+                          fontSize: isCompact ? 13.sp : 12.0,
                           color: widget.item.isActive
                               ? Colors.white
                               : AppColors.textSecondary,
-                          fontWeight: FontWeight.bold,
+                          fontWeight: FontWeight.w500,
                         ),
                       ),
                       if (widget.item.sharedBy != null) ...[
-                        SizedBox(height: 4.h),
+                        SizedBox(height: isCompact ? 4.h : 4.0),
                         Container(
-                          padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
+                          padding: EdgeInsets.symmetric(
+                            horizontal: isCompact ? 8.w : 8.0, 
+                            vertical: isCompact ? 4.h : 4.0
+                          ),
                           decoration: BoxDecoration(
                             color: Colors.blueAccent.withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(6.r),
+                            borderRadius: BorderRadius.circular(isCompact ? 6.r : 4.0),
                             border: Border.all(color: Colors.blueAccent.withValues(alpha: 0.2)),
                           ),
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Icon(Icons.share_rounded, color: Colors.blueAccent, size: 10.r),
-                              SizedBox(width: 4.w),
+                              Icon(Icons.share_rounded, color: Colors.blueAccent, size: isCompact ? 10.r : 10.0),
+                              SizedBox(width: isCompact ? 4.w : 4.0),
                               Text(
                                 "SHARED BY ${widget.item.sharedBy!.toUpperCase()}",
                                 style: AppTextStyles.labelSmall.copyWith(
                                   color: Colors.blueAccent,
-                                  fontSize: 8.sp,
-                                  fontWeight: FontWeight.w900,
+                                  fontSize: isCompact ? 10.sp : 9.0,
+                                  fontWeight: FontWeight.w500,
                                 ),
                               ),
                             ],
                           ),
                         ),
                       ],
-                      SizedBox(height: 4.h),
+                      SizedBox(height: isCompact ? 4.h : 4.0),
                       Text(
                         remainingServings,
                         style: AppTextStyles.labelSmall.copyWith(
                           color: widget.provider.getStockColor(widget.item),
-                          fontSize: 12.sp,
+                          fontSize: isCompact ? 12.sp : 11.0,
+                          fontWeight: FontWeight.w500,
                         ),
                       ),
 
                       if (widget.item.ingredients.isNotEmpty) ...[
                         Padding(
-                          padding: EdgeInsets.only(top: 6.h, left: 4.w),
+                          padding: EdgeInsets.only(top: isCompact ? 6.h : 6.0, left: isCompact ? 4.w : 4.0),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: widget.item.ingredients.map((ingredient) {
                               return Padding(
-                                padding: EdgeInsets.only(bottom: 2.h),
+                                padding: EdgeInsets.only(bottom: isCompact ? 2.h : 2.0),
                                 child: Text(
                                   "• ${ingredient.name}: ${ingredient.amount.toInt()}${ingredient.unit}",
                                   style: AppTextStyles.labelSmall.copyWith(
                                     color: AppColors.textSecondary,
-                                    fontSize: 11.sp,
+                                    fontSize: isCompact ? 11.sp : 10.0,
+                                    fontWeight: FontWeight.w500,
                                   ),
                                 ),
                               );
@@ -202,10 +216,11 @@ class _LibraryCardState extends State<LibraryCard> {
                   ),
                 ),
               ),
-              SizedBox(width: 12.w),
+              SizedBox(width: isCompact ? 12.w : 12.0),
               _buildQuickActionButton(
                 icon: Icons.ios_share_rounded,
                 isActive: false,
+                isCompact: isCompact,
                 onTap: () async {
                   final authProvider = context.read<AuthProvider>();
                   final userName = authProvider.displayName;
@@ -222,39 +237,41 @@ class _LibraryCardState extends State<LibraryCard> {
                   }
                 },
               ),
-              SizedBox(width: 8.w),
+              SizedBox(width: isCompact ? 8.w : 6.0),
               _buildQuickActionButton(
                 icon: isExpanded ? Icons.close_rounded : Icons.more_vert_rounded,
                 isActive: isExpanded,
+                isCompact: isCompact,
                 onTap: () => setState(() => isExpanded = !isExpanded),
               ),
             ],
           ),
 
-          // Expandable Action Menu
           if (isExpanded) ...[
             Padding(
-              padding: EdgeInsets.only(top: 12.h),
+              padding: EdgeInsets.only(top: isCompact ? 12.h : 10.0),
               child: Row(
                 children: [
                   Expanded(
                     child: _buildActionButton(
                       icon: Icons.edit_note_rounded,
                       label: "EDIT",
-                      color: AppColors.textSecondary.withOpacity(0.1),
+                      color: AppColors.textSecondary.withValues(alpha: 0.1),
+                      isCompact: isCompact,
                       onTap: () {
                         setState(() => isExpanded = false);
                         widget.onEdit();
                       },
                     ),
                   ),
-                  SizedBox(width: 12.w),
+                  SizedBox(width: isCompact ? 12.w : 10.0),
                   Expanded(
                     child: _buildActionButton(
                       icon: Icons.delete_outline_rounded,
                       label: "DELETE",
-                      color: AppColors.crimson.withOpacity(0.1),
+                      color: AppColors.crimson.withValues(alpha: 0.1),
                       iconColor: AppColors.crimson,
+                      isCompact: isCompact,
                       onTap: () {
                         setState(() => isExpanded = false);
                         widget.onDelete();
@@ -268,9 +285,9 @@ class _LibraryCardState extends State<LibraryCard> {
 
           if (widget.item.expiryDate != null) ...[
             Padding(
-              padding: EdgeInsets.only(top: 12.h),
+              padding: EdgeInsets.only(top: isCompact ? 12.h : 10.0),
               child: Divider(
-                color: AppColors.white.withOpacity(0.05),
+                color: AppColors.white.withValues(alpha: 0.05),
                 thickness: 1,
               ),
             ),
@@ -281,24 +298,26 @@ class _LibraryCardState extends State<LibraryCard> {
                   children: [
                     Icon(
                       Icons.event_note_rounded,
-                      size: 14.r,
+                      size: isCompact ? 12.r : 12.0,
                       color: AppColors.textSecondary,
                     ),
-                    SizedBox(width: 6.w),
+                    SizedBox(width: isCompact ? 6.w : 6.0),
                     Text(
                       "Expires: ",
                       style: AppTextStyles.labelSmall.copyWith(
-                        fontSize: 11.sp,
+                        fontSize: isCompact ? 11.sp : 10.0,
                         color: AppColors.textSecondary,
+                        fontWeight: FontWeight.w500,
                       ),
                     ),
                     Text(
                       expiryText,
                       style: AppTextStyles.labelSmall.copyWith(
-                        fontSize: 11.sp,
+                        fontSize: isCompact ? 11.sp : 10.0,
                         color: widget.provider.getExpiryColor(
                           widget.item.expiryDate,
                         ),
+                        fontWeight: FontWeight.w500,
                       ),
                     ),
                   ],
@@ -307,8 +326,9 @@ class _LibraryCardState extends State<LibraryCard> {
                   Text(
                     "${widget.item.caloriesPerUnit!.toStringAsFixed(0)} kcal/${widget.item.weightUnit}",
                     style: AppTextStyles.labelSmall.copyWith(
-                      fontSize: 11.sp,
-                      color: AppColors.textSecondary.withOpacity(0.6),
+                      fontSize: isCompact ? 11.sp : 10.0,
+                      color: AppColors.textSecondary.withValues(alpha: 0.6),
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
               ],
@@ -323,14 +343,15 @@ class _LibraryCardState extends State<LibraryCard> {
     required IconData icon,
     required bool isActive,
     required VoidCallback onTap,
+    required bool isCompact,
   }) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: EdgeInsets.all(8.r),
+        padding: EdgeInsets.all(isCompact ? 8.r : 6.0),
         decoration: BoxDecoration(
           color: isActive ? AppColors.crimson.withValues(alpha: 0.1) : AppColors.white.withValues(alpha: 0.03),
-          borderRadius: BorderRadius.circular(10.r),
+          borderRadius: BorderRadius.circular(isCompact ? 10.r : 8.0),
           border: Border.all(
             color: isActive ? AppColors.crimson.withValues(alpha: 0.3) : AppColors.white.withValues(alpha: 0.05),
           ),
@@ -338,7 +359,7 @@ class _LibraryCardState extends State<LibraryCard> {
         child: Icon(
           icon,
           color: isActive ? AppColors.crimson : AppColors.textSecondary,
-          size: 18.r,
+          size: isCompact ? 18.r : 16.0,
         ),
       ),
     );
@@ -350,25 +371,26 @@ class _LibraryCardState extends State<LibraryCard> {
     required Color color,
     Color? iconColor,
     required VoidCallback onTap,
+    required bool isCompact,
   }) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: EdgeInsets.symmetric(vertical: 10.h),
+        padding: EdgeInsets.symmetric(vertical: isCompact ? 10.h : 8.0),
         decoration: BoxDecoration(
           color: color,
-          borderRadius: BorderRadius.circular(12.r),
+          borderRadius: BorderRadius.circular(isCompact ? 12.r : 10.0),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, size: 18.r, color: iconColor ?? Colors.white),
+            Icon(icon, size: isCompact ? 18.r : 16.0, color: iconColor ?? Colors.white),
             SizedBox(width: 8.w),
             Text(
               label,
               style: AppTextStyles.labelSmall.copyWith(
-                fontSize: 12.sp,
-                fontWeight: FontWeight.bold,
+                fontSize: isCompact ? 13.sp : 12.0,
+                fontWeight: FontWeight.w500,
                 color: iconColor ?? Colors.white,
               ),
             ),

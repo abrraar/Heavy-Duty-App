@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:heavy_duty/core/constants/dimensions.dart';
 import 'package:heavy_duty/core/theme/app_colors.dart';
 import 'package:heavy_duty/core/theme/app_text_styles.dart';
 import 'package:heavy_duty/features/tracker/calorie/calorie_screen.dart';
@@ -34,120 +35,138 @@ class _TrackerScreenState extends State<TrackerScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Expanded(
-          child: SingleChildScrollView(
-            physics: const BouncingScrollPhysics(),
-            padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 10.h),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'SELECT TRACKING MODULE',
-                  style: AppTextStyles.labelSmall.copyWith(
-                    color: AppColors.textSecondary,
-                    letterSpacing: 1.5,
-                  ),
-                ),
-                SizedBox(height: 15.h),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final double width = constraints.maxWidth;
+        final bool isCompact = width < kMobileBreakpoint;
+        
+        final double hPad = !isCompact 
+            ? (width - kMaxContentWidth).clamp(24.0, double.infinity) / 2 
+            : 20.w;
 
-                // 1. HIT Tracker
-                _buildHubCard(
-                  index: 0,
-                  title: 'HIT TRACKER',
-                  subtitle: 'High Intensity Training Tracker',
-                  icon: Icons.fitness_center_rounded,
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const CycleTrackingScreen(),
+        return Column(
+          children: [
+            Expanded(
+              child: SingleChildScrollView(
+                physics: const BouncingScrollPhysics(),
+                padding: EdgeInsets.symmetric(horizontal: hPad, vertical: 10.h),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'SELECT TRACKING MODULE',
+                      style: AppTextStyles.labelSmall.copyWith(
+                        color: AppColors.textSecondary,
+                        letterSpacing: 1.5,
+                        fontSize: isCompact ? 10.sp : 10.0,
                       ),
-                    );
-                  },
-                ),
+                    ),
+                    SizedBox(height: isCompact ? 15.h : 12.0),
 
-                // 2. Body Composition
-                _buildHubCard(
-                  index: 1,
-                  title: 'BODY COMPOSITION',
-                  subtitle: 'Weight, Body Fat & Muscle Mass',
-                  icon: Icons.accessibility_new_rounded,
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const BodyCompositionScreen(),
-                      ),
-                    );
-                  },
-                ),
+                    // 1. HIT Tracker
+                    _buildHubCard(
+                      index: 0,
+                      title: 'HIT TRACKER',
+                      subtitle: 'High Intensity Training Tracker',
+                      icon: Icons.fitness_center_rounded,
+                      isCompact: isCompact,
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const CycleTrackingScreen(),
+                          ),
+                        );
+                      },
+                    ),
 
-                // 3. Calorie Tracking
-                _buildHubCard(
-                  index: 2,
-                  title: 'CALORIE TRACKER',
-                  subtitle: 'Daily Intake & Macros',
-                  icon: Icons.local_fire_department_rounded,
-                  onTap: () => _handleTap(2, () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => const CalorieScreen()),
-                    );
-                  }),
-                ),
+                    // 2. Body Composition
+                    _buildHubCard(
+                      index: 1,
+                      title: 'BODY COMPOSITION',
+                      subtitle: 'Weight, Body Fat & Muscle Mass',
+                      icon: Icons.accessibility_new_rounded,
+                      isCompact: isCompact,
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const BodyCompositionScreen(),
+                          ),
+                        );
+                      },
+                    ),
 
-                // 4. Hydration
-                _buildHubCard(
-                  index: 3,
-                  title: 'HYDRATION',
-                  subtitle: 'Daily Water Intake & Trends',
-                  icon: Icons.water_drop_rounded,
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const HydrationScreen(),
-                      ),
-                    );
-                  },
-                ),
+                    // 3. Calorie Tracking
+                    _buildHubCard(
+                      index: 2,
+                      title: 'CALORIE TRACKER',
+                      subtitle: 'Daily Intake & Macros',
+                      icon: Icons.local_fire_department_rounded,
+                      isCompact: isCompact,
+                      onTap: () => _handleTap(2, () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => const CalorieScreen()),
+                        );
+                      }),
+                    ),
 
-                // 5. Sleep Tracking (NEW MODULE)
-                _buildHubCard(
-                  index: 4,
-                  title: 'SLEEP TRACKING',
-                  subtitle: 'Monitor Rest & Recovery Quality',
-                  icon: Icons.bedtime_rounded,
-                  onTap: () => _handleTap(4, () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => const SleepScreen()),
-                    );
-                  }),
-                ),
+                    // 4. Hydration
+                    _buildHubCard(
+                      index: 3,
+                      title: 'HYDRATION',
+                      subtitle: 'Daily Water Intake & Trends',
+                      icon: Icons.water_drop_rounded,
+                      isCompact: isCompact,
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const HydrationScreen(),
+                          ),
+                        );
+                      },
+                    ),
 
-                // 6. Supplement Stack
-                _buildHubCard(
-                  index: 5,
-                  title: 'SUPPLEMENT STACK',
-                  subtitle: 'Vitamins, Creatine & Performance',
-                  icon: Icons.medication_liquid_rounded,
-                  onTap: () => _handleTap(5, () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const SupplementScreen(),
-                      ),
-                    );
-                  }),
+                    // 5. Sleep Tracking (NEW MODULE)
+                    _buildHubCard(
+                      index: 4,
+                      title: 'SLEEP TRACKING',
+                      subtitle: 'Monitor Rest & Recovery Quality',
+                      icon: Icons.bedtime_rounded,
+                      isCompact: isCompact,
+                      onTap: () => _handleTap(4, () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => const SleepScreen()),
+                        );
+                      }),
+                    ),
+
+                    // 6. Supplement Stack
+                    _buildHubCard(
+                      index: 5,
+                      title: 'SUPPLEMENT STACK',
+                      subtitle: 'Vitamins, Creatine & Performance',
+                      icon: Icons.medication_liquid_rounded,
+                      isCompact: isCompact,
+                      onTap: () => _handleTap(5, () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const SupplementScreen(),
+                          ),
+                        );
+                      }),
+                    ),
+                  ],
                 ),
-              ],
+              ),
             ),
-          ),
-        ),
-      ],
+          ],
+        );
+      },
     );
   }
 
@@ -156,6 +175,7 @@ class _TrackerScreenState extends State<TrackerScreen> {
     required String title,
     required String subtitle,
     required IconData icon,
+    required bool isCompact,
     required VoidCallback onTap,
   }) {
     bool isActive = _activeIndex == index;
@@ -168,9 +188,9 @@ class _TrackerScreenState extends State<TrackerScreen> {
       onTap: () => _handleTap(index, onTap),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        margin: EdgeInsets.only(bottom: 15.h),
+        margin: EdgeInsets.only(bottom: isCompact ? 15.h : 12.0),
         width: double.infinity,
-        height: 110.h,
+        height: isCompact ? 110.h : 90.0,
         decoration: BoxDecoration(
           color: cardColor,
           borderRadius: BorderRadius.circular(16.r),
@@ -182,27 +202,27 @@ class _TrackerScreenState extends State<TrackerScreen> {
         child: Stack(
           children: [
             Positioned(
-              right: -15.w,
-              bottom: -15.h,
+              right: isCompact ? -15.w : -12.0,
+              bottom: isCompact ? -15.h : -12.0,
               child: Icon(
                 icon,
-                size: 110.r,
+                size: isCompact ? 110.r : 90.0,
                 color: AppColors.white.withValues(alpha: 0.03),
               ),
             ),
             Padding(
-              padding: EdgeInsets.symmetric(horizontal: 20.w),
+              padding: EdgeInsets.symmetric(horizontal: isCompact ? 20.w : 20.0),
               child: Row(
                 children: [
                   Container(
-                    padding: EdgeInsets.all(12.r),
+                    padding: EdgeInsets.all(isCompact ? 12.r : 10.0),
                     decoration: BoxDecoration(
                       color: AppColors.white.withValues(alpha: 0.1),
                       shape: BoxShape.circle,
                     ),
-                    child: Icon(icon, color: AppColors.white, size: 28.r),
+                    child: Icon(icon, color: AppColors.white, size: isCompact ? 28.r : 22.0),
                   ),
-                  SizedBox(width: 15.w),
+                  SizedBox(width: isCompact ? 15.w : 16.0),
                   Expanded(
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -212,8 +232,8 @@ class _TrackerScreenState extends State<TrackerScreen> {
                           title,
                           style: AppTextStyles.h3.copyWith(
                             color: AppColors.white,
-                            fontSize: 18.sp,
-                            fontWeight: FontWeight.w800,
+                            fontSize: isCompact ? 18.sp : 15.0,
+                            fontWeight: FontWeight.w500,
                           ),
                         ),
                         Text(
@@ -222,6 +242,7 @@ class _TrackerScreenState extends State<TrackerScreen> {
                             color: isActive
                                 ? Colors.white70
                                 : AppColors.textSecondary,
+                            fontSize: isCompact ? 11.sp : 10.0,
                           ),
                         ),
                       ],
@@ -230,7 +251,7 @@ class _TrackerScreenState extends State<TrackerScreen> {
                   Icon(
                     Icons.arrow_forward_ios_rounded,
                     color: AppColors.white.withValues(alpha: 0.3),
-                    size: 18,
+                    size: isCompact ? 18 : 14.0,
                   ),
                 ],
               ),

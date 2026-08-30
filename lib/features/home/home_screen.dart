@@ -27,9 +27,9 @@ import 'widgets/affirmation_card.dart';
 import 'widgets/water_tracker_card.dart';
 import 'widgets/cycle_status_card.dart';
 import 'widgets/cycle_metric_tile.dart';
-import 'widgets/meal%20quick%20log/meal_quick_log_card.dart';
+import 'widgets/meal quick log/meal_quick_log_card.dart';
 import 'widgets/supplement quick log/quick_log_card.dart';
-import 'widgets/stack%20quick%20log/stack_quick_log_card.dart';
+import 'widgets/stack quick log/stack_quick_log_card.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -43,7 +43,6 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     return Consumer<UiProvider>(
       builder: (context, uiProvider, _) {
-        // Filter out 'workout_action' from the layout list
         final List<String> sections = uiProvider.settings.homeLayout
             .where((s) => s != 'workout_action')
             .toList();
@@ -73,16 +72,16 @@ class _HomeScreenState extends State<HomeScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const WelcomeHeader(),
+                          WelcomeHeader(isCompact: isCompact),
                           SizedBox(height: 8.h),
-                          const AffirmationCard(),
-                          SizedBox(height: 12.h), // Consistent spacing before list
+                          AffirmationCard(isCompact: isCompact),
+                          SizedBox(height: 12.h),
                         ],
                       ),
                     ),
                   ),
 
-                  // ── REORDERABLE DASHBOARD SECTIONS ──
+                  // ── REORDERABLE DASHBOARD SECTIONS (Single Column) ──
                   SliverPadding(
                     padding: EdgeInsets.symmetric(horizontal: hPad),
                     sliver: SliverReorderableList(
@@ -92,7 +91,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         return ReorderableDelayedDragStartListener(
                           key: ValueKey(section),
                           index: index,
-                          child: _HomeSectionBuilder(section: section),
+                          child: _HomeSectionBuilder(section: section, isCompact: isCompact),
                         );
                       },
                       onReorder: (oldIndex, newIndex) {
@@ -105,8 +104,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   ),
                   
-                  // Reduced bottom padding to only what's necessary
-                  SliverToBoxAdapter(child: SizedBox(height: 12.h)),
+                  SliverToBoxAdapter(child: SizedBox(height: 50.h)),
                 ],
               ),
             );
@@ -133,6 +131,58 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
+class _HomeSectionBuilder extends StatelessWidget {
+  final String section;
+  final bool isCompact;
+  const _HomeSectionBuilder({required this.section, required this.isCompact});
+
+  @override
+  Widget build(BuildContext context) {
+    return Consumer<CycleProvider>(
+      builder: (context, cycleProvider, _) {
+        final activeCycle = cycleProvider.activeCycle;
+        final workouts = activeCycle?.workouts ?? [];
+
+        switch (section) {
+          case 'meal_log': return _MealLogSection(isCompact: isCompact);
+          case 'supplement_log': return _SupplementLogSection(isCompact: isCompact);
+          case 'stack_log': return _StackLogSection(isCompact: isCompact);
+          case 'water':
+            return Consumer<HydrationProvider>(
+              builder: (context, provider, _) {
+                if (!provider.settings.isPinnedToHome) return const SizedBox.shrink();
+                return _HomeSectionWrapper(
+                  child: WaterTrackerCard(
+                    currentMl: provider.todayIntake,
+                    targetMl: provider.settings.dailyGoal,
+                    addValueMl: provider.settings.addValue,
+                    minusValueMl: provider.settings.minusValue,
+                    useMetric: provider.settings.useMetric,
+                    onAdjust: (amt) => provider.addWater(amt),
+                    isCompact: isCompact,
+                  ),
+                );
+              },
+            );
+          case 'cycle_status':
+            return _HomeSectionWrapper(
+              child: CycleStatusCard(
+                activeCycle: activeCycle?.name ?? 'NO ACTIVE CYCLE',
+                completedWorkouts: workouts.where((w) => w.status == WorkoutStatus.completed).length,
+                totalWorkouts: workouts.length,
+                workOutputGrowth: activeCycle != null ? cycleProvider.calculateCyclePerformance(activeCycle.id) : 0.0,
+                isCompact: isCompact,
+              ),
+            );
+          case 'metrics':
+            return _WorkoutMetricsPair(isCompact: isCompact);
+          default: return const SizedBox.shrink();
+        }
+      },
+    );
+  }
+}
+
 class _HomeSectionWrapper extends StatelessWidget {
   final Widget child;
   const _HomeSectionWrapper({required this.child});
@@ -146,57 +196,9 @@ class _HomeSectionWrapper extends StatelessWidget {
   }
 }
 
-class _HomeSectionBuilder extends StatelessWidget {
-  final String section;
-  const _HomeSectionBuilder({required this.section});
-
-  @override
-  Widget build(BuildContext context) {
-    return Consumer<CycleProvider>(
-      builder: (context, cycleProvider, _) {
-        final activeCycle = cycleProvider.activeCycle;
-        final workouts = activeCycle?.workouts ?? [];
-
-        switch (section) {
-          case 'meal_log': return const _MealLogSection();
-          case 'supplement_log': return const _SupplementLogSection();
-          case 'stack_log': return const _StackLogSection();
-          case 'water':
-            return Consumer<HydrationProvider>(
-              builder: (context, provider, _) {
-                if (!provider.settings.isPinnedToHome) return const SizedBox.shrink();
-                return _HomeSectionWrapper(
-                  child: WaterTrackerCard(
-                    currentMl: provider.todayIntake,
-                    targetMl: provider.settings.dailyGoal,
-                    addValueMl: provider.settings.addValue,
-                    minusValueMl: provider.settings.minusValue,
-                    useMetric: provider.settings.useMetric,
-                    onAdjust: (amt) => provider.addWater(amt),
-                  ),
-                );
-              },
-            );
-          case 'cycle_status':
-            return _HomeSectionWrapper(
-              child: CycleStatusCard(
-                activeCycle: activeCycle?.name ?? 'NO ACTIVE CYCLE',
-                completedWorkouts: workouts.where((w) => w.status == WorkoutStatus.completed).length,
-                totalWorkouts: workouts.length,
-                workOutputGrowth: activeCycle != null ? cycleProvider.calculateCyclePerformance(activeCycle.id) : 0.0,
-              ),
-            );
-          case 'metrics':
-            return const _WorkoutMetricsPair();
-          default: return const SizedBox.shrink();
-        }
-      },
-    );
-  }
-}
-
 class _WorkoutMetricsPair extends StatelessWidget {
-  const _WorkoutMetricsPair();
+  final bool isCompact;
+  const _WorkoutMetricsPair({required this.isCompact});
 
   @override
   Widget build(BuildContext context) {
@@ -216,9 +218,9 @@ class _WorkoutMetricsPair extends StatelessWidget {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Expanded(child: _WorkoutMetricTile(workout: completed.firstOrNull, activeCycle: activeCycle, isHistory: true)),
+                Expanded(child: _WorkoutMetricTile(workout: completed.firstOrNull, activeCycle: activeCycle, isHistory: true, isCompact: isCompact)),
                 SizedBox(width: 12.r),
-                Expanded(child: _WorkoutMetricTile(workout: pending.firstOrNull, activeCycle: activeCycle, isHistory: false)),
+                Expanded(child: _WorkoutMetricTile(workout: pending.firstOrNull, activeCycle: activeCycle, isHistory: false, isCompact: isCompact)),
               ],
             ),
           ),
@@ -232,8 +234,9 @@ class _WorkoutMetricTile extends StatelessWidget {
   final Workout? workout;
   final dynamic activeCycle;
   final bool isHistory;
+  final bool isCompact;
 
-  const _WorkoutMetricTile({this.workout, required this.activeCycle, required this.isHistory});
+  const _WorkoutMetricTile({this.workout, required this.activeCycle, required this.isHistory, required this.isCompact});
 
   @override
   Widget build(BuildContext context) {
@@ -248,15 +251,17 @@ class _WorkoutMetricTile extends StatelessWidget {
       child: CycleMetricTile(
         label: isHistory ? 'Last Workout' : 'Upcoming',
         value: workout?.name ?? (activeCycle == null ? 'Start Cycle' : (isHistory ? 'No History' : 'Cycle Complete')),
-        icon: isHistory ? Icons.history : Icons.event_repeat_rounded,
+        icon: isHistory ? Icons.history : Icons.calendar_today_rounded,
         date: workout?.completedAt != null ? DateFormat('MMM dd, yyyy').format(workout!.completedAt!) : (!isHistory && workout != null ? 'Next Session' : null),
+        isCompact: isCompact,
       ),
     );
   }
 }
 
 class _MealLogSection extends StatelessWidget {
-  const _MealLogSection();
+  final bool isCompact;
+  const _MealLogSection({required this.isCompact});
   @override
   Widget build(BuildContext context) {
     return Consumer<CalorieProvider>(
@@ -268,7 +273,7 @@ class _MealLogSection extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text("MEAL QUICK LOG", style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary, letterSpacing: 2.0, fontSize: 12.sp, fontWeight: FontWeight.w500)),
+              Text("MEAL QUICK LOG", style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary, letterSpacing: 2.0, fontSize: isCompact ? 13.sp : 12.sp, fontWeight: FontWeight.w500)),
               SizedBox(height: 12.r),
               SizedBox(
                 height: 155.r,
@@ -350,7 +355,8 @@ class _MealLogSection extends StatelessWidget {
 }
 
 class _SupplementLogSection extends StatelessWidget {
-  const _SupplementLogSection();
+  final bool isCompact;
+  const _SupplementLogSection({required this.isCompact});
   @override
   Widget build(BuildContext context) {
     return Consumer<SupplementProvider>(
@@ -384,7 +390,7 @@ class _SupplementLogSection extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text("SUPPLEMENT QUICK LOG", style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary, letterSpacing: 2.0, fontSize: 12.sp, fontWeight: FontWeight.w500)),
+              Text("SUPPLEMENT QUICK LOG", style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary, letterSpacing: 2.0, fontSize: isCompact ? 13.sp : 12.sp, fontWeight: FontWeight.w500)),
               SizedBox(height: 12.r),
               SizedBox(
                 height: 160.r, 
@@ -403,7 +409,8 @@ class _SupplementLogSection extends StatelessWidget {
 }
 
 class _StackLogSection extends StatelessWidget {
-  const _StackLogSection();
+  final bool isCompact;
+  const _StackLogSection({required this.isCompact});
   @override
   Widget build(BuildContext context) {
     return Consumer<SupplementProvider>(
@@ -415,7 +422,7 @@ class _StackLogSection extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text("STACK QUICK LOG", style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary, letterSpacing: 2.0, fontSize: 12.sp, fontWeight: FontWeight.w500)),
+              Text("STACK QUICK LOG", style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary, letterSpacing: 2.0, fontSize: isCompact ? 13.sp : 12.sp, fontWeight: FontWeight.w500)),
               SizedBox(height: 12.r),
               SizedBox(
                 height: 165.r,

@@ -3,7 +3,7 @@ import '../model/affirmation.dart';
 import '../model/affirmation_settings.dart';
 
 class AffirmationCloudRepository {
-  final SupabaseClient _supabase = Supabase.instance.client;
+  SupabaseClient get _supabase => Supabase.instance.client;
 
   Future<List<Affirmation>?> getAllAffirmations() async {
     final response = await _supabase
